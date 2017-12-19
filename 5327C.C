@@ -93,10 +93,11 @@ struct liftMech mainLift;
 struct liftMech FourBar;
 struct liftMech MoGo;
 struct position {
-	float X, Y, angle;//current
-	float goalX, goalY, goalAngle;//desired
+	float X, Y, Z;//current x&y positions, and angle
 }
-struct position pos;
+struct position current;
+struct position goal;
+
 //other
 bool rightSide = true;//false for red, going right, else true for blue, going left
 volatile float velocity;
@@ -113,6 +114,9 @@ int getSign(int check) {
 float limitTo(float max, float val) {
 	if (abs(val) < abs(max)) return val;
 	else return getSign(val) * max;
+}
+float sqr(float val){
+	return val*val;
 }
 //gets last average potentiometer vals
 task potAverage() {
@@ -411,6 +415,18 @@ void DownUntil(liftMech lift, int goal, int speed) {
 	lift.PID.isRunning = true;
 	return;
 }
+void goTo(struct position pos, struct position goal) {
+	float x = goal.X - pos.X;
+	float y = goal.Y - pos.Y;
+	float dist = sqrt(sqr(x) + sqr(y));
+	float theta = atan(y / x);
+	//rotate to goal
+	rotFor(pos.Z - theta);
+	//drive distance
+	driveFor(dist);
+	//rotate to desired angle
+	rotFor(pos.Z - goal.Z);
+}
 task LiftControlTask() {
 	for (;;) {//while true
 		LiftLift(mainLift, U6, D6, 0, 0, 40);
@@ -426,15 +442,10 @@ task sensorsUpdate() {
 	for (;;) {
 		mRot = SensorValue[RightGyro];//0.5*(SensorValue[RightGyro] + SensorValue[LeftGyro]);
 		encoderAvg = 0.5*(SensorValue[RightEncoder] + SensorValue[LeftEncoder]);
-		delay(1);
-	}
-}
-task currentPos() {
-	for (;;) {
-		pos.X = 0;//do fancy trig
-		pos.Y = 0;//do fancy trig
-		pos.angle = mRot;
-		delay(5);
+		//figure out how to update the relative position
+		//pos.X =
+		//pos.Y =
+		delay(3);//really quick delay
 	}
 }
 /*---------------------------------------------------------------------------*/
