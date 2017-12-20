@@ -6,7 +6,7 @@
 #pragma config(Sensor, in4,    LiftPot,        sensorPotentiometer)
 #pragma config(Sensor, in5,    MoGoPot,        sensorPotentiometer)
 #pragma config(Sensor, dgtl1,  LeftEncoder,    sensorQuadEncoder)
-#pragma config(Sensor, dgtl4,  RightEncoder,   sensorQuadEncoder)
+#pragma config(Sensor, dgtl3,  RightEncoder,   sensorQuadEncoder)
 #pragma config(Sensor, dgtl10, PLoadLED,       sensorLEDtoVCC)
 #pragma config(Sensor, dgtl11, OddLED,         sensorLEDtoVCC)
 #pragma config(Sensor, dgtl12, EvenLED,        sensorLEDtoVCC)
@@ -93,7 +93,7 @@ struct liftMech mainLift;
 struct liftMech FourBar;
 struct liftMech MoGo;
 struct position {
-	float X, Y, Z;//current x&y positions, and angle
+	float X, Y, angle;//current x&y positions, and angle
 }
 struct position current;
 struct position goal;
@@ -111,9 +111,13 @@ int getSign(int check) {
 	else if (check > 0) return 1;
 	return 0;
 }
-float limitTo(float max, float val) {
+float limitUpTo(float max, float val) {
 	if (abs(val) < abs(max)) return val;
 	else return getSign(val) * max;
+}
+float limitDownTo(float min, float val) {
+	if (abs(val) > abs(min)) return val;
+	else return getSign(val) * min;
 }
 float sqr(float val){
 	return val*val;
@@ -228,6 +232,9 @@ void initializeOpControl() {
 	20); //pid delay
 	MoGo.goal = SensorValue[MoGo.sensor];
 	initPID(MoGo.PID, MoGo.sensor, 30, 0.15, 0, 0, 0, 0, false, true);
+	current.X = 0;
+	current.Y = 0;
+	current.angle = 90;
 }
 float TruSpeed(float value) {//for all other polynomials; visit: goo.gl/mhvbx4
 	return(getSign(value) * (value*value) / (127));
@@ -295,10 +302,11 @@ void driveLR(int right, int left) {
 	motor[LBaseFront] = left;
 	motor[LBaseBack] = left;
 }
-void fwds(int power, int angle) {//drive base forwards
-	int speed = limitTo(127, power);//SO GOOD
-	int dirSkew = (SensorValue[RightGyro] - angle);
-	driveLR(limitTo(127, speed - dirSkew), limitTo(127, speed + dirSkew));
+void fwds(int power, float angle) {//drive base forwards
+	int speed = limitUpTo(100, power);
+	float scalar = 10;//scalar for rotation
+	float dirSkew = limitUpTo(speed, scalar*(mRot - angle));
+	driveLR( speed - dirSkew, speed + dirSkew);
 }
 void rot(float speed) {//rotates base
 	motor[RBaseBack] = speed;
@@ -317,22 +325,28 @@ void driveFor(float goal) {//drives for certain inches
 	float dP = 20;//multiplier for velocity controller
 	float vel = abs(velocity);
 	while (abs(goal * circum - encoderAvg) > thresh) {
-		fwds(dP * ((goal*circum - encoderAvg - 0.1*vel)), initDir);
+		fwds(limitDownTo(5, dP * ((goal*circum - encoderAvg - 0.1*vel))), initDir);
 	}
+	fwds(0, initDir);
 	return;
 }
 void rotFor(float rotGoal) {//rotates for certain degrees
-	int rotScale = 10;//gyro is from -3600 to 3600
+	int rotScale = 1;//gyro is from -3600 to 3600 (NOT ANYMORE)
 	int thresh = 4 * rotScale;//4 degrees
-	rotGoal = getSign(rotGoal)*(abs(rotGoal) + 5);
+	rotGoal = getSign(rotGoal)*(abs(rotGoal) - 15);
 	rotGoal *= rotScale;//scales to degrees
 	int initial = mRot;
 	float dP = 5;//multiplier for velocity controller
 	int current = 0;//to not have to
 	while (abs(current - rotGoal) > thresh) {
 		current = abs(mRot - initial);
+		if(abs(current - 360) < 3) {
+			rotGoal = getSign(rotGoal)*(abs(rotGoal) - 360);
+			current = 0;
+		}
 		rot(dP * ((rotGoal - abs(mRot - initial) - (velocity * 3)) * (10)));//SO GOOD
 	}
+	rot(0);
 	return;
 }
 //////////////////////////////////////////
@@ -363,8 +377,8 @@ task MeasureSpeed() {
 	float delayAmount = 50;
 	for (;;) {
 		//base velocity
-		velocity = ((SensorValue(LeftEncoder) - encoderPast) / circum) / (delayAmount / 1000);//1000 ms in 1s
-		encoderPast = SensorValue(LeftEncoder);
+		velocity = limitDownTo(1, ((encoderAvg - encoderPast) / circum) / (delayAmount / 1000));//1000 ms in 1s
+		encoderPast = encoderAvg;
 		//lift velocities
 		mainLift.velocity = calcLiftVel(mainLift, dist, delayAmount);
 		mainLift.past = SensorValue(mainLift.sensor);
@@ -415,17 +429,23 @@ void DownUntil(liftMech lift, int goal, int speed) {
 	lift.PID.isRunning = true;
 	return;
 }
-void goTo(struct position pos, struct position goal) {
-	float x = goal.X - pos.X;
-	float y = goal.Y - pos.Y;
+void goTo(struct position goal, struct position now) {
+	float x = goal.X - (-now.X);
+	float y = goal.Y - now.Y;
 	float dist = sqrt(sqr(x) + sqr(y));
-	float theta = atan(y / x);
+	float theta = atan(y / x) * (180.0/PI);
 	//rotate to goal
-	rotFor(pos.Z - theta);
+	rotFor(now.angle-theta);
+	rot(0);
+	delay(500);
 	//drive distance
 	driveFor(dist);
+	fwds(0, now.angle);
+	delay(500);
 	//rotate to desired angle
-	rotFor(pos.Z - goal.Z);
+	rotFor(now.angle - goal.angle);
+	rot(0);
+	return;
 }
 task LiftControlTask() {
 	for (;;) {//while true
@@ -439,13 +459,26 @@ task LiftControlTask() {
 	}
 }
 task sensorsUpdate() {
+	int rot=0;
 	for (;;) {
-		mRot = SensorValue[RightGyro];//0.5*(SensorValue[RightGyro] + SensorValue[LeftGyro]);
-		encoderAvg = 0.5*(SensorValue[RightEncoder] + SensorValue[LeftEncoder]);
+		//i dont think the goTo function is working since the gyro rolls over at 360 degrees, thus when doing some rotations it cant make it completely and goes in infinite loop. all the maths are good tho.
+		if(SensorValue[RightGyro] > 3550) {
+			rot ++;
+			SensorValue[RightGyro] = 0;
+		}
+		if(SensorValue[RightGyro] < -3550){
+			rot --;
+			SensorValue[RightGyro] = 0;
+		}
+		mRot = rot*getSign(SensorValue[RightGyro])*360 + (int)(SensorValue[RightGyro]/10);//0.5*(SensorValue[RightGyro] + SensorValue[LeftGyro]);
+		//encoderAvg = 0.5*(SensorValue[RightEncoder] + SensorValue[LeftEncoder]);
+		encoderAvg = SensorValue[LeftEncoder];
 		//figure out how to update the relative position
-		//pos.X =
-		//pos.Y =
-		delay(3);//really quick delay
+		current.angle = mRot + 90;//initially starts at 90 degrees
+		current.X += velocity/circum * cos(current.angle * PI/180) * (PI/180);
+		current.Y += velocity/circum * sin(current.angle * PI/180) * (PI/180);
+		delay(1);//really quick delay
+		//SensorValue[RightEncoder] = 0;
 	}
 }
 /*---------------------------------------------------------------------------*/
@@ -523,7 +556,7 @@ task autoStack() {
 				initialHeight = 420;
 				coneHeight = 200;//basically bring to maximum (because limiter below)
 			}
-			UpUntil(mainLift, limitTo(mainLift.max, currentCone*coneHeight + mainLift.min + initialHeight), 127);
+			UpUntil(mainLift, limitUpTo(mainLift.max, currentCone*coneHeight + mainLift.min + initialHeight), 127);
 			//bring fourbar up
 			delay(delayAmnt / 2);
 			UpUntil(FourBar, FourBar.max, 127);
@@ -548,7 +581,7 @@ void superMoGo() {
 	//do this WHILE bringing mogo OUT
 	UpUntil(MoGo, MoGo.max, 127);
 	delay(300);
-	UpUntil(mainLift, limitTo(mainLift.max, SensorValue[mainLift.sensor] + 150), 127);//goes up a little bit (no more than maximum)
+	UpUntil(mainLift, limitUpTo(mainLift.max, SensorValue[mainLift.sensor] + 150), 127);//goes up a little bit (no more than maximum)
 	UpUntil(FourBar, FourBar.max, 127);//brings up four bar to let go
 	driveFor(-5);//goes back a lil
 }
@@ -563,9 +596,14 @@ task usercontrol() {//initializes everything
 
 	for (;;) {
 		if (D7) currentCone = 0;//reset
-			if (L8) superMoGo();
-		if (R7) driveFor(70);
-		if (L7) rotFor(90);
+			if (L8) driveFor(70);
+		if (R7) rotFor(70);
+		if (L7) {
+			goal.X = 100;
+			goal.Y = 100;
+			goal.angle = 45;
+			goTo(goal, current);
+		}
 		drive();
 		delay(15);//~60hz
 	}
