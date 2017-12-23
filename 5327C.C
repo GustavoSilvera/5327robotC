@@ -377,13 +377,13 @@ void driveLR(int powerR, int powerL) {
 		delay(750);//stall waiter
 	}
 }
-void drive() {
+void driveCtrlr() {
 	//scale for joystick
 	float partner = 0.6;
 	float primary = 1;
-	driveLR(
-	primary*TruSpeed(vexRT[Ch2] + partner*vexRT[Ch2Xmtr2]),//trusped taking both controllers,
-	primary*TruSpeed(vexRT[Ch3] + partner*vexRT[Ch3Xmtr2])
+	driveLR(//trusped taking both controllers
+	TruSpeed(primary*vexRT[Ch2] + partner*vexRT[Ch2Xmtr2]),
+	TruSpeed(primary*vexRT[Ch3] + partner*vexRT[Ch3Xmtr2])
 	);
 }
 void fwds(int power, float angle) {//drive base forwards
@@ -461,10 +461,10 @@ void goTo(struct position goal, struct position now) {
 *| '--------------' || '--------------' || '--------------' || '--------------' |*
 * '----------------'  '----------------'  '----------------'  '----------------' *
 \********************************************************************************/
-float calcLiftVel(struct liftMech* lift, float dist, float delayAmount) {
+float calcLiftVel(const struct liftMech* lift, float dist, float delayAmount) {
 	return ((SensorValue(lift->sensor) - lift->past) / dist) / ((float)(delayAmount / 1000));//1000 ms in 1s;
 }
-float calcBaseVel(struct baseSide* side, float dist, float delayAmount) {
+float calcBaseVel(const struct baseSide* side, float dist, float delayAmount) {
 	return limitDownTo(1, ((SensorValue(side->sensor) - side->past) / dist) / ((float)(delayAmount / 1000)));//1000 ms in 1s;
 }
 task MeasureSpeed() {
@@ -527,18 +527,18 @@ task sensorsUpdate() {
 		//SensorValue[RightEncoder] = 0;
 	}
 }
-bool stalling(struct baseSide* side){
+bool stalling(const struct baseSide* side){
 	return (
-	abs(motor[side->motors[0]]) > 90 &&
-	abs(motor[side->motors[1]]) > 90 &&
-	abs(side->velocity) < 30//low velocity yet high speed (for like 500 ms)
+	abs(motor[side->motors[0]]) > 100 &&//high ish power
+	abs(motor[side->motors[1]]) > 100 &&//high ish power
+	abs(side->velocity) < 50//low ish velocity yet high speed (for like 500 ms)
 	);
 }
 void checkStalling(struct baseSide* side){
 	if(stalling(side)){
 		clearTimer(T1);
 		bool currentlyStalling = true;
-		while(time1[T1] < 350){//checkingn for continuous stalling
+		while(time1[T1] < 400){//checkingn for continuous stalling (else instantanious refresh)
 			currentlyStalling = stalling(side);//still stalling
 			if(currentlyStalling) continue;//keep going until time limit
 			else break;
@@ -712,32 +712,29 @@ task usercontrol() {//initializes everything
 	startTask(autoStack);
 	startTask(antiStall);
 	string mainBattery, powerExpander;
-	bLCDBacklight = true;                                    // Turn on LCD Backlight
-
-	clearLCDLine(0);                                            // Clear line 1 (0) of the LCD
-	clearLCDLine(1);                                            // Clear line 2 (1) of the LCD
-
+	bLCDBacklight = true;// Turn on LCD Backlight
+	clearLCDLine(0); // Clear line 1 (0) of the LCD
+	clearLCDLine(1); // Clear line 2 (1) of the LCD
 	for (;;) {
 		//Display the Primary Robot battery voltage
 		displayLCDString(0, 0, "Primary: ");
 		sprintf(mainBattery, "%1.2f%c", nImmediateBatteryLevel/1000.0,'V'); //Build the value to be displayed
 		displayNextLCDString(mainBattery);
-
-		//Display the Backup battery voltage
+		//Display the Power Expander voltage
 		displayLCDString(1, 0, "PwrExpndr: ");
-		sprintf(powerExpander, "%1.2f%c", ((float)SensorValue[ BATERY_2_PORT ] * 5.48/1000), 'V');    //Build the value to be displayed
+		sprintf(powerExpander, "%1.2f%c", ((float)SensorValue[ BATERY_2_PORT ] * 5.48/1000), 'V');//Build the value to be displayed
 		displayNextLCDString(powerExpander);
+		//debug controls
 		if (D7) currentCone = 0;//reset
-			if (L8) driveFor(70);
-		if (R7) rotFor(70);
+		if (L8) driveFor(70);//should have direction correction enabled
+		if (R7) rotFor(70);//regular turning
 		if (L7) {
 			goal.X = 100;
 			goal.Y = 100;
 			goal.angle = 45;
 			goTo(goal, current);
 		}
-
-		drive();
+		driveCtrlr();
 		delay(15);//~60hz
 	}
 }//function for operator control
