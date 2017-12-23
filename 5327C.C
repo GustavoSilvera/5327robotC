@@ -119,6 +119,9 @@ float limitDownTo(float min, float val) {
 float sqr(float val){
 	return val*val;
 }
+float avg(float a, float b){
+	return 0.5*(a+b);//avg between two things
+}
 /********************************************************************************\
 * .----------------.  .-----------------. .----------------.  .----------------. *
 *| .--------------. || .--------------. || .--------------. || .--------------. |*
@@ -188,7 +191,7 @@ void initializeOpControl() {
 	2100, //lift min
 	20); //pid delay
 	mainLift.goal = SensorValue[mainLift.sensor];
-	initPID(&mainLift.PID, mainLift.sensor, 70, 0.35, 0.0, 0.0, 0, 0, true, true);//threshold CAN be much lower, like 30
+	initPID(&mainLift.PID, mainLift.sensor, 30, 0.35, 0.0, 0.0, 0, 0, true, true);//threshold CAN be much lower, like 30
 	initLiftType(//FOURBAR
 	&FourBar,//for MoGo
 	FourBarPot,
@@ -400,13 +403,13 @@ void driveFor(float goal) {//drives for certain inches
 	SensorValue[LeftEncoder] = 0;
 	SensorValue[RightEncoder] = 0;
 	goal *= 2;//doubles "goal" not tuned very well as of rn
-	int thresh = 2;//10 ticks
+	int thresh = 5;//10 ticks
 	int initDir = mRot;
 	//ClearTimer(T1);
 	float dP = 20;//multiplier for velocity controller
-	float vel = abs(velocity);
+	float vel = velocity;
 	while (abs(goal * circum - encoderAvg) > thresh) {
-		fwds(limitDownTo(5, dP * ((goal*circum - encoderAvg - 0.1*vel))), initDir);
+		fwds(limitDownTo(15, dP * ((goal*circum - encoderAvg - 0.1*vel))), initDir);
 	}
 	fwds(0, initDir);
 	return;
@@ -477,7 +480,7 @@ task MeasureSpeed() {
 		Right.past = SensorValue(Right.sensor);
 		Left.velocity = calcBaseVel(&Left, circum, delayAmount);
 		Left.past = SensorValue(Left.sensor);
-		velocity = 0.5*(Right.velocity + Left.velocity);
+		velocity = avg(Right.velocity, Left.velocity);//overall velocity (avdg between the two)
 		//lift velocities
 		mainLift.velocity = calcLiftVel(&mainLift, dist, delayAmount);
 		mainLift.past = SensorValue(mainLift.sensor);
@@ -517,7 +520,7 @@ task sensorsUpdate() {
 			SensorValue[RightGyro] = 0;
 		}
 		mRot = rot*getSign(SensorValue[RightGyro])*360 + (int)(SensorValue[RightGyro]/10);//0.5*(SensorValue[RightGyro] + SensorValue[LeftGyro]);
-		encoderAvg = 0.5*(SensorValue[Right.sensor] + SensorValue[Left.sensor]);
+		encoderAvg = avg(SensorValue[Right.sensor], SensorValue[Left.sensor]);
 		//encoderAvg = SensorValue[LeftEncoder];
 		//figure out how to update the relative position
 		current.angle = mRot + 90;//initially starts at 90 degrees
