@@ -309,6 +309,7 @@ void LiftLift(struct liftMech* lift, int bUp, int bDown, int bUp2, int bDown2, f
 		}
 		//liftMove(MoGo, 0);
 	}
+	PIDLift(lift);//calls the pid function for the lifts
 }
 void UpUntilStack(struct liftMech* lift, int goal, int speed) {
 	lift->PID.isRunning = false;
@@ -340,11 +341,8 @@ void DownUntil(struct liftMech* lift, int goal, int speed) {
 task LiftControlTask() {
 	for (;;) {//while true
 		LiftLift(&mainLift, U6, D6, 0, 0, 180);
-		PIDLift(&mainLift);
 		LiftLift(&FourBar, U5, D5, U5_2, D5_2, 1200);
-		PIDLift(&FourBar);
 		LiftLift(&MoGo, D8, U8, D8_2, U8_2, 600);
-		PIDLift(&MoGo);
 		delay(10);
 	}
 }
