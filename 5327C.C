@@ -608,6 +608,7 @@ task autonomous() {
 	startTask(LiftControlTask);//individual pid for lift type
 	startTask(MeasureSpeed);//velocity measurer for base
 	startTask(sensorsUpdate);
+	startTask(antiStall);
 	return;
 }
 int currentCone = 0;
