@@ -185,44 +185,36 @@ void initializeOpControl() {
 	initLiftType(//MAIN LIFT
 	&mainLift,//for MAIN DR4B
 	LiftPot,
-	LiftTop,
-	LiftBott,
-	4050, //lift max
-	2100, //lift min
+	LiftTop, LiftBott,//motors
+	4050, 2100, //(max & min)
 	20); //pid delay
 	mainLift.goal = SensorValue[mainLift.sensor];
 	initPID(&mainLift.PID, mainLift.sensor, 30, 0.35, 0.0, 0.0, 0, 0, true, true);//threshold CAN be much lower, like 30
 	initLiftType(//FOURBAR
-	&FourBar,//for MoGo
+	&FourBar,//for Four Bar
 	FourBarPot,
-	R4Bar,
-	L4Bar,
-	2600, //lift max
-	900, //lift min
+	R4Bar,L4Bar,//motors
+	2600, 900, //(max & min)
 	20); //pid delay
 	FourBar.goal = SensorValue[FourBar.sensor];
 	initPID(&FourBar.PID, FourBar.sensor, 30, 0.15, 0.1, 0.01, 0, 0, true, true);
 	initLiftType(//MOGO LIFT
-	&MoGo,//for Four Bar
+	&MoGo,//for MoGo
 	MoGoPot,
-	RMogo,
-	LMogo,
-	4050, //lift max
-	2000, //lift min
+	RMogo,LMogo,//motors
+	4050, 2000, //(max & min)
 	20); //pid delay
 	MoGo.goal = SensorValue[MoGo.sensor];
 	initPID(&MoGo.PID, MoGo.sensor, 30, 0.15, 0, 0, 0, 0, true, true);
 	initBaseSide(
 	&Left,
-	LeftEncoder,
-	LBaseFront,
-	LBaseBack
+	LeftEncoder,//sensor
+	LBaseFront,	LBaseBack//motors
 	);
 	initBaseSide(
 	&Right,
-	RightEncoder,
-	RBaseFront,
-	RBaseBack
+	RightEncoder,//sensor
+	RBaseFront,	RBaseBack//motors
 	);
 	current.X = 0;
 	current.Y = 0;
@@ -263,20 +255,15 @@ float pidController(struct PIDPar* PIDtype, int goal) {
 	// calculate the derivative
 	PIDtype->Derivative = error - PIDtype->LastError;//change in errors
 	PIDtype->LastError = error;
-	// calculate drive (in this case, just for the robot)
+	// calculate drive (in this case, just for the lifts)
 	int dir = 1;
 	if (PIDtype->reversed) dir = -1;
 	return(dir * getSign(error) * abs((PIDtype->kP * error) + (PIDtype->kI * PIDtype->Integral) + (PIDtype->kD * PIDtype->Derivative)));
 }
 void PIDLift(struct liftMech* lift) {
-	if (lift->PID.isRunning) {
-		int power = pidController(lift->PID, lift->goal);
-		liftMove(lift, power);
-	}
-	else {
-		resetPIDVals(lift->PID);
-	}
-	delay(lift->liftPIDelay);
+	if (lift->PID.isRunning) liftMove(lift, pidController(lift->PID, lift->goal));//power the lift with its PID
+	else resetPIDVals(lift->PID);//turn off the PID and reset values
+	delay(lift->liftPIDelay);//delay a lil bit
 }
 void manualLiftControl(struct liftMech* lift, int bUp, int bDown, int bUp2, int bDown2, bool reversed, int maxSpeed) {
 	int dir = 1;
@@ -298,10 +285,8 @@ void LiftLift(struct liftMech* lift, int bUp, int bDown, int bUp2, int bDown2, f
 	}
 	else {
 		if (abs(SensorValue[lift->sensor] - lift->goal) < 200 || abs(lift->velocity) < velLimit) {
-			if (!lift->PID.isRunning) {
-				lift->goal = SensorValue[lift->sensor];
-			}
-			lift->PID.isRunning = true;
+			if (!lift->PID.isRunning) lift->goal = SensorValue[lift->sensor];//sets goal if not already running
+			lift->PID.isRunning = true;//now pid is definitely running
 		}
 		else {
 			lift->PID.isRunning = false;
@@ -311,7 +296,7 @@ void LiftLift(struct liftMech* lift, int bUp, int bDown, int bUp2, int bDown2, f
 	}
 	PIDLift(lift);//calls the pid function for the lifts
 }
-void UpUntilStack(struct liftMech* lift, int goal, int speed) {
+void UpUntilStack(struct liftMech* lift, int goal, int speed) {//uses sonar
 	lift->PID.isRunning = false;
 	while (SensorValue[lift->sensor] < goal || SensorValue[sonar] <= 15) {//brings lift up to goal (ACCOUNTS FOR SONAR)
 		liftMove(lift, speed);
@@ -462,11 +447,15 @@ void goTo(struct position goal, struct position now) {
 *| '--------------' || '--------------' || '--------------' || '--------------' |*
 * '----------------'  '----------------'  '----------------'  '----------------' *
 \********************************************************************************/
-float calcLiftVel(const struct liftMech* lift, float dist, float delayAmount) {
-	return ((SensorValue(lift->sensor) - lift->past) / dist) / ((float)(delayAmount / 1000));//1000 ms in 1s;
+float calcVel(struct liftMech* lift, float dist, float delayAmount) {
+	float velocity = ((SensorValue(lift->sensor) - lift->past) / dist) / ((float)(delayAmount / 1000));//1000ms in 1s
+	lift->past = SensorValue[lift->sensor];
+	return (velocity);//1000 ms in 1s;
 }
-float calcBaseVel(const struct baseSide* side, float dist, float delayAmount) {
-	return limitDownTo(1, ((SensorValue(side->sensor) - side->past) / dist) / ((float)(delayAmount / 1000)));//1000 ms in 1s;
+float calcVel(struct baseSide* side, float dist, float delayAmount) {
+	float velocity = limitDownTo(1, ((SensorValue(side->sensor) - side->past) / dist) / ((float)(delayAmount / 1000)));//1000 ms in 1s;
+	side->past = SensorValue[side->sensor];
+	return(velocity);//1000 ms in 1s;
 }
 task MeasureSpeed() {
 	/*MEASURING IN IN/SEC*/
@@ -474,18 +463,13 @@ task MeasureSpeed() {
 	float delayAmount = 50;
 	for (;;) {
 		//base velocity
-		Right.velocity = calcBaseVel(&Right, circum, delayAmount);
-		Right.past = SensorValue(Right.sensor);
-		Left.velocity = calcBaseVel(&Left, circum, delayAmount);
-		Left.past = SensorValue(Left.sensor);
+		Right.velocity = calcVel(&Right, circum, delayAmount);
+		Left.velocity = calcVel(&Left, circum, delayAmount);
 		velocity = avg(Right.velocity, Left.velocity);//overall velocity (avdg between the two)
 		//lift velocities
-		mainLift.velocity = calcLiftVel(&mainLift, dist, delayAmount);
-		mainLift.past = SensorValue(mainLift.sensor);
-		FourBar.velocity = calcLiftVel(&FourBar, dist, delayAmount);
-		FourBar.past = SensorValue(FourBar.sensor);
-		MoGo.velocity = calcLiftVel(&MoGo, dist, delayAmount);
-		MoGo.past = SensorValue(MoGo.sensor);
+		mainLift.velocity = calcVel(&mainLift, dist, delayAmount);
+		FourBar.velocity = calcVel(&FourBar, dist, delayAmount);
+		MoGo.velocity = calcVel(&MoGo, dist, delayAmount);
 		//does the waitings
 		delay(delayAmount);
 	}
