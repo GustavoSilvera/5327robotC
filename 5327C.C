@@ -194,10 +194,10 @@ void initializeOpControl() {
 	&FourBar,//for Four Bar
 	FourBarPot,
 	R4Bar,L4Bar,//motors
-	2600, 900, //(max & min)
+	2830, 900, //(max & min)
 	20); //pid delay
 	FourBar.goal = SensorValue[FourBar.sensor];
-	initPID(&FourBar.PID, FourBar.sensor, 30, 0.15, 0.1, 0.01, 0, 0, true, true);
+	initPID(&FourBar.PID, FourBar.sensor, 30, 0.15, 0.0, 0.0, 0, 0, true, true);
 	initLiftType(//MOGO LIFT
 	&MoGo,//for MoGo
 	MoGoPot,
@@ -263,7 +263,7 @@ float pidController(struct PIDPar* PIDtype, int goal) {
 void PIDLift(struct liftMech* lift) {
 	if (lift->PID.isRunning) liftMove(lift, pidController(lift->PID, lift->goal));//power the lift with its PID
 	else resetPIDVals(lift->PID);//turn off the PID and reset values
-	delay(lift->liftPIDelay);//delay a lil bit
+		delay(lift->liftPIDelay);//delay a lil bit
 }
 void manualLiftControl(struct liftMech* lift, int bUp, int bDown, int bUp2, int bDown2, bool reversed, int maxSpeed) {
 	int dir = 1;
@@ -286,7 +286,7 @@ void LiftLift(struct liftMech* lift, int bUp, int bDown, int bUp2, int bDown2, f
 	else {
 		if (abs(SensorValue[lift->sensor] - lift->goal) < 200 || abs(lift->velocity) < velLimit) {
 			if (!lift->PID.isRunning) lift->goal = SensorValue[lift->sensor];//sets goal if not already running
-			lift->PID.isRunning = true;//now pid is definitely running
+				lift->PID.isRunning = true;//now pid is definitely running
 		}
 		else {
 			lift->PID.isRunning = false;
@@ -298,8 +298,15 @@ void LiftLift(struct liftMech* lift, int bUp, int bDown, int bUp2, int bDown2, f
 }
 void UpUntilStack(struct liftMech* lift, int goal, int speed) {//uses sonar
 	lift->PID.isRunning = false;
-	while (SensorValue[lift->sensor] < goal || SensorValue[sonar] <= 15) {//brings lift up to goal (ACCOUNTS FOR SONAR)
+	int currentPos;
+	while (SensorValue[lift->sensor] < goal || (SensorValue[sonar] <= 15 && SensorValue[sonar] >= 0) ) {//brings lift up to goal (ACCOUNTS FOR SONAR)
 		liftMove(lift, speed);
+		currentPos = SensorValue[lift->sensor];
+	}
+	if(SensorValue[sonar] <= 15 && SensorValue[sonar] >= 0){
+		while(SensorValue[lift->sensor] < currentPos + 150){
+			liftMove(lift, speed);//moves a bit more if triggered sensor
+		}
 	}
 	return;
 }
@@ -605,17 +612,18 @@ task autoStack() {
 			int delayAmnt = 0;
 			int initialHeight;//how much to go up and down once reached coneHeight's height
 			if (currentCone == 0) {
-				initialHeight = 400;
+				initialHeight = 250;
+				coneHeight = 280;
 			}
 			if (currentCone == 1) {
-				initialHeight = 300;
+				initialHeight = 245;
 				coneHeight = 160;
 			}
 			if (currentCone == 2) {
-				initialHeight = 300;
+				initialHeight = 270;
 			}
 			if (currentCone == 3) {
-				initialHeight = 350;
+				initialHeight = 320;
 				coneHeight = 130;
 			}
 			if (currentCone == 4) {
@@ -662,6 +670,10 @@ task autoStack() {
 			//bring fourbar down
 			FourBar.PID.isRunning = false;
 			DownUntil(FourBar, FourBar.min, 127);
+			//bring fourbar up again
+ 			//UpUntil(FourBar, 2000,127);
+ 			FourBar.goal = 2000;
+			FourBar.PID.isRunning = true;
 			//FourBar.goal = FourBar.min;
 			currentCone++;//assumes got cone
 		}
@@ -712,6 +724,10 @@ task usercontrol() {//initializes everything
 		displayNextLCDString(powerExpander);
 		//debug controls
 		if (D7) currentCone = 0;//reset
+		if (R8 && time1[T2]>300) {
+ 			currentCone -= 1; //subtract one cone if autostack missed
+ 			clearTimer(T2);
+ 		}
 		if (L8) driveFor(70);//should have direction correction enabled
 		if (R7) rotFor(70);//regular turning
 		if (L7) {
