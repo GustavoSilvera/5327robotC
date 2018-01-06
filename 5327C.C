@@ -86,6 +86,7 @@ struct liftMech MoGo;
 struct position {
 	float X, Y, angle;//current x&y positions, and angle
 };
+struct position initial;
 struct position current;
 struct position goal;
 struct baseSide{
@@ -103,6 +104,7 @@ volatile float velocity = 0;
 volatile float rotVelocity = 0;
 volatile float pastRot;
 volatile bool autonRunning = false;
+//int startRot = 90;
 volatile float mRot;//current rotation
 volatile float encoderAvg;//used only for straight fwds and bkwds direction
 //MISC FUNCTIONS
@@ -262,7 +264,8 @@ float pidController(struct PIDPar* PIDtype, int goal) {
 	// calculate drive (in this case, just for the lifts)
 	int dir = 1;
 	if (PIDtype->reversed) dir = -1;
-	return(dir * getSign(error) * abs((PIDtype->kP * error) + (PIDtype->kI * PIDtype->Integral) + (PIDtype->kD * PIDtype->Derivative)));
+	return dir * PIDtype->kP * error + PIDtype->kI * PIDtype->Integral + PIDtype->kD * PIDtype->Derivative;
+	//return(dir * getSign(error) * abs((PIDtype->kP * error) + (PIDtype->kI * PIDtype->Integral) + (PIDtype->kD * PIDtype->Derivative)));
 }
 void PIDLift(struct liftMech* lift) {
 	if (lift->PID.isRunning) liftMove(lift, pidController(lift->PID, lift->goal));//power the lift with its PID
@@ -430,7 +433,7 @@ void rotFor(float rotGoal) {//rotates for certain degrees
 	rotGoal *= rotScale;//scales to degrees
 	int initial = mRot;
 	float dP = 5;//multiplier for velocity controller
-	int current = 0;//to not have to
+	int current = 0;//how much the robot has rotated
 	while (abs(current - rotGoal) > thresh) {
 		current = (mRot - initial);
 		//if(abs(current - 360) < 3) {
@@ -440,6 +443,10 @@ void rotFor(float rotGoal) {//rotates for certain degrees
 		rot(dP * ((rotGoal - current - (velocity *0))));//SO GOOD
 	}
 	rot(0);
+	return;
+}
+void rotTo(float rotGoal) {//rotates to an orientation relative to start of match
+	rotGoal
 	return;
 }
 void goTo(struct position goal, struct position now) {
@@ -701,15 +708,42 @@ task autoStack() {
 		}
 	}
 }
+int initMRot;
+task killswitch(){
+	for(;;){
+		if(R7){
+			stopAllTasks();
+		}
+	}
+}
+void yayWorks(){
+	MoGo.PID.isRunning = true;
+	driveFor(7);
+	MoGo.goal = 2800;
+	driveFor(12.5);
+	delay(300);
+	driveFor(-20);
+	/*
+	fwds(127, mRot);
+	delay(200);
+	MoGo.goal = 2750;
+	fwds(90, mRot);
+	delay(1000);
+
+	//delay(200);
+	driveFor(-20);*/
+}
 void auton(){
+	startTask(killswitch);
 	autonRunning = true;
 	MoGo.goal = MoGo.max;//bring out mogo & drive
 	MoGo.PID.isRunning = true;
 	mainLift.goal = 0.5*(mainLift.max + mainLift.min) - 200;//bring up lift
 	mainLift.PID.isRunning = true;
+	FourBar.PID.kP = 0.01;//slow down four bar so cone doesn't fly out
 	FourBar.goal = 1000;//four bar down
 	FourBar.PID.isRunning = true;
-
+	initMRot = mRot;
 	delay(400);//wait for mogo to come out mostly
 	driveFor(46);
 	delay(300);
@@ -720,9 +754,10 @@ void auton(){
 	delay(200);
 	//CONE 2
   	mainLift.goal = mainLift.min + 400;
+  	FourBar.PID.kP = 0.15;//return to normal kP value
   	UpUntil(&FourBar, FourBar.min + 400, 127);//brings lift up for next cone
 	delay(200);
-  	driveFor(7);
+  	driveFor(5);
   	FourBar.goal = FourBar.min;
 	DownUntil(&mainLift, mainLift.min, 127);//brings lift down (GRABBED CONE 1)
 	delay(200);
@@ -731,16 +766,43 @@ void auton(){
 	delay(100);
 	DownUntil(&mainLift, mainLift.min + 100, 127);//brings down lift
 	FourBar.goal = FourBar.min;//(RELEASED CONE)
-	driveFor(-56);
+	UpUntil(&mainLift, mainLift.min + 300, 127);
+	driveFor(5);
+	DownUntil(&FourBar, FourBar.min, 127);
+	DownUntil(&mainLift, mainLift.min, 127);//grab cone 3
+	delay(300);
+	UpUntil(&mainLift, mainLift.min + 400, 127);
+	UpUntil(&FourBar, FourBar.max, 127);
+	DownUntil(&mainLift, mainLift.min + 200, 127);
+	FourBar.goal = FourBar.min; //released cone 3
+	if(abs(initMRot - mRot) > 3){
+		rot(getSign(initMRot - mRot)*127);
+		delay(100);
+	}
+	/*
+	if(abs(mRot - initMRot) > 3)
+	rot(getSign(mRot - initMRot) * 127);//correct small rotation
+	delay(100);
+	rot(0);*/
+
+	//go back and score
+	driveFor(-63);//-53
+
 	rotFor(-45);
+
+
 	mainLift.goal = 0.5*(mainLift.min + mainLift.max)+200;//gets lift up and out of way
-	driveFor(-32);
-	rotFor(-90);
-	driveFor(10);
-	MoGo.goal = MoGo.max;
-	driveFor(6);
+	driveFor(-30);//-32
+	//position -135 degrees relative to starting position
+	rotFor(-90);//mRot - 42); //change for left side auton
+	//rotFor(-90);
 	delay(200);
-	driveFor(-20);
+	//driveFor(-4);//reverse to gain momentum to cross 10pt
+
+	//driveFor(9);//15
+	//MoGo.goal = 3400;
+	//driveFor(12);
+	yayWorks();
 	//CONE 3
 	//delay(200);
 	//UpUntil(&mainLift, mainLift.min + 500, 127);//brings lift up for next cone
@@ -749,6 +811,9 @@ void auton(){
 	autonRunning = false;
 	return;
 }
+
+
+
 void superMoGo() {
 	FourBar.PID.isRunning = false;///bring 4bar down
 	liftMove(&FourBar, -40);//do this WHILE bringing mogo OUT
