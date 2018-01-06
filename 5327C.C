@@ -720,8 +720,8 @@ void yayWorks(){
 	MoGo.PID.isRunning = true;
 	driveFor(7);
 	MoGo.goal = 2800;
-	driveFor(12.5);
-	delay(300);
+	fwds(70, mRot);
+	delay(800);
 	driveFor(-20);
 	/*
 	fwds(127, mRot);
@@ -764,17 +764,18 @@ void auton(){
 	FourBar.goal = FourBar.max;//brings up lift to prepare stack
 	UpUntil(&mainLift, mainLift.min + 300, 127);
 	delay(100);
+	driveFor(4)
 	DownUntil(&mainLift, mainLift.min + 100, 127);//brings down lift
-	FourBar.goal = FourBar.min;//(RELEASED CONE)
-	UpUntil(&mainLift, mainLift.min + 300, 127);
-	driveFor(5);
-	DownUntil(&FourBar, FourBar.min, 127);
-	DownUntil(&mainLift, mainLift.min, 127);//grab cone 3
+	FourBar.goal = FourBar.min;//															(RELEASED CONE 1)
+	//UpUntil(&mainLift, mainLift.min + 300, 127);//brings lift up for next cone pickup
+	driveFor(1);
+	DownUntil(&FourBar, FourBar.min, 127);//ensures 4bar is down
+	DownUntil(&mainLift, mainLift.min, 127);//								(GRABBED CONE 2)
 	delay(300);
 	UpUntil(&mainLift, mainLift.min + 400, 127);
 	UpUntil(&FourBar, FourBar.max, 127);
 	DownUntil(&mainLift, mainLift.min + 200, 127);
-	FourBar.goal = FourBar.min; //released cone 3
+	FourBar.goal = FourBar.min; //														(RELEASED CONE 2)
 	if(abs(initMRot - mRot) > 3){
 		rot(getSign(initMRot - mRot)*127);
 		delay(100);
