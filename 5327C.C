@@ -621,12 +621,16 @@ task autonomous() {
 	autonRunning = false;
 	return;
 }
+const int coneHeight = 150;//how much the lift goes up AND THEN down
+const int heightValues[11] = {170, 260, 500, 650, 900, 1050, 1210, 1530, 1650, 1750, 1920};//values for where the lift should go to when autoStacking
+const int delayValues[11] = {0, 0, 0, 0, 0, 0, 150, 150, 240, 200, 200};//values for individual delays when autstacking
+
 void matchLoads(int& coneIndex){//should be able to modify the variable (matchLoadConeIndex)
 	FourBar.PID.isRunning = true;
-	FourBar.goal = 2390842394;//IDEAL 4BAR POSITION FOR PICKUP
+	FourBar.goal = 2390898796;//IDEAL 4BAR POSITION FOR PICKUP
 	DownUntil(&mainLift, 2750, 127);//brings down to match loads thing
 	delay(200);//grabs match load
-	UpUntil(&mainLift, 92384672394*coneIndex, 127);//VALUE FOR LIFT BASED ON CONE
+	UpUntil(&mainLift, heightValues[coneIndex + 3], 127);//VALUE FOR LIFT BASED ON CONE
 	UpUntil(&FourBar, FourBar.max, 127);
 	DownUntil(&mainLift, SensorValue[mainLift.sensor] - 150, 127);//down a bit
 	DownUntil(&FourBar, 0.5*(FourBar.min + FourBar.max), 127);
@@ -636,83 +640,35 @@ task autoStack() {
 	for (;;) {
 		if (U7 && currentCone < 12) {
 			mainLift.PID.isRunning = false;
-			FourBar.PID.isRunning = false;
-			int coneHeight = 150;//where to go
-			int delayAmnt = 0;
 			FourBar.PID.isRunning = true;
-			int initialHeight;//how much to go up and down once reached coneHeight's height
-			switch(currentCone){
-				case 0:
-					initialHeight = 170;
-					coneHeight = 130;
-					break;
-				case 1:
-					initialHeight = 110;
-					break;
-				case 2:
-					initialHeight = 200;
-					break;
-				case 3:
-					initialHeight = 200;
-					break;
-				case 4:
-					initialHeight = 300;
-					break;
-				case 5:
-					initialHeight = 300;
-					coneHeight = 130;
-					break;
-				case 6:
-					initialHeight = 310;
-					break;
-				//starts getting janky here
-				case 7:
-					delayAmnt = 150;
-					coneHeight = 130;
-					initialHeight = 480;
-					break;
-				case 8:
-					delayAmnt = 150;
-					coneHeight = 150;
-					initialHeight = 450;
-					break;
-				case 9:
-					coneHeight = 170;
-					delayAmnt = 240;
-					initialHeight = 400;
-					break;
-				case 10:
-					delayAmnt = 200;
-					initialHeight = 420;
-					coneHeight = 200;//basically bring to maximum (because limiter below)
-					break;
-				default:
-					coneHeight = 150;
-					delayAmnt = 200;
-			}
+			//brings four bar up to prevent cone hitting mogo
 			FourBar.goal = 0.5*(FourBar.min + FourBar.max);//brings up a bit
 			delay(100);
-			UpUntil(mainLift, limitUpTo(mainLift.max, currentCone*coneHeight + mainLift.min + initialHeight), 127);
+			//brings lift up to value based on coneIndex
+			UpUntil(mainLift, limitUpTo(mainLift.max, heightValues[currentCone] + mainLift.min), 127);
 			FourBar.PID.isRunning = false;
 			//bring fourbar up
-			delay(delayAmnt *0.75);
+			delay(delayValues[currentCone] * 0.75);
 			UpUntil(FourBar, FourBar.max, 127);
 			//keep fourbar up
 			FourBar.goal = FourBar.max;
 			FourBar.PID.isRunning = true;
-			delay(delayAmnt*0.9);
+			delay(delayValues[currentCone] * 0.9);
 			//bring lift down
-			DownUntil(mainLift, currentCone*coneHeight + mainLift.min, 127);
+			DownUntil(mainLift, heightValues[currentCone] + mainLift.min - coneHeight, 127);
 			//bring fourbar down
 			FourBar.PID.isRunning = false;
-			DownUntil(FourBar, FourBar.min, 127);
-			//bring fourbar up again
- 			//UpUntil(FourBar, 2000,127);
+			DownUntil(FourBar, 2000, 127);
  			FourBar.goal = 2000;
 			FourBar.PID.isRunning = true;
-			//FourBar.goal = FourBar.min;
 			currentCone++;//assumes got cone
 		}
+		if (D7) currentCone = 0;//reset
+		if (R8 && time1[T2]>300) {
+ 			currentCone -= 1; //subtract one cone if autostack missed
+ 			clearTimer(T2);
+ 		}
+ 		delay(50);
 	}
 }
 int initMRot;
@@ -830,11 +786,6 @@ task usercontrol() {//initializes everything
 		sprintf(powerExpander, "%1.2f%c", ((float)SensorValue[ BATERY_2_PORT ] * 5.48/1000), 'V');//Build the value to be displayed
 		displayNextLCDString(powerExpander);
 		//debug controls
-		if (D7) currentCone = 0;//reset
-		if (R8 && time1[T2]>300) {
- 			currentCone -= 1; //subtract one cone if autostack missed
- 			clearTimer(T2);
- 		}
 		if (L8) auton();//should have direction correction enabled
 		//if (R7) rotFor(90);//regular turning
 		if (L7) {
