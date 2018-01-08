@@ -632,6 +632,12 @@ task autonomous() {
 	return;
 }
 int currentCone = 0;
+void downToMatchLoads(){
+	DownUntil(&mainLift, 2750, 127);
+	mainLift.PID.isRunning = true;
+	mainLift.goal = SensorValue[mainLift.sensor];
+	DownUntil(&FourBar, FourBar.min, 127);
+}
 task autoStack() {
 	for (;;) {
 		if (U7 && currentCone < 12) {
@@ -639,31 +645,30 @@ task autoStack() {
 			FourBar.PID.isRunning = false;
 			int coneHeight = 150;//where to go
 			int delayAmnt = 0;
+			FourBar.PID.isRunning = true;
 			int initialHeight;//how much to go up and down once reached coneHeight's height
 			if (currentCone == 0) {
-				initialHeight = 250;
-				coneHeight = 280;
-			}
-			if (currentCone == 1) {
-				initialHeight = 245;
-				coneHeight = 160;
-			}
-			if (currentCone == 2) {
-				initialHeight = 270;
-			}
-			if (currentCone == 3) {
-				initialHeight = 320;
+				initialHeight = 170;
 				coneHeight = 130;
 			}
+			if (currentCone == 1) {
+				initialHeight = 110;
+			}
+			if (currentCone == 2) {
+				initialHeight = 200;
+			}
+			if (currentCone == 3) {
+				initialHeight = 200;
+			}
 			if (currentCone == 4) {
-				initialHeight = 370;
+				initialHeight = 300;
 			}
 			if (currentCone == 5) {
-				initialHeight = 340;
+				initialHeight = 300;
 				coneHeight = 130;
 			}
 			if (currentCone == 6) {
-				initialHeight = 380;
+				initialHeight = 310;
 			}
 			//starts getting janky here
 			if (currentCone == 7) {
@@ -686,14 +691,17 @@ task autoStack() {
 				initialHeight = 420;
 				coneHeight = 200;//basically bring to maximum (because limiter below)
 			}
-			UpUntilStack(mainLift, limitUpTo(mainLift.max, currentCone*coneHeight + mainLift.min + initialHeight), 127);
+			FourBar.goal = 0.5*(FourBar.min + FourBar.max);//brings up a bit
+			delay(100);
+			UpUntil(mainLift, limitUpTo(mainLift.max, currentCone*coneHeight + mainLift.min + initialHeight), 127);
+			FourBar.PID.isRunning = false;
 			//bring fourbar up
-			delay(delayAmnt / 2);
+			delay(delayAmnt *0.75);
 			UpUntil(FourBar, FourBar.max, 127);
 			//keep fourbar up
 			FourBar.goal = FourBar.max;
 			FourBar.PID.isRunning = true;
-			delay(delayAmnt*0.75);
+			delay(delayAmnt*0.9);
 			//bring lift down
 			DownUntil(mainLift, currentCone*coneHeight + mainLift.min, 127);
 			//bring fourbar down
@@ -764,7 +772,7 @@ void auton(){
 	FourBar.goal = FourBar.max;//brings up lift to prepare stack
 	UpUntil(&mainLift, mainLift.min + 300, 127);
 	delay(100);
-	driveFor(4)
+	driveFor(4);
 	DownUntil(&mainLift, mainLift.min + 100, 127);//brings down lift
 	FourBar.goal = FourBar.min;//															(RELEASED CONE 1)
 	//UpUntil(&mainLift, mainLift.min + 300, 127);//brings lift up for next cone pickup
@@ -780,20 +788,13 @@ void auton(){
 		rot(getSign(initMRot - mRot)*127);
 		delay(100);
 	}
-	/*
-	if(abs(mRot - initMRot) > 3)
-	rot(getSign(mRot - initMRot) * 127);//correct small rotation
-	delay(100);
-	rot(0);*/
-
-	//go back and score
 	driveFor(-63);//-53
 
 	rotFor(-45);
 
 
 	mainLift.goal = 0.5*(mainLift.min + mainLift.max)+200;//gets lift up and out of way
-	driveFor(-30);//-32
+	driveFor(-27.5);//-32
 	//position -135 degrees relative to starting position
 	rotFor(-90);//mRot - 42); //change for left side auton
 	//rotFor(-90);
@@ -867,10 +868,7 @@ task usercontrol() {//initializes everything
 		if (L8) auton();//should have direction correction enabled
 		//if (R7) rotFor(90);//regular turning
 		if (L7) {
-			goal.X = 100;
-			goal.Y = 100;
-			goal.angle = 45;
-	//		goTo(goal, current);
+			downToMatchLoads();
 		}
 		driveCtrlr();
 		delay(15);//~60hz
