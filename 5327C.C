@@ -103,7 +103,7 @@ struct baseSide Right;
 volatile float velocity = 0;
 volatile float rotVelocity = 0;
 volatile float pastRot;
-int matchLoadConeIndex = 3;//minimum should always be three
+int matchLoadConeIndex = 0;//minimum should always be three
 int currentCone = 0;
 volatile bool autonRunning = false;
 //int startRot = 90;
@@ -565,35 +565,6 @@ task antiStall(){
 		delay(50);
 	}
 }
-//gets last average potentiometer vals
-task potAverage() {
-	//POT averages
-#define SAMPLE_SIZE 4
-#define NUMSLOTS 4 // second slots
-	int gFourBarPotSamples[SAMPLE_SIZE]; // number of samples keep at 2^x
-	int gChainMA_Sum;
-	int ind_c;
-	int gChainMA;
-	//initializing pot avgs
-	for (int ind = 0; ind<SAMPLE_SIZE; ind++) {
-		gFourBarPotSamples[ind] = 0;
-	}
-	ind_c = 0;
-	gChainMA_Sum = 0;
-	gChainMA = 0;
-	for (;;) {
-		// enter the routine with ind_c pointing to the val to be replace, ie oldest
-		int oldest_val;
-		oldest_val = gFourBarPotSamples[ind_c]; // save the oldest samples
-		gChainMA_Sum -= oldest_val;
-		gFourBarPotSamples[ind_c] = 10 * ((int)((float)SensorValue[FourBarPot] / 10)); // update with the latest sample (also rounded off)
-		gChainMA_Sum += gFourBarPotSamples[ind_c];
-		ind_c = (ind_c + 1) % SAMPLE_SIZE; // this is a circular buffer, update index
-		gChainMA = gChainMA_Sum >> 2; // divide by 4
-		delay(10);
-		//abortTimeslice();
-	}
-}
 /********************************************************************************\
 * .----------------.  .----------------.  .----------------.  .-----------------.*
 *| .--------------. || .--------------. || .--------------. || .--------------. |*
@@ -613,7 +584,6 @@ void pre_auton() {//dont care
 task autonomous() {
 	autonRunning = true;
 	initializeOpControl();
-	startTask(potAverage);
 	startTask(LiftControlTask);//individual pid for lift type
 	startTask(MeasureSpeed);//velocity measurer for base
 	startTask(sensorsUpdate);
@@ -621,24 +591,28 @@ task autonomous() {
 	autonRunning = false;
 	return;
 }
-const int coneHeight = 150;//how much the lift goes up AND THEN down
-const int heightValues[11] = {170, 260, 500, 650, 900, 1050, 1210, 1530, 1650, 1750, 1920};//values for where the lift should go to when autoStacking
+const int heightValues[11] = {170, 260, 400, 650, 810, 920, 1000, 1130, 1250, 1500, 1620};//values for where the lift should go to when autoStacking
+const int coneHeight = 150;//how much the lift goes up DOWN after reaching height values
 const int delayValues[11] = {0, 0, 0, 0, 0, 0, 150, 150, 240, 200, 200};//values for individual delays when autstacking
-
+const int fourBarMatchLoadPos = 2000;//get tru value
 void matchLoads(int& coneIndex){//should be able to modify the variable (matchLoadConeIndex)
+	const int matchLoadHeight = 2250;
 	FourBar.PID.isRunning = true;
-	FourBar.goal = 2390898796;//IDEAL 4BAR POSITION FOR PICKUP
-	DownUntil(&mainLift, 2750, 127);//brings down to match loads thing
+	FourBar.PID.kP = 0.5;
+	FourBar.goal = fourBarMatchLoadPos;//IDEAL 4BAR POSITION FOR PICKUP
+	DownUntil(&mainLift, matchLoadHeight, 127);//brings down to match loads thing
 	delay(200);//grabs match load
-	UpUntil(&mainLift, heightValues[coneIndex + 3], 127);//VALUE FOR LIFT BASED ON CONE
-	UpUntil(&FourBar, FourBar.max, 127);
-	DownUntil(&mainLift, SensorValue[mainLift.sensor] - 150, 127);//down a bit
-	DownUntil(&FourBar, 0.5*(FourBar.min + FourBar.max), 127);
+	UpUntil(&mainLift, heightValues[coneIndex + 3] + mainLift.min, 127);//VALUE FOR LIFT BASED ON CONE
+	UpUntil(&FourBar, FourBar.max, 90);
+	DownUntil(&mainLift, heightValues[coneIndex + 3] + mainLift.min - coneHeight, 127);//down a bit
+	DownUntil(&FourBar, fourBarMatchLoadPos, 80);
+
 	coneIndex++;//next cone
 }
 task autoStack() {
 	for (;;) {
 		if (U7 && currentCone < 12) {
+			FourBar.PID.kP = 0.15;
 			mainLift.PID.isRunning = false;
 			FourBar.PID.isRunning = true;
 			//brings four bar up to prevent cone hitting mogo
@@ -649,7 +623,7 @@ task autoStack() {
 			FourBar.PID.isRunning = false;
 			//bring fourbar up
 			delay(delayValues[currentCone] * 0.75);
-			UpUntil(FourBar, FourBar.max, 127);
+			UpUntil(FourBar, FourBar.max, 100);
 			//keep fourbar up
 			FourBar.goal = FourBar.max;
 			FourBar.PID.isRunning = true;
@@ -691,7 +665,7 @@ void auton(){
 	FourBar.PID.isRunning = true;
 	initMRot = mRot;
 	delay(400);//wait for mogo to come out mostly
-	driveFor(46);
+	driveFor(49);
 	delay(300);
 		//PRELOAD (MOGO WITH CONE)
 	MoGo.goal = MoGo.min;
@@ -714,7 +688,7 @@ void auton(){
 	DownUntil(&mainLift, mainLift.min + 100, 127);//brings down lift
 	FourBar.goal = FourBar.min;//															(RELEASED CONE 1)
 	//UpUntil(&mainLift, mainLift.min + 300, 127);//brings lift up for next cone pickup
-	driveFor(1);
+	driveFor(5);
 	DownUntil(&FourBar, FourBar.min, 127);//ensures 4bar is down
 	DownUntil(&mainLift, mainLift.min, 127);//								(GRABBED CONE 2)
 	delay(300);
@@ -726,7 +700,7 @@ void auton(){
 		rot(getSign(initMRot - mRot)*127);//checking direction if skewed too far
 		delay(100);
 	}
-	driveFor(-63);//-53
+	driveFor(-66);//-53
 	rotFor(-45);
 	mainLift.goal = 0.5*(mainLift.min + mainLift.max)+200;//gets lift up and out of way
 	driveFor(-27.5);//-32
@@ -736,8 +710,8 @@ void auton(){
 	MoGo.PID.isRunning = true;
 	driveFor(7);
 	MoGo.goal = 2800;
-	fwds(70, mRot);
-	delay(800);
+	fwds(100, mRot);
+	delay(1000);
 	driveFor(-20);
 	autonRunning = false;
 	return;
@@ -750,6 +724,7 @@ void superMoGo() {
 	UpUntil(&mainLift, limitUpTo(mainLift.max, SensorValue[mainLift.sensor] + 150), 127);//goes up a little bit (no more than maximum)
 	UpUntil(&FourBar, FourBar.max, 127);//brings up four bar to let go
 	driveFor(-5);//goes back a lil
+	return;
 }
 /********************************************************************************\
 * .----------------.  .----------------.  .----------------.  .----------------. *
@@ -766,7 +741,6 @@ void superMoGo() {
 \********************************************************************************/
 task usercontrol() {//initializes everything
 	initializeOpControl();
-	startTask(potAverage);
 	startTask(LiftControlTask);//individual pid for lift type
 	startTask(MeasureSpeed);//velocity measurer for base
 	startTask(sensorsUpdate);
