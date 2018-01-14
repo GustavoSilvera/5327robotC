@@ -62,7 +62,9 @@
 #define D8_2	    vexRT[Btn8DXmtr2]//8D2
 #define L8_2    	vexRT[Btn8LXmtr2]//8L2
 #define R8_2	    vexRT[Btn8RXmtr2]//8R2
+
 float circum = 4 * PI;//4 inch wheels
+
 struct PIDPar {
 	char sensor;
 	volatile int forceDirection;//changing with multiple threads
@@ -304,7 +306,7 @@ void LiftLift(struct liftMech* lift, int bUp, int bDown, int bUp2, int bDown2, f
 	}
 	PIDLift(lift);//calls the pid function for the lifts
 }
-void UpUntilStack(struct liftMech* lift, int goal, int speed) {//uses sonar
+void UpUntilStack(struct liftMech* lift, int goal, int speed) {//uses sonar for bringing lift up
 	lift->PID.isRunning = false;
 	int currentPos;
 	while (SensorValue[lift->sensor] < goal || (SensorValue[sonar] <= 15 && SensorValue[sonar] >= 0) ) {//brings lift up to goal (ACCOUNTS FOR SONAR)
@@ -619,20 +621,20 @@ task autoStack() {
 			FourBar.goal = 0.5*(FourBar.min + FourBar.max);//brings up a bit
 			delay(100);
 			//brings lift up to value based on coneIndex
-			UpUntil(mainLift, limitUpTo(mainLift.max, heightValues[currentCone] + mainLift.min), 127);
+			UpUntilStack(&mainLift, limitUpTo(mainLift.max, heightValues[currentCone] + mainLift.min), 127);//USES SONAR
 			FourBar.PID.isRunning = false;
 			//bring fourbar up
 			delay(delayValues[currentCone] * 0.75);
-			UpUntil(FourBar, FourBar.max, 100);
+			UpUntil(&FourBar, FourBar.max, 100);
 			//keep fourbar up
 			FourBar.goal = FourBar.max;
 			FourBar.PID.isRunning = true;
 			delay(delayValues[currentCone] * 0.9);
 			//bring lift down
-			DownUntil(mainLift, heightValues[currentCone] + mainLift.min - coneHeight, 127);
+			DownUntil(&mainLift, heightValues[currentCone] + mainLift.min - coneHeight, 127);
 			//bring fourbar down
 			FourBar.PID.isRunning = false;
-			DownUntil(FourBar, 2000, 127);
+			DownUntil(&FourBar, 2000, 127);
  			FourBar.goal = 2000;
 			FourBar.PID.isRunning = true;
 			currentCone++;//assumes got cone
