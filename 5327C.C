@@ -26,7 +26,7 @@
 #pragma platform(VEX2)
 // Select Download method as "competition"
 #pragma competitionControl(Competition)
-//Main competition background code...do not modify!
+//Main competition background code...do not modify!5
 #include "Vex_Competition_Includes.c"
 //#define PID_SENSOR_SCALE    1
 #define PID_MOTOR_SCALE     -1
@@ -198,17 +198,17 @@ void initializeOpControl() {
 	initLiftType(//MAIN LIFT
 		&mainLift,//for MAIN DR4B
 		DUALSENSOR,//for having two sensors
-		RightLiftPot,
+		LeftLiftPot,
 		LiftRight, LiftLeft,//motors
 		4050, 2100, //(max & min)
 		20//pid delay
 	);
 	mainLift.goal = SensorValue[mainLift.sensor[0]];
-	mainLift.sensor[1] = LeftLiftPot;
+	mainLift.sensor[1] = RightLiftPot;
 	initPID(&mainLift.PID, mainLift.sensor[0], 30, 0.35, 0.0, 0.01, 0, 0, true, true);//threshold CAN be much lower, like 30
 	initLiftType(//FOURBAR
 		&FourBar,//for Four Bar
-		BINARY,//only goes up and down
+		NORMAL,//only goes up and down (BINARY)
 		FourBarPot,
 		R4Bar,L4Bar,//motors
 		2600, 900, //(max & min)
@@ -257,13 +257,15 @@ void initializeOpControl() {
 \*******************************************************************************/
 void liftMove(struct liftMech* lift, int speed) {
 	int power = limitUpTo(127, speed);
-	motor[lift->motors[0]] = power;//up is fast
-	motor[lift->motors[1]] = -power;//up is fast
-	if(lift->sensor[1] != 0 && lift->type == DUALSENSOR){//HAS to be mainLift because has initialized 2nd sensor
+	if(false){//lift->sensor[1] != 0 && lift->type == DUALSENSOR){//HAS to be mainLift because has initialized 2nd sensor
 		const float scalar = 0.5;//scalar for potentiometer difference
 		float powSkew = limitUpTo(power, scalar*(SensorValue[mainLift.sensor[0]] - SensorValue[mainLift.sensor[1]]));
 		motor[lift->motors[0]] = power + powSkew;//one side goes faster/slower to compensate
 		motor[lift->motors[1]] = power - powSkew;//one side goes faster/slower to compensate
+	}
+	else {
+		motor[lift->motors[0]] = power;//up is fast
+		motor[lift->motors[1]] = -power;//up is fast
 	}
 }
 void resetPIDVals(struct PIDPar* pid) {
