@@ -62,7 +62,7 @@
 #define L8_2    	vexRT[Btn8LXmtr2]//8L2
 #define R8_2	    vexRT[Btn8RXmtr2]//8R2
 
-float circum = 4 * PI;//4 inch wheels
+const float circum = 4 * PI;//4 inch wheels
 
 struct PIDPar {
 	char sensor;
@@ -73,7 +73,9 @@ struct PIDPar {
 	volatile bool isRunning;
 	float Integral, Derivative, LastError;
 };
+enum liftType{BINARY, DUALSENSOR, NORMAL};//what kinds of lift we have
 struct liftMech {
+	enum liftType type;
 	int motors[2];
 	char sensor[2];
 	float max, min, liftPIDelay, past;
@@ -144,7 +146,8 @@ float avg(float a, float b){
 *| '--------------' || '--------------' || '--------------' || '--------------' |*
 * '----------------'  '----------------'  '----------------'  '----------------' *
 \********************************************************************************/
-void initLiftType(struct liftMech* lift, char sensor, int m1, int m2, int max, int min, int delayAmnt) {
+void initLiftType(struct liftMech* lift, enum liftType type, char sensor, int m1, int m2, int max, int min, int delayAmnt) {
+	lift->type = type;
 	lift->sensor[0] = sensor;
 	lift->sensor[1] = 0;//null second sensor (FOR ALL LIFTS OTHER THAN MAINLIFT)
 	lift->motors[0] = m1;
@@ -194,6 +197,7 @@ void initializeOpControl() {
 	////initializing lifts
 	initLiftType(//MAIN LIFT
 		&mainLift,//for MAIN DR4B
+		DUALSENSOR,//for having two sensors
 		RightLiftPot,
 		LiftRight, LiftLeft,//motors
 		4050, 2100, //(max & min)
@@ -204,6 +208,7 @@ void initializeOpControl() {
 	initPID(&mainLift.PID, mainLift.sensor[0], 30, 0.35, 0.0, 0.01, 0, 0, true, true);//threshold CAN be much lower, like 30
 	initLiftType(//FOURBAR
 		&FourBar,//for Four Bar
+		BINARY,//only goes up and down
 		FourBarPot,
 		R4Bar,L4Bar,//motors
 		2600, 900, //(max & min)
@@ -213,6 +218,7 @@ void initializeOpControl() {
 	initPID(&FourBar.PID, FourBar.sensor[0], 30, 0.15, 0.0, 0.0, 0, 0, true, true);
 	initLiftType(//MOGO LIFT
 		&MoGo,//for MoGo
+		NORMAL,//normal lift mech
 		MoGoPot,
 		RMogo,LMogo,//motors
 		4050, 2000, //(max & min)
@@ -253,7 +259,7 @@ void liftMove(struct liftMech* lift, int speed) {
 	int power = limitUpTo(127, speed);
 	motor[lift->motors[0]] = power;//up is fast
 	motor[lift->motors[1]] = -power;//up is fast
-	if(lift->sensor[1] != 0){//HAS to be mainLift because has initialized 2nd sensor
+	if(lift->sensor[1] != 0 && lift->type == DUALSENSOR){//HAS to be mainLift because has initialized 2nd sensor
 		const float scalar = 0.5;//scalar for potentiometer difference
 		float powSkew = limitUpTo(power, scalar*(SensorValue[mainLift.sensor[0]] - SensorValue[mainLift.sensor[1]]));
 		motor[lift->motors[0]] = power + powSkew;//one side goes faster/slower to compensate
@@ -296,7 +302,7 @@ void manualLiftControl(struct liftMech* lift, int bUp, int bDown, int bUp2, int 
 	if (!upButton && !downButton) liftMove(lift, 0);//not pressed any buttons
 	else if ((SensorValue[lift->sensor] >= lift->max && (upButton))
 		|| (SensorValue[lift->sensor] <= lift->min && (downButton)))//pressing buttons but surpassed limits
-	liftMove(lift, 0);//power 0
+		liftMove(lift, 0);//power 0
 	else if (upButton) liftMove(lift, dir * maxSpeed);//up max speed
 	else if (downButton) liftMove(lift, dir * -maxSpeed);//down max speed
 	else liftMove(lift, 0);
@@ -306,7 +312,7 @@ void LiftLift(struct liftMech* lift, int bUp, int bDown, int bUp2, int bDown2, f
 		lift->PID.isRunning = false;
 		manualLiftControl(lift, bUp, bDown, bUp2, bDown2, false, 127);
 	}
-	else {
+	else if(lift->type != BINARY){//BINARY IS ONLY TOP/BOTTOM
 		if (abs(SensorValue[lift->sensor] - lift->goal) < 200 || abs(lift->velocity) < velLimit) {
 			if (!lift->PID.isRunning) lift->goal = SensorValue[lift->sensor];//sets goal if not already running
 				lift->PID.isRunning = true;//now pid is definitely running
@@ -315,8 +321,8 @@ void LiftLift(struct liftMech* lift, int bUp, int bDown, int bUp2, int bDown2, f
 			lift->PID.isRunning = false;
 			liftMove(lift, 0);
 		}
+		PIDLift(lift);//calls the pid function for the lifts
 	}
-	PIDLift(lift);//calls the pid function for the lifts
 }
 void UpUntilStack(struct liftMech* lift, int goal, int speed) {//uses sonar for bringing lift up
 	lift->PID.isRunning = false;
