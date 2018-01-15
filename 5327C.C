@@ -8,7 +8,6 @@
 #pragma config(Sensor, dgtl1,  LeftEncoder,    sensorQuadEncoder)
 #pragma config(Sensor, dgtl5,  RightEncoder,   sensorQuadEncoder)
 #pragma config(Sensor, dgtl8,  sonar,          sensorSONAR_cm)
-#pragma config(Sensor, dgtl10, PLoadLED,       sensorLEDtoVCC)
 #pragma config(Sensor, dgtl11, OddLED,         sensorLEDtoVCC)
 #pragma config(Sensor, dgtl12, EvenLED,        sensorLEDtoVCC)
 #pragma config(Motor,  port1,           R4Bar,         tmotorVex393_HBridge, openLoop)
@@ -198,7 +197,7 @@ void initializeOpControl() {
 	4050, 2100, //(max & min)
 	20); //pid delay
 	mainLift.goal = SensorValue[mainLift.sensor];
-	initPID(&mainLift.PID, mainLift.sensor, 30, 0.35, 0.0, 0.0, 0, 0, true, true);//threshold CAN be much lower, like 30
+	initPID(&mainLift.PID, mainLift.sensor, 30, 0.35, 0.0, 0.01, 0, 0, true, true);//threshold CAN be much lower, like 30
 	initLiftType(//FOURBAR
 	&FourBar,//for Four Bar
 	FourBarPot,
@@ -309,7 +308,7 @@ void LiftLift(struct liftMech* lift, int bUp, int bDown, int bUp2, int bDown2, f
 void UpUntilStack(struct liftMech* lift, int goal, int speed) {//uses sonar for bringing lift up
 	lift->PID.isRunning = false;
 	int currentPos;
-	while (SensorValue[lift->sensor] < goal || (SensorValue[sonar] <= 15 && SensorValue[sonar] >= 0) ) {//brings lift up to goal (ACCOUNTS FOR SONAR)
+	while (SensorValue[lift->sensor] < goal || (SensorValue[sonar] <= 13 && SensorValue[sonar] >= 0) ) {//brings lift up to goal (ACCOUNTS FOR SONAR)
 		liftMove(lift, speed);
 		currentPos = SensorValue[lift->sensor];
 	}
@@ -344,7 +343,7 @@ task LiftControlTask() {
 	for (;;) {//while true
 		if(!autonRunning){
 			mainLift.PID.kP = 0.35;
-			LiftLift(&mainLift, U6, D6, 0, 0, 180);
+			LiftLift(&mainLift, U6, D6, U6_2, D6_2, 180);
 			LiftLift(&FourBar, U5, D5, U5_2, D5_2, 1200);
 			LiftLift(&MoGo, D8, U8, D8_2, U8_2, 600);
 		}
@@ -391,8 +390,8 @@ void driveLR(int powerR, int powerL) {
 }
 void driveCtrlr() {
 	//scale for joystick
-	float partner = 0.6;
-	float primary = 1;
+	const float partner = 0.8;
+	const float primary = 1;
 	driveLR(//trusped taking both controllers
 	TruSpeed(primary*vexRT[Ch2] + partner*vexRT[Ch2Xmtr2]),
 	TruSpeed(primary*vexRT[Ch3] + partner*vexRT[Ch3Xmtr2])
@@ -400,7 +399,7 @@ void driveCtrlr() {
 }
 void fwds(int power, float angle) {//drive base forwards
 	int speed = limitUpTo(127, power);
-	float scalar = 10;//scalar for rotation
+	const float scalar = 10;//scalar for rotation
 	float dirSkew = limitUpTo(speed, scalar*(mRot - angle));
 	driveLR(speed - dirSkew, speed + dirSkew);
 }
@@ -412,7 +411,7 @@ void driveFor(float goal) {//drives for certain inches
 	SensorValue[LeftEncoder] = 0;
 	SensorValue[RightEncoder] = 0;
 	goal *= 2;//doubles "goal" not tuned very well as of rn
-	int thresh = 5;//10 ticks
+	const int thresh = 5;//10 ticks
 	int initDir = mRot;
 	//ClearTimer(T1);
 	float dP = 20;//multiplier for velocity controller
@@ -425,7 +424,7 @@ void driveFor(float goal) {//drives for certain inches
 }
 void rotFor(float rotGoal) {//rotates for certain degrees
 	int rotScale = 1;//gyro is from -3600 to 3600 (NOT ANYMORE)
-	int thresh = 4 * rotScale;//4 degrees
+	const int thresh = 4 * rotScale;//4 degrees
 	rotGoal *= rotScale;//scales to degrees
 	int initial = mRot;
 	float dP = 5;//multiplier for velocity controller
@@ -593,9 +592,10 @@ task autonomous() {
 	autonRunning = false;
 	return;
 }
-const int heightValues[11] = {170, 260, 400, 650, 810, 920, 1000, 1130, 1250, 1500, 1620};//values for where the lift should go to when autoStacking
+const int heightValues[11] = {110, 220, 370, 600, 750, 870, 1070, 1230, 1270, 1500, 2000};//values for where the lift should go to when autoStacking
 const int coneHeight = 150;//how much the lift goes up DOWN after reaching height values
-const int delayValues[11] = {0, 0, 0, 0, 0, 0, 150, 150, 240, 200, 200};//values for individual delays when autstacking
+const int delayValues[11] = {0, 0, 0, 0, 0, 0, 0, 150, 100, 0, 0};//values for individual delays when autstacking
+//const int delayValues[11] = {0, 0, 0, 0, 0, 0, 150, 150, 240, 200, 200};//values for individual delays when autstacking
 const int fourBarMatchLoadPos = 2000;//get tru value
 void matchLoads(int& coneIndex){//should be able to modify the variable (matchLoadConeIndex)
 	const int matchLoadHeight = 2250;
@@ -613,7 +613,7 @@ void matchLoads(int& coneIndex){//should be able to modify the variable (matchLo
 }
 task autoStack() {
 	for (;;) {
-		if (U7 && currentCone < 12) {
+		if ((U7 || U7_2) && currentCone < 13) {
 			FourBar.PID.kP = 0.15;
 			mainLift.PID.isRunning = false;
 			FourBar.PID.isRunning = true;
@@ -621,11 +621,11 @@ task autoStack() {
 			FourBar.goal = 0.5*(FourBar.min + FourBar.max);//brings up a bit
 			delay(100);
 			//brings lift up to value based on coneIndex
-			UpUntilStack(&mainLift, limitUpTo(mainLift.max, heightValues[currentCone] + mainLift.min), 127);//USES SONAR
+			UpUntil(&mainLift, limitUpTo(mainLift.max, heightValues[currentCone] + mainLift.min), 127);//USES SONAR
 			FourBar.PID.isRunning = false;
 			//bring fourbar up
 			delay(delayValues[currentCone] * 0.75);
-			UpUntil(&FourBar, FourBar.max, 100);
+			UpUntil(&FourBar, FourBar.max, 127);
 			//keep fourbar up
 			FourBar.goal = FourBar.max;
 			FourBar.PID.isRunning = true;
@@ -635,22 +635,50 @@ task autoStack() {
 			//bring fourbar down
 			FourBar.PID.isRunning = false;
 			DownUntil(&FourBar, 2000, 127);
- 			FourBar.goal = 2000;
+			delay(200);
+		//	UpUntil(&FourBar, 1600, 127);//brings 4bar back up
 			FourBar.PID.isRunning = true;
 			currentCone++;//assumes got cone
 		}
-		if (D7) currentCone = 0;//reset
-		if (R8 && time1[T2]>300) {
+
+		if (D7 || D7_2) currentCone = 0;//reset
+		if ((R8 || R8_2) && time1[T2]>300 && currentCone > 0) {
  			currentCone -= 1; //subtract one cone if autostack missed
+ 			playSound(soundBeepBeep);
  			clearTimer(T2);
  		}
- 		delay(50);
+ 		//led stuff
+ 		if(currentCone % 2 == 0) {
+ 			SensorValue[EvenLED] = 1;//even led on
+ 			SensorValue[OddLED] = 0;
+ 		}
+ 		else if (currentCone == 11){
+ 			SensorValue[EvenLED] = 0;
+ 			SensorValue[OddLED] = 1;
+ 			delay(100);
+ 			SensorValue[EvenLED] = 1;
+ 			SensorValue[OddLED] = 0;
+ 			delay(100);
+ 		}
+ 		else {
+ 			SensorValue[EvenLED] = 0;
+ 			SensorValue[OddLED] = 1;//odd led on
+ 		}
+ 		//mogo thing
+ 		if ((R7 || R7_2) && !autonRunning){
+ 			MoGo.PID.isRunning = true;
+			MoGo.goal = 3000;//brings halfway ish
+			delay(500);
+			UpUntil(&MoGo, 3100, 60);
+			UpUntil(&MoGo, MoGo.max, 0);//sets power of 0, no PID
+		}
+ 		delay(30);
 	}
 }
 int initMRot;
 task killswitch(){
 	for(;;){
-		if(R7){
+		if(R7 && autonRunning){
 			stopAllTasks();
 		}
 	}
@@ -718,16 +746,7 @@ void auton(){
 	autonRunning = false;
 	return;
 }
-void superMoGo() {
-	FourBar.PID.isRunning = false;///bring 4bar down
-	liftMove(&FourBar, -40);//do this WHILE bringing mogo OUT
-	UpUntil(&MoGo, MoGo.max, 127);
-	delay(300);
-	UpUntil(&mainLift, limitUpTo(mainLift.max, SensorValue[mainLift.sensor] + 150), 127);//goes up a little bit (no more than maximum)
-	UpUntil(&FourBar, FourBar.max, 127);//brings up four bar to let go
-	driveFor(-5);//goes back a lil
-	return;
-}
+
 /********************************************************************************\
 * .----------------.  .----------------.  .----------------.  .----------------. *
 *| .--------------. || .--------------. || .--------------. || .--------------. |*
@@ -762,8 +781,7 @@ task usercontrol() {//initializes everything
 		sprintf(powerExpander, "%1.2f%c", ((float)SensorValue[ BATERY_2_PORT ] * 5.48/1000), 'V');//Build the value to be displayed
 		displayNextLCDString(powerExpander);
 		//debug controls
-		if (L8) auton();//should have direction correction enabled
-		//if (R7) rotFor(90);//regular turning
+		if (L8 || L8_2) auton();//should have direction correction enabled
 		if (L7) {
 			matchLoads(matchLoadConeIndex);
 		}
