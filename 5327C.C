@@ -29,8 +29,6 @@
 //Main competition background code...do not modify!5
 #include "Vex_Competition_Includes.c"
 
-#include "getlcdbuttons.c"
-
 //#define PID_SENSOR_SCALE    1
 #define PID_MOTOR_SCALE     -1
 #define PID_DRIVE_MAX       127
@@ -568,18 +566,17 @@ task MeasureSpeed() {
 * '----------------'  '----------------'  '----------------'  '----------------' *
 \********************************************************************************/
 /*for the cool ascii text go here: http://patorjk.com/software/taag/#p=display&f=Blocks*/
-void LcdSetAutonomous( int value, bool select = false  )
-{
+void displayAuton( int value, bool select = false  ){
 	// Cleat the lcd
 	clearLCDLine(0);
 	clearLCDLine(1);
 
 	// Display the selection arrows
-	displayLCDString(1,  0, l_arr_str);
-	displayLCDString(1, 13, r_arr_str);
+	displayLCDString(1,  0, "<--");
+	displayLCDString(1, 13, "-->");
 	// Save autonomous mode for later if selected
-	if(select) currentAutonomous = value;
-	// If this choice is selected then display ACTIVE
+	if(select) currentAutonomous = value;//updates current auton with new
+		// If this choice is selected then display ACTIVE
 	if( currentAutonomous == value )
 		displayLCDString(1, 5, "ACTIVE");
 	else
@@ -613,37 +610,27 @@ void LcdSetAutonomous( int value, bool select = false  )
 	// Save autonomous mode for later
 	currentAutonomous = value;
 }
-void LcdAutonomousSelection(){
-	TControllerButtons  button;
-	int  choice = 0;
-
-	// Turn on backlight
-	bLCDBacklight = true;
-
+void autonSelect(int button = 0){
+	// here for reference http://help.robotc.net/Sandbox/Zendesk-Output/Content/Resources/topics/VEX_Cortex/ROBOTC/LCD_Display/nLCDButtons.htm
+	int value = 5;//no auton
+	const int LEFT = 1;
+	const int RIGHT = 4;
+	const int CENTER = 2;
 	// diaplay default choice
-	LcdSetAutonomous(0);
-
-	while( bIfiRobotDisabled )
-	{
-		// this function blocks until button is pressed
-		button = getLcdButtons();
-
-		// Display and select the autonomous routine
-		if( ( button == kButtonLeft ) || ( button == kButtonRight ) ) {
-			// previous choice
-			if( button == kButtonLeft )
-				if( --choice < 0 ) choice = 3;
-			// next choice
-			if( button == kButtonRight )
-				if( ++choice > 3 ) choice = 0;
-			LcdSetAutonomous(choice);
-		}
-		// Select this choice
-		if( button == kButtonCenter )
-			LcdSetAutonomous(choice, true );
-		// Don't hog the cpu !
-		wait1Msec(10);
+	displayAuton(0);
+	// Display and select the autonomous routine
+	if( ( button == LEFT ) || ( button == RIGHT) ) {
+		// previous choice
+		if( button == LEFT && value > 0)
+			value--;
+		// next choice
+		if( button == RIGHT && value < 5)
+			value ++;
+		displayAuton(value);//dosent say "ACTIVE"
 	}
+	// Select this choice
+	if( button == CENTER ) displayAuton(value, true );//says "ACTIVE"
+
 }
 void displayBatteryLevels(){
 	//Display the Primary Robot battery voltage
@@ -654,6 +641,17 @@ void displayBatteryLevels(){
 	displayLCDString(1, 0, "PwrExpndr: ");
 	sprintf(powerExpander, "%1.2f%c", ((float)SensorValue[ BATERY_2_PORT ] * 5.48/1000), 'V');//Build the value to be displayed
 	displayNextLCDString(powerExpander);
+}
+void displayLCD(int button){
+	clearTimer(T4);
+	if(button != 0 || time1[T1] < 5000) { //not sure if works (displays for 5 sec)
+		autonSelect(button);
+	}//displays auton for 5 seconds
+	else {
+		displayBatteryLevels();
+		clearTimer(T4);
+	}
+	delay(30);
 }
 task sensorsUpdate() {
 	int rot=0;
@@ -725,7 +723,9 @@ void pre_auton() {//dont care
 	//Adjust SensorFullCount to set the "rollover" point. 3600 sets the rollover point to +/-3600
 	SensorFullCount[RightGyro] = 3600;
 	SensorFullCount[LeftGyro] = 3600;
-	LcdAutonomousSelection();
+	while( bIfiRobotDisabled ){//in preauton
+		autonSelect(nLCDButtons);
+	}
 }
 const int heightValues[11] = {220, 220, 370, 500, 650, 750, 870, 1050, 1170, 1300, 1450};//values for where the lift should go to when autoStacking
 const int coneHeight = 150;//how much the lift goes up DOWN after reaching height values
@@ -1004,7 +1004,7 @@ task usercontrol() {//initializes everything
 	clearLCDLine(0); // Clear line 1 (0) of the LCD
 	clearLCDLine(1); // Clear line 2 (1) of the LCD
 	for (;;) {
-		displayBatteryLevels();
+		displayLCD(nLCDButtons);
 		//debug controls
 		//	if ( (L7 || L7_2 ) && !autonRunning) threeConeAuton(LEFT);//should have direction correction enabled
 		driveCtrlr();
