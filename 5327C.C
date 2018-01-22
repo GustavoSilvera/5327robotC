@@ -1,5 +1,5 @@
-#pragma config(Sensor, in1,    RightGyro,       sensorGyro)
-#pragma config(Sensor, in2,    LeftGyro,      sensorGyro)
+#pragma config(Sensor, in1,    RightGyro,      sensorGyro)
+#pragma config(Sensor, in2,    LeftGyro,       sensorGyro)
 #pragma config(Sensor, in3,    FourBarPot,     sensorPotentiometer)
 #pragma config(Sensor, in4,    LeftLiftPot,    sensorPotentiometer)
 #pragma config(Sensor, in5,    MoGoPot,        sensorPotentiometer)
@@ -28,6 +28,9 @@
 #pragma competitionControl(Competition)
 //Main competition background code...do not modify!5
 #include "Vex_Competition_Includes.c"
+
+#include "getlcdbuttons.c"
+
 //#define PID_SENSOR_SCALE    1
 #define PID_MOTOR_SCALE     -1
 #define PID_DRIVE_MAX       127
@@ -111,11 +114,12 @@ struct sideMech Right;
 volatile float velocity = 0;
 volatile float rotVelocity = 0;
 volatile float pastRot;
-int matchLoadConeIndex = 0;//minimum should always be three
 int currentCone = 0;
+static int currentAutonomous = 0;
 volatile bool autonRunning = false;
 volatile bool autoStacking = false;
 volatile bool stopAutoStack = false;
+string mainBattery, powerExpander;
 //int startRot = 90;
 volatile float mRot;//current rotation
 volatile float encoderAvg;//used only for straight fwds and bkwds direction
@@ -187,60 +191,66 @@ void initsideMech(struct sideMech* side, char sensor, int m1, int m2){
 void resetGyros() {
 	SensorType[in1] = sensorNone;
 	SensorType[in1] = sensorGyro;//resets gyro sensor, rly sketchy
-	SensorValue[LeftGyro] = 0;//resets gyro sensor
+	SensorValue[RightGyro] = 0;//resets gyro sensor
 	SensorType[in2] = sensorNone;
 	SensorType[in2] = sensorGyro;//resets gyro sensor, rly sketchy
 	SensorValue[RightGyro] = 0;//resets gyro sensor
 	delay(300);
+	//Adjust SensorScale to correct the scaling for your gyro
+	SensorScale[RightGyro] = 260;
+	SensorScale[LeftGyro] = 260;
+	//Adjust SensorFullCount to set the "rollover" point. 3600 sets the rollover point to +/-3600
+	SensorFullCount[RightGyro] = 3600;
+	SensorFullCount[LeftGyro] = 3600;
 }
-void initializeOpControl() {
+void initializeOpControl(bool driver) {
 	SensorValue[EvenLED] = 0;
 	SensorValue[OddLED] = 0;
 	clearLCDLine(0);
 	clearLCDLine(1);
-	resetGyros();
-	velocity = 0.0;
+	if(driver) resetGyros();//wastes time on auton
+		velocity = 0.0;
 	////initializing lifts
 	initLiftType(//MAIN LIFT
-		&mainLift,//for MAIN DR4B
-		DUALSENSOR,//for having two sensors
-		LeftLiftPot,
-		LiftRight, LiftLeft,//motors
-		2150, 620, //(max & min)
-		20//pid delay
+	&mainLift,//for MAIN DR4B
+	DUALSENSOR,//for having two sensors
+	LeftLiftPot,
+	LiftRight, LiftLeft,//motors
+	2150, 620, //(max & min)
+	20//pid delay
 	);
 	mainLift.goal = SensorValue[mainLift.sensor[0]];
 	mainLift.sensor[1] = RightLiftPot;
 	initPID(&mainLift.PID, mainLift.sensor[0], 30, 0.35, 0.0, 0.01, 0, 0, true, true);//threshold CAN be much lower, like 30
 	initLiftType(//FOURBAR
-		&FourBar,//for Four Bar
-		NORMAL,//only goes up and down (BINARY)
-		FourBarPot,
-		R4Bar,L4Bar,//motors
-		2550, 1020, //(max & min)
-		10//pid delay
+	&FourBar,//for Four Bar
+	NORMAL,//only goes up and down (BINARY)
+	FourBarPot,
+	R4Bar,L4Bar,//motors
+	2550, 1020, //(max & min)
+	10//pid delay
 	);
 	FourBar.goal = SensorValue[FourBar.sensor[0]];
 	initPID(&FourBar.PID, FourBar.sensor[0], 10, 0.1, 0.0, 0.01, 0, 0, true, true);
 	initLiftType(//MOGO LIFT
-		&MoGo,//for MoGo
-		NORMAL,//normal lift mech
-		MoGoPot,
-		RMogo,LMogo,//motors
-		4000, 2000, //(max & min)
-		20//pid delay
+	&MoGo,//for MoGo
+	NORMAL,//normal lift mech
+	MoGoPot,
+	RMogo,LMogo,//motors
+	4000, 2000, //(max & min)
+	20//pid delay
 	);
 	MoGo.goal = SensorValue[MoGo.sensor[0]];
 	initPID(&MoGo.PID, MoGo.sensor[0], 30, 0.15, 0, 0, 0, 0, true, true);
 	initsideMech(
-		&Left,
-		LeftEncoder,//sensor
-		LBaseFront,	LBaseBack//motors
+	&Left,
+	LeftEncoder,//sensor
+	LBaseFront,	LBaseBack//motors
 	);
 	initsideMech(
-		&Right,
-		RightEncoder,//sensor
-		RBaseFront,	RBaseBack//motors
+	&Right,
+	RightEncoder,//sensor
+	RBaseFront,	RBaseBack//motors
 	);
 	current.X = 0;
 	current.Y = 0;
@@ -313,7 +323,7 @@ void manualLiftControl(struct liftMech* lift, int bUp, int bDown, int bUp2, int 
 	if (!upButton && !downButton) liftMove(lift, 0);//not pressed any buttons
 	else if ((SensorValue[lift->sensor] >= lift->max && (upButton))
 		|| (SensorValue[lift->sensor] <= lift->min && (downButton)))//pressing buttons but surpassed limits
-		liftMove(lift, 0);//power 0
+	liftMove(lift, 0);//power 0
 	else if (upButton) liftMove(lift, dir * maxSpeed);//up max speed
 	else if (downButton) liftMove(lift, dir * -maxSpeed);//down max speed
 	else liftMove(lift, 0);
@@ -433,8 +443,8 @@ void driveCtrlr() {
 	const float partner = 0.8;
 	const float primary = 1;
 	driveLR(//trusped taking both controllers
-		TruSpeed(primary*vexRT[Ch2] + partner*vexRT[Ch2Xmtr2]),
-		TruSpeed(primary*vexRT[Ch3] + partner*vexRT[Ch3Xmtr2])
+	TruSpeed(primary*vexRT[Ch2] + partner*vexRT[Ch2Xmtr2]),
+	TruSpeed(primary*vexRT[Ch3] + partner*vexRT[Ch3Xmtr2])
 	);
 }
 void fwds(int power, float angle) {//drive base forwards
@@ -558,7 +568,93 @@ task MeasureSpeed() {
 * '----------------'  '----------------'  '----------------'  '----------------' *
 \********************************************************************************/
 /*for the cool ascii text go here: http://patorjk.com/software/taag/#p=display&f=Blocks*/
+void LcdSetAutonomous( int value, bool select = false  )
+{
+	// Cleat the lcd
+	clearLCDLine(0);
+	clearLCDLine(1);
 
+	// Display the selection arrows
+	displayLCDString(1,  0, l_arr_str);
+	displayLCDString(1, 13, r_arr_str);
+	// Save autonomous mode for later if selected
+	if(select) currentAutonomous = value;
+	// If this choice is selected then display ACTIVE
+	if( currentAutonomous == value )
+		displayLCDString(1, 5, "ACTIVE");
+	else
+		displayLCDString(1, 5, "select");
+
+	// Simple selection display
+	switch(value){
+	case    0:
+		displayLCDString(0, 0, "3 Cone R");
+		break;
+	case    1:
+		displayLCDString(0, 0, "3 Cone L");
+		break;
+	case    2:
+		displayLCDString(0, 0, "1 Cone R");
+		break;
+	case    3:
+		displayLCDString(0, 0, "1 Cone L");
+		break;
+	case    4:
+		displayLCDString(0, 0, "RAM time");
+		break;
+	case    5:
+		displayLCDString(0, 0, "no auton");
+		break;
+	default:
+		displayLCDString(0, 0, "Unknown");
+		break;
+	}
+
+	// Save autonomous mode for later
+	currentAutonomous = value;
+}
+void LcdAutonomousSelection(){
+	TControllerButtons  button;
+	int  choice = 0;
+
+	// Turn on backlight
+	bLCDBacklight = true;
+
+	// diaplay default choice
+	LcdSetAutonomous(0);
+
+	while( bIfiRobotDisabled )
+	{
+		// this function blocks until button is pressed
+		button = getLcdButtons();
+
+		// Display and select the autonomous routine
+		if( ( button == kButtonLeft ) || ( button == kButtonRight ) ) {
+			// previous choice
+			if( button == kButtonLeft )
+				if( --choice < 0 ) choice = 3;
+			// next choice
+			if( button == kButtonRight )
+				if( ++choice > 3 ) choice = 0;
+			LcdSetAutonomous(choice);
+		}
+		// Select this choice
+		if( button == kButtonCenter )
+			LcdSetAutonomous(choice, true );
+		// Don't hog the cpu !
+		wait1Msec(10);
+	}
+}
+void displayBatteryLevels(){
+	//Display the Primary Robot battery voltage
+	displayLCDString(0, 0, "Primary: ");
+	sprintf(mainBattery, "%1.2f%c", nImmediateBatteryLevel/1000.0,'V'); //Build the value to be displayed
+	displayNextLCDString(mainBattery);
+	//Display the Power Expander voltage
+	displayLCDString(1, 0, "PwrExpndr: ");
+	sprintf(powerExpander, "%1.2f%c", ((float)SensorValue[ BATERY_2_PORT ] * 5.48/1000), 'V');//Build the value to be displayed
+	displayNextLCDString(powerExpander);
+}
 task sensorsUpdate() {
 	int rot=0;
 	for (;;) {
@@ -621,6 +717,15 @@ task antiStall(){
 \********************************************************************************/
 void pre_auton() {//dont care
 	bStopTasksBetweenModes = true;
+	SensorType[RightGyro] = sensorGyro;
+	wait1Msec(2000);
+	//Adjust SensorScale to correct the scaling for your gyro
+	SensorScale[RightGyro] = 260;
+	SensorScale[LeftGyro] = 260;
+	//Adjust SensorFullCount to set the "rollover" point. 3600 sets the rollover point to +/-3600
+	SensorFullCount[RightGyro] = 3600;
+	SensorFullCount[LeftGyro] = 3600;
+	LcdAutonomousSelection();
 }
 const int heightValues[11] = {220, 220, 370, 500, 650, 750, 870, 1050, 1170, 1300, 1450};//values for where the lift should go to when autoStacking
 const int coneHeight = 150;//how much the lift goes up DOWN after reaching height values
@@ -655,46 +760,46 @@ task autoStack() {
 			FourBar.goal = FourBar.max + 50;
 			if(currentCone == 0) delay(200);
 			DownUntil(&FourBar, FourBar.min, 127);
-		//	UpUntil(&FourBar, 1600, 127);//brings 4bar back up
+			//	UpUntil(&FourBar, 1600, 127);//brings 4bar back up
 			FourBar.PID.isRunning = true;
 			FourBar.PID.kP = 0.15;
 			if(!stopAutoStack) currentCone++;//assumes got cone
-			autoStacking = false;
+				autoStacking = false;
 		}
 
 		if (D7 || D7_2) currentCone = 0;//reset
-		if ((R8 || R8_2) && time1[T2]>300 && currentCone > 0) {
- 			currentCone -= 1; //subtract one cone if autostack missed
- 			playSound(soundDownwardTones);
- 			clearTimer(T2);
- 		}
- 		if ((L8 || L8_2) && time1[T3]>300 && currentCone < 13) {
- 			currentCone += 1; //subtract one cone if autostack missed
- 			playSound(soundUpwardTones);
- 			clearTimer(T3);
- 		}
- 		//led stuff
- 		if(currentCone % 2 == 0) {
- 			SensorValue[EvenLED] = 1;//even led on
- 			SensorValue[OddLED] = 0;
- 		}
- 		else if (currentCone == 11){
- 			SensorValue[EvenLED] = 0;
- 			SensorValue[OddLED] = 1;
- 			delay(100);
- 			SensorValue[EvenLED] = 1;
- 			SensorValue[OddLED] = 0;
- 			delay(100);
- 		}
- 		else {
- 			SensorValue[EvenLED] = 0;
- 			SensorValue[OddLED] = 1;//odd led on
- 		}
- 		//mogo thing
- 		if ((R7 || R7_2) && !autonRunning){
- 			MoGo.PID.isRunning = true;
- 			MoGo.goal = 3100;
- 			MoGo.PID.kP = 1;
+			if ((R8 || R8_2) && time1[T2]>300 && currentCone > 0) {
+			currentCone -= 1; //subtract one cone if autostack missed
+			playSound(soundDownwardTones);
+			clearTimer(T2);
+		}
+		if ((L8 || L8_2) && time1[T3]>300 && currentCone < 13) {
+			currentCone += 1; //subtract one cone if autostack missed
+			playSound(soundUpwardTones);
+			clearTimer(T3);
+		}
+		//led stuff
+		if(currentCone % 2 == 0) {
+			SensorValue[EvenLED] = 1;//even led on
+			SensorValue[OddLED] = 0;
+		}
+		else if (currentCone == 11){
+			SensorValue[EvenLED] = 0;
+			SensorValue[OddLED] = 1;
+			delay(100);
+			SensorValue[EvenLED] = 1;
+			SensorValue[OddLED] = 0;
+			delay(100);
+		}
+		else {
+			SensorValue[EvenLED] = 0;
+			SensorValue[OddLED] = 1;//odd led on
+		}
+		//mogo thing
+		if ((R7 || R7_2) && !autonRunning){
+			MoGo.PID.isRunning = true;
+			MoGo.goal = 3100;
+			MoGo.PID.kP = 1;
 			//liftMove(&MoGo, -60);//stops mogo
 			delay(500);
 			MoGo.PID.isRunning = false;
@@ -705,7 +810,7 @@ task autoStack() {
 			MoGo.PID.kP = 0.15;
 			MoGo.PID.isRunning = false;
 		}
- 		delay(30);
+		delay(30);
 	}
 }
 int initMRot;
@@ -717,22 +822,14 @@ task killswitch(){
 		if((D7 || D7_2) && autoStacking ) {//autostack killswitch
 			stopAutoStack = true;
 			stopTask(autoStack);
-			playSound(soundBeepBeep);//sad face
+			playSound(soundBeepBeep);//killed autostack
 			delay(100);
 			startTask(autoStack);
 		}
 		delay(50);
 	}
 }
-void park(int dir){
-	driveFor(5);
-	rotFor(-dir*85);
-	driveFor(-22);
-	rotFor(-dir*45);
-	driveFor(-50);
-	return;
-}
-void kamakaze(){
+void kamakaze(){//ram auton
 	fwds(127, mRot);
 	delay(5000);
 	fwds(0, mRot);
@@ -754,65 +851,10 @@ void twentyPointScore(int dir){
 	driveFor(-15);
 	MoGo.PID.kP = 0.15;
 }
-void fivePointAuton(bool left){
-	int dir = 1;//left auton
-	if(left) dir = -1;
-	autonRunning = true;
-	MoGo.goal = MoGo.max;//bring out mogo & drive
-	MoGo.PID.isRunning = true;
-	mainLift.goal = 0.5*(mainLift.max + mainLift.min) - 200;//bring up lift
-	mainLift.PID.isRunning = true;
-	FourBar.PID.kP = 0.01;//slow down four bar so cone doesn't fly out
-	FourBar.goal = 1000;//four bar down
-	FourBar.PID.isRunning = true;
-	initMRot = mRot;
-	delay(400);//wait for mogo to come out mostly
-	driveFor(49);
-	delay(300);
-		//PRELOAD (MOGO WITH CONE)
-	MoGo.goal = MoGo.min;
-	delay(200);
-	DownUntil(&mainLift, mainLift.min + 50, 127);//brings lift down
-	delay(200);
-	//CONE 2
-  	mainLift.goal = mainLift.min + 400;
-  	FourBar.PID.kP = 0.15;//return to normal kP value
-  	UpUntil(&FourBar, FourBar.min + 400, 127);//brings lift up for next cone
-	delay(200);
-  	driveFor(3);
-  	FourBar.goal = FourBar.min;
-	DownUntil(&mainLift, mainLift.min, 127);//brings lift down (GRABBED CONE 1)
-	delay(200);
-	FourBar.goal = FourBar.max;//brings up lift to prepare stack
-	UpUntil(&mainLift, mainLift.min + 300, 127);
-	delay(100);
-	driveFor(3);
-	DownUntil(&mainLift, mainLift.min + 50, 127);//brings down lift
-	FourBar.goal = FourBar.min;//															(RELEASED CONE 1)
-	//UpUntil(&mainLift, mainLift.min + 300, 127);//brings lift up for next cone pickup
-	driveFor(2);
-	mainLift.PID.isRunning = true;
-	mainLift.goal = SensorValue[mainLift.sensor[0]] + 200;
-	delay(250);
-	DownUntil(&FourBar, FourBar.min, 127);//ensures 4bar is down
-	UpUntil(&mainLift, SensorValue[mainLift.sensor[0]] + 200, 127);
-	DownUntil(&mainLift, mainLift.min, 127);//								(GRABBED CONE 2)
-	delay(300);
-	UpUntil(&mainLift, mainLift.min + 400, 127);
-	UpUntil(&FourBar, FourBar.max, 127);
-	DownUntil(&mainLift, mainLift.min + 200, 127);
-	FourBar.goal = FourBar.min; //														(RELEASED CONE 2)
-	if(abs(initMRot - mRot) > 3){
-		rot(getSign(initMRot - mRot)*dir*127);//checking direction if skewed too far
-		delay(100);
-	}
-	FourBar.goal = 0.5*(FourBar.max + FourBar.min);//brings halfway
-	driveFor(-63);//-53
+void fivePointScore(int dir){
 	rotFor(-dir*180);
 	UpUntil(&MoGo, MoGo.max - 100, 127);
 	driveFor(-15);
-	autonRunning = false;
-	return;
 }
 void threeConeAuton(bool left){
 	int dir = 1;//left auton
@@ -829,18 +871,18 @@ void threeConeAuton(bool left){
 	delay(400);//wait for mogo to come out mostly
 	driveFor(49);
 	delay(300);
-		//PRELOAD (MOGO WITH CONE)
+	//PRELOAD (MOGO WITH CONE)
 	MoGo.goal = MoGo.min;
 	delay(200);
 	DownUntil(&mainLift, mainLift.min + 50, 127);//brings lift down
 	delay(200);
 	//CONE 2
-  	mainLift.goal = mainLift.min + 400;
-  	FourBar.PID.kP = 0.15;//return to normal kP value
-  	UpUntil(&FourBar, FourBar.min + 400, 127);//brings lift up for next cone
+	mainLift.goal = mainLift.min + 400;
+	FourBar.PID.kP = 0.15;//return to normal kP value
+	UpUntil(&FourBar, FourBar.min + 400, 127);//brings lift up for next cone
 	delay(200);
-  	driveFor(3);
-  	FourBar.goal = FourBar.min;
+	driveFor(3);
+	FourBar.goal = FourBar.min;
 	DownUntil(&mainLift, mainLift.min, 127);//brings lift down (GRABBED CONE 1)
 	delay(200);
 	FourBar.goal = FourBar.max;//brings up lift to prepare stack
@@ -872,7 +914,7 @@ void threeConeAuton(bool left){
 	autonRunning = false;
 	return;
 }
-void EZauton(bool left){
+void EZAuton(bool left){
 	int dir = 1;//left auton
 	if(left) dir = -1;
 	autonRunning = true;
@@ -887,52 +929,52 @@ void EZauton(bool left){
 	delay(400);//wait for mogo to come out mostly
 	driveFor(51);//49
 	delay(300);
-		//PRELOAD (MOGO WITH CONE)
+	//PRELOAD (MOGO WITH CONE)
 	MoGo.goal = MoGo.min;
 	delay(200);
 	DownUntil(&mainLift, mainLift.min + 50, 127);//brings lift down
 	FourBar.goal = 0.5*(FourBar.max + FourBar.min);//brings halfway
 	mainLift.goal = 0.5*(mainLift.min + mainLift.max);//brings halfway
 	driveFor(-47);//-45
-	twentyPointScore(dir);
-	autonRunning = false;
-	return;
-}
-void EZautonFive(bool left){
-	int dir = 1;//left auton
-	if(left) dir = -1;
-	autonRunning = true;
-	MoGo.goal = MoGo.max;//bring out mogo & drive
-	MoGo.PID.isRunning = true;
-	mainLift.goal = 0.5*(mainLift.max + mainLift.min) - 200;//bring up lift
-	mainLift.PID.isRunning = true;
-	FourBar.PID.kP = 0.01;//slow down four bar so cone doesn't fly out
-	FourBar.goal = 1000;//four bar down
-	FourBar.PID.isRunning = true;
-	initMRot = mRot;
-	delay(400);//wait for mogo to come out mostly
-	driveFor(51);//49
-	delay(300);
-		//PRELOAD (MOGO WITH CONE)
-	MoGo.goal = MoGo.min;
-	delay(200);
-	DownUntil(&mainLift, mainLift.min + 50, 127);//brings lift down
-	FourBar.goal = 0.5*(FourBar.max + FourBar.min);//brings halfway
-	mainLift.goal = 0.5*(mainLift.min + mainLift.max);//brings halfway
-	driveFor(-47);//-45
-	FourBar.goal = FourBar.max;
 	twentyPointScore(dir);
 	autonRunning = false;
 	return;
 }
 task autonomous() {
 	autonRunning = true;
-	initializeOpControl();
+	initializeOpControl(false);//auton init
 	startTask(LiftControlTask);//individual pid for lift type
 	startTask(MeasureSpeed);//velocity measurer for base
 	startTask(sensorsUpdate);
 	startTask(antiStall);
-	threeConeAuton(RIGHT);
+	switch( currentAutonomous ) {
+	case    0:
+		threeConeAuton(RIGHT);
+		break;
+
+	case    1:
+		threeConeAuton(LEFT);
+		break;
+
+	case    2:
+		EZAuton(RIGHT);
+		break;
+
+	case    3:
+		EZAuton(LEFT);
+		break;
+
+	case    4:
+		kamakaze();
+		break;
+
+	case    5://no auton
+		break;
+
+	default://no auton
+		break;
+	}
+
 	return;
 }
 
@@ -950,7 +992,7 @@ task autonomous() {
 * '----------------'  '----------------'  '----------------'  '----------------' *
 \********************************************************************************/
 task usercontrol() {//initializes everything
-	initializeOpControl();
+	initializeOpControl(true);//driver init
 	startTask(LiftControlTask);//individual pid for lift type
 	startTask(MeasureSpeed);//velocity measurer for base
 	startTask(sensorsUpdate);
@@ -958,21 +1000,13 @@ task usercontrol() {//initializes everything
 	startTask(antiStall);
 	startTask(killswitch);
 	autonRunning = false;
-	string mainBattery, powerExpander;
 	bLCDBacklight = true;// Turn on LCD Backlight
 	clearLCDLine(0); // Clear line 1 (0) of the LCD
 	clearLCDLine(1); // Clear line 2 (1) of the LCD
 	for (;;) {
-		//Display the Primary Robot battery voltage
-		displayLCDString(0, 0, "Primary: ");
-		sprintf(mainBattery, "%1.2f%c", nImmediateBatteryLevel/1000.0,'V'); //Build the value to be displayed
-		displayNextLCDString(mainBattery);
-		//Display the Power Expander voltage
-		displayLCDString(1, 0, "PwrExpndr: ");
-		sprintf(powerExpander, "%1.2f%c", ((float)SensorValue[ BATERY_2_PORT ] * 5.48/1000), 'V');//Build the value to be displayed
-		displayNextLCDString(powerExpander);
+		displayBatteryLevels();
 		//debug controls
-	//	if ( (L7 || L7_2 ) && !autonRunning) threeConeAuton(LEFT);//should have direction correction enabled
+		//	if ( (L7 || L7_2 ) && !autonRunning) threeConeAuton(LEFT);//should have direction correction enabled
 		driveCtrlr();
 		delay(15);//~60hz
 	}
