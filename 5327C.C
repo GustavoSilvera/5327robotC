@@ -186,6 +186,14 @@ void initsideMech(struct sideMech* side, char sensor, int m1, int m2){
 	SensorValue[side->sensor] = 0;//initially resets encoders
 	side->past = 0;
 }
+void scaleGyros(){
+	SensorScale[RightGyro] = 260;
+	SensorScale[LeftGyro] = 260;
+	//Adjust SensorFullCount to set the "rollover" point. 3600 sets the rollover point to +/-3600
+	//NO RESET
+	SensorFullCount[RightGyro] = 36000;
+	SensorFullCount[LeftGyro] = 36000;
+}
 void resetGyros() {
 	SensorType[in1] = sensorNone;
 	SensorType[in1] = sensorGyro;//resets gyro sensor, rly sketchy
@@ -194,12 +202,7 @@ void resetGyros() {
 	SensorType[in2] = sensorGyro;//resets gyro sensor, rly sketchy
 	SensorValue[RightGyro] = 0;//resets gyro sensor
 	delay(300);
-	//Adjust SensorScale to correct the scaling for your gyro
-	SensorScale[RightGyro] = 260;
-	SensorScale[LeftGyro] = 260;
-	//Adjust SensorFullCount to set the "rollover" point. 3600 sets the rollover point to +/-3600
-	SensorFullCount[RightGyro] = 3600;
-	SensorFullCount[LeftGyro] = 3600;
+	scaleGyros();
 }
 void initializeOpControl(bool driver) {
 	SensorValue[EvenLED] = 0;
@@ -311,7 +314,7 @@ float pidController(struct PIDPar* PIDtype, int goal) {
 void PIDLift(struct liftMech* lift) {
 	if (lift->PID.isRunning) liftMove(lift, pidController(lift->PID, lift->goal));//power the lift with its PID
 	else resetPIDVals(lift->PID);//turn off the PID and reset values
-		delay(lift->liftPIDelay);//delay a lil bit
+	delay(lift->liftPIDelay);//delay a lil bit
 }
 void manualLiftControl(struct liftMech* lift, int bUp, int bDown, int bUp2, int bDown2, bool reversed, int maxSpeed) {
 	int dir = 1;
@@ -608,29 +611,36 @@ void displayAuton( int value, bool select = false  ){
 	}
 
 	// Save autonomous mode for later
-	currentAutonomous = value;
+	//currentAutonomous = value;
 }
-void autonSelect(int button = 0){
+void autonSelect(int delayTime = 5000){
+	clearTimer(T4);
+	int value = 0;//no auton
 	// here for reference http://help.robotc.net/Sandbox/Zendesk-Output/Content/Resources/topics/VEX_Cortex/ROBOTC/LCD_Display/nLCDButtons.htm
-	int value = 5;//no auton
 	const int LEFT = 1;
 	const int RIGHT = 4;
 	const int CENTER = 2;
-	// diaplay default choice
-	displayAuton(0);
-	// Display and select the autonomous routine
-	if( ( button == LEFT ) || ( button == RIGHT) ) {
-		// previous choice
-		if( button == LEFT && value > 0)
-			value--;
-		// next choice
-		if( button == RIGHT && value < 5)
-			value ++;
-		displayAuton(value);//dosent say "ACTIVE"
+	while(time1[T4] < delayTime){
+		// diaplay default choice
+		displayAuton(value);
+		// Display and select the autonomous routine
+		if( ( nLCDButtons == LEFT ) || ( nLCDButtons == RIGHT) ) {
+			// previous choice
+			if( nLCDButtons == LEFT && value > 0)
+				value--;
+			// next choice
+			if( nLCDButtons == RIGHT && value < 5)
+				value ++;
+			displayAuton(value);//dosent say "ACTIVE"
+			clearTimer(T4);
+		}
+		// Select this choice
+		if( nLCDButtons == CENTER ) {
+			displayAuton(value, true );//says "ACTIVE"
+			clearTimer(T4);
+		}
+		delay(200);
 	}
-	// Select this choice
-	if( button == CENTER ) displayAuton(value, true );//says "ACTIVE"
-
 }
 void displayBatteryLevels(){
 	//Display the Primary Robot battery voltage
@@ -642,25 +652,19 @@ void displayBatteryLevels(){
 	sprintf(powerExpander, "%1.2f%c", ((float)SensorValue[ BATERY_2_PORT ] * 5.48/1000), 'V');//Build the value to be displayed
 	displayNextLCDString(powerExpander);
 }
-void displayLCD(int button){
-	clearTimer(T4);
-	if(button != 0 || time1[T1] < 5000) { //not sure if works (displays for 5 sec)
-		autonSelect(button);
-	}//displays auton for 5 seconds
-	else {
-		displayBatteryLevels();
-		clearTimer(T4);
+task displayLCD(){
+	for(;;){
+		if(nLCDButtons != 0) { //not sure if works (displays for 5 sec)
+			autonSelect();
+		}//displays auton for 5 seconds
+		else displayBatteryLevels();
+		delay(30);
 	}
-	delay(30);
 }
 task sensorsUpdate() {
-	int rot=0;
+	//int rot=0;
 	for (;;) {
-		//i dont think the goTo function is working since the gyro rolls over at 360 degrees, thus when doing some rotations it cant make it completely and goes in infinite loop. all the maths are good tho.
-		///if(abs(rotVelocity) > 2500){
-		//	rot += getSign(rotVelocity);
-		//}
-		mRot = rot*360 + (int)(SensorValue[RightGyro]/10);//0.5*(SensorValue[RightGyro] + SensorValue[LeftGyro]);
+		mRot = (int)((float)((15.0/8.0)*0.5*(SensorValue[RightGyro] + SensorValue[LeftGyro])));
 		encoderAvg = avg(SensorValue[Right.sensor], SensorValue[Left.sensor]);
 		//encoderAvg = SensorValue[LeftEncoder];
 		//figure out how to update the relative position
@@ -718,11 +722,7 @@ void pre_auton() {//dont care
 	SensorType[RightGyro] = sensorGyro;
 	wait1Msec(2000);
 	//Adjust SensorScale to correct the scaling for your gyro
-	SensorScale[RightGyro] = 260;
-	SensorScale[LeftGyro] = 260;
-	//Adjust SensorFullCount to set the "rollover" point. 3600 sets the rollover point to +/-3600
-	SensorFullCount[RightGyro] = 3600;
-	SensorFullCount[LeftGyro] = 3600;
+	scaleGyros();
 	while( bIfiRobotDisabled ){//in preauton
 		autonSelect(nLCDButtons);
 	}
@@ -766,7 +766,6 @@ task autoStack() {
 			if(!stopAutoStack) currentCone++;//assumes got cone
 				autoStacking = false;
 		}
-
 		if (D7 || D7_2) currentCone = 0;//reset
 			if ((R8 || R8_2) && time1[T2]>300 && currentCone > 0) {
 			currentCone -= 1; //subtract one cone if autostack missed
@@ -999,12 +998,12 @@ task usercontrol() {//initializes everything
 	startTask(autoStack);
 	startTask(antiStall);
 	startTask(killswitch);
+	startTask(displayLCD);
 	autonRunning = false;
 	bLCDBacklight = true;// Turn on LCD Backlight
 	clearLCDLine(0); // Clear line 1 (0) of the LCD
 	clearLCDLine(1); // Clear line 2 (1) of the LCD
 	for (;;) {
-		displayLCD(nLCDButtons);
 		//debug controls
 		//	if ( (L7 || L7_2 ) && !autonRunning) threeConeAuton(LEFT);//should have direction correction enabled
 		driveCtrlr();
