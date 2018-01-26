@@ -1,5 +1,4 @@
-#pragma config(Sensor, in1,    RightGyro,      sensorGyro)
-#pragma config(Sensor, in2,    LeftGyro,       sensorGyro)
+#pragma config(Sensor, in1,    Gyro,      	   sensorGyro)
 #pragma config(Sensor, in3,    FourBarPot,     sensorPotentiometer)
 #pragma config(Sensor, in4,    LeftLiftPot,    sensorPotentiometer)
 #pragma config(Sensor, in5,    MoGoPot,        sensorPotentiometer)
@@ -29,11 +28,6 @@
 //Main competition background code...do not modify!5
 #include "Vex_Competition_Includes.c"
 
-//#define PID_SENSOR_SCALE    1
-#define PID_MOTOR_SCALE     -1
-#define PID_DRIVE_MAX       127
-#define PID_DRIVE_MIN     (-127)
-#define PID_INTEGRAL_LIMIT  50
 #define PI 3.1415
 
 //controller
@@ -90,13 +84,6 @@ struct liftMech {
 struct liftMech mainLift;
 struct liftMech FourBar;
 struct liftMech MoGo;
-//
-struct position {
-	float X, Y, angle;//current x&y positions, and angle
-};
-struct position initial;//used for GoTo
-struct position current;
-struct position goal;//used for GoTo
 
 struct sideMech{
 	int motors[2];
@@ -122,23 +109,23 @@ string mainBattery, powerExpander;
 volatile float mRot;//current rotation
 volatile float encoderAvg;//used only for straight fwds and bkwds direction
 //MISC FUNCTIONS
-int getSign(int check) {
+int getSign(const int check) {
 	if (check < 0) return -1;
 	else if (check > 0) return 1;
 	return 0;
 }
-float limitUpTo(float max, float val) {
+float limitUpTo(const float max, float val) {
 	if (abs(val) < abs(max)) return val;
 	else return getSign(val) * max;
 }
-float limitDownTo(float min, float val) {
+float limitDownTo(const float min, const float val) {
 	if (abs(val) > abs(min)) return val;
 	else return getSign(val) * min;
 }
-float sqr(float val){
+float sqr(const float val){
 	return val*val;
 }
-float avg(float a, float b){
+float avg(const float a, const float b){
 	return 0.5*(a+b);//avg between two things
 }
 /********************************************************************************\
@@ -154,10 +141,10 @@ float avg(float a, float b){
 *| '--------------' || '--------------' || '--------------' || '--------------' |*
 * '----------------'  '----------------'  '----------------'  '----------------' *
 \********************************************************************************/
-void initLiftType(struct liftMech* lift, enum liftType type, char sensor, int m1, int m2, int max, int min, int delayAmnt) {
+void initLiftType(const struct liftMech* lift, enum liftType type, char sensor, char sensor2, int m1, int m2, int max, int min, int delayAmnt = 20) {
 	lift->type = type;
 	lift->sensor[0] = sensor;
-	lift->sensor[1] = 0;//null second sensor (FOR ALL LIFTS OTHER THAN MAINLIFT)
+	lift->sensor[1] = sensor2;//null second sensor (FOR ALL LIFTS OTHER THAN MAINLIFT)
 	lift->motors[0] = m1;
 	lift->motors[1] = m2;
 	lift->max = max;
@@ -165,19 +152,20 @@ void initLiftType(struct liftMech* lift, enum liftType type, char sensor, int m1
 	lift->liftPIDelay = delayAmnt;
 	lift->velocity = 0.0;
 	lift->past = 0;
+	lift->goal = SensorValue[lift->sensor[0]];
 }
-void initPID(struct PIDPar* PIDType, char sensor, int thresh, float kP, float kI, float kD, int lastError, int Integral, bool reversed, bool isRunning) {
+void initPID(const struct PIDPar* PIDType, char sensor, int thresh, float kP, float kI, float kD, bool reversed, bool isRunning = true) {
 	PIDType->sensor = sensor;
 	PIDType->thresh = thresh;
 	PIDType->kP = kP;//0.2 //pretty efficient lift tho 0.075
 	PIDType->kI = kI;// 0 .05;//0.04;
 	PIDType->kD = kD;//1;
-	PIDType->LastError = lastError;
-	PIDType->Integral = Integral;
+	PIDType->LastError = 0.0;
+	PIDType->Integral = 0.0;
 	PIDType->reversed = reversed;
 	PIDType->isRunning = isRunning;
 }
-void initsideMech(struct sideMech* side, char sensor, int m1, int m2){
+void initsideMech(const struct sideMech* side, char sensor, int m1, int m2){
 	side->sensor = sensor;
 	side->motors[0] = m1;
 	side->motors[1] = m2;
@@ -187,75 +175,39 @@ void initsideMech(struct sideMech* side, char sensor, int m1, int m2){
 	side->past = 0;
 }
 void scaleGyros(){
-	SensorScale[RightGyro] = 260;
-	SensorScale[LeftGyro] = 260;
+	SensorScale[Gyro] = 260;
 	//Adjust SensorFullCount to set the "rollover" point. 3600 sets the rollover point to +/-3600
 	//NO RESET
-	SensorFullCount[RightGyro] = 36000;
-	SensorFullCount[LeftGyro] = 36000;
+	SensorFullCount[Gyro] = 36000;
 }
 void resetGyros() {
 	SensorType[in1] = sensorNone;
 	SensorType[in1] = sensorGyro;//resets gyro sensor, rly sketchy
-	SensorValue[RightGyro] = 0;//resets gyro sensor
-	SensorType[in2] = sensorNone;
-	SensorType[in2] = sensorGyro;//resets gyro sensor, rly sketchy
-	SensorValue[RightGyro] = 0;//resets gyro sensor
+	SensorValue[Gyro] = 0;//resets gyro sensor
 	delay(300);
 	scaleGyros();
 }
-void initializeOpControl(bool driver) {
+void initializeOpControl(const bool driver) {
 	SensorValue[EvenLED] = 0;
 	SensorValue[OddLED] = 0;
 	clearLCDLine(0);
 	clearLCDLine(1);
 	if(driver) resetGyros();//wastes time on auton
-		velocity = 0.0;
-	////initializing lifts
-	initLiftType(//MAIN LIFT
-	&mainLift,//for MAIN DR4B
-	DUALSENSOR,//for having two sensors
-	LeftLiftPot,
-	LiftRight, LiftLeft,//motors
-	2150, 620, //(max & min)
-	20//pid delay
-	);
-	mainLift.goal = SensorValue[mainLift.sensor[0]];
-	mainLift.sensor[1] = RightLiftPot;
-	initPID(&mainLift.PID, mainLift.sensor[0], 30, 0.45, 0.0, 0.05, 0, 0, true, true);//threshold CAN be much lower, like 30
-	initLiftType(//FOURBAR
-	&FourBar,//for Four Bar
-	NORMAL,//only goes up and down (BINARY)
-	FourBarPot,
-	R4Bar,L4Bar,//motors
-	2550, 1020, //(max & min)
-	10//pid delay
-	);
-	FourBar.goal = SensorValue[FourBar.sensor[0]];
-	initPID(&FourBar.PID, FourBar.sensor[0], 10, 0.1, 0.0, 0.01, 0, 0, true, true);
-	initLiftType(//MOGO LIFT
-	&MoGo,//for MoGo
-	NORMAL,//normal lift mech
-	MoGoPot,
-	RMogo,LMogo,//motors
-	4000, 2000, //(max & min)
-	20//pid delay
-	);
-	MoGo.goal = SensorValue[MoGo.sensor[0]];
-	initPID(&MoGo.PID, MoGo.sensor[0], 30, 0.15, 0, 0, 0, 0, true, true);
-	initsideMech(
-	&Left,
-	LeftEncoder,//sensor
-	LBaseFront,	LBaseBack//motors
-	);
-	initsideMech(
-	&Right,
-	RightEncoder,//sensor
-	RBaseFront,	RBaseBack//motors
-	);
-	current.X = 0;
-	current.Y = 0;
-	current.angle = 90;
+	velocity = 0.0;
+
+	//-LIFT---------&reference--TYPE--------sensor-1--------sensor-2--------motor-1-----motor-2-----max------min----delay(opt)
+	initLiftType(	&mainLift,	DUALSENSOR,	LeftLiftPot,	RightLiftPot,	LiftRight,	LiftLeft, 	2150,	 620	  );
+	initLiftType(	&FourBar,	NORMAL,	 	FourBarPot,		0,				R4Bar,		L4Bar,		2550,	 1020,	10);
+	initLiftType(	&MoGo,		NORMAL,		MoGoPot,		0,				RMogo,		LMogo,		4000,	 2000,	  );
+
+	//-PID------&reference------sensor----------------thresh----kP-------kI-----kD------reversed----running(opt)
+	initPID(	&mainLift.PID,	mainLift.sensor[0],	  30,	    0.45,	 0.0,	0.05, 	true, 		true);
+	initPID(	&FourBar.PID, 	FourBar.sensor[0], 	  10, 	    0.1, 	 0.0,   0.01,   true, 		true);
+	initPID(	&MoGo.PID, 		MoGo.sensor[0], 	  30, 	    0.15,    0.0,   0.0,    true, 		true);
+
+	//-SIDE---------&reference----sensor------------motor-1-----------motor-2------
+	initsideMech( 	&Left, 		  LeftEncoder, 		LBaseFront, 	  LBaseBack	);
+	initsideMech( 	&Right, 	  RightEncoder,		RBaseFront,		  RBaseBack);
 	pastRot = mRot;
 }
 //function for driving the robot
@@ -272,10 +224,10 @@ void initializeOpControl(bool driver) {
 *| '--------------' || '--------------' || '--------------' || '--------------' |*
 * '----------------'  '----------------'  '----------------'  '----------------' *
 \*******************************************************************************/
-float PolyReg(float amnt){
+float PolyReg(const float amnt){
 	return(-11.237 * (amnt * amnt) + 286.05 * (amnt) + 261.23);
 }
-void liftMove(struct liftMech* lift, float speed) {
+void liftMove(const struct liftMech* lift, const float speed) {
 	float power = limitUpTo(127, speed);
 	if(lift->sensor[1] != 0 && lift->type == DUALSENSOR){//HAS to be mainLift because has initialized 2nd sensor
 		const float scalar = 0.05;//scalar for potentiometer difference
@@ -288,12 +240,12 @@ void liftMove(struct liftMech* lift, float speed) {
 		motor[lift->motors[1]] = -power;//up is fast
 	}
 }
-void resetPIDVals(struct PIDPar* pid) {
+void resetPIDVals(const struct PIDPar* pid) {
 	pid->LastError = 0;
 	pid->Integral = 0;
 	pid->Derivative = 0;
 }
-float pidController(struct PIDPar* PIDtype, int goal) {
+float pidController(const struct PIDPar* PIDtype, const int goal) {
 	float error = SensorValue[PIDtype->sensor] - goal;//calculate error
 	if (abs(error) < PIDtype->thresh) error = 0;
 	float untilIntegral = 100;//considered "low threshold" for potentiometers
@@ -311,12 +263,12 @@ float pidController(struct PIDPar* PIDtype, int goal) {
 	return dir * PIDtype->kP * error + PIDtype->kI * PIDtype->Integral + PIDtype->kD * PIDtype->Derivative;
 	//return(dir * getSign(error) * abs((PIDtype->kP * error) + (PIDtype->kI * PIDtype->Integral) + (PIDtype->kD * PIDtype->Derivative)));
 }
-void PIDLift(struct liftMech* lift) {
+void PIDLift(const struct liftMech* lift) {
 	if (lift->PID.isRunning) liftMove(lift, pidController(lift->PID, lift->goal));//power the lift with its PID
 	else resetPIDVals(lift->PID);//turn off the PID and reset values
 	delay(lift->liftPIDelay);//delay a lil bit
 }
-void manualLiftControl(struct liftMech* lift, int bUp, int bDown, int bUp2, int bDown2, bool reversed, int maxSpeed) {
+void manualLiftControl(const struct liftMech* lift, int bUp, int bDown, int bUp2, int bDown2, bool reversed, int maxSpeed) {
 	int dir = 1;
 	if (reversed) dir = -1;
 	bool upButton = (bUp == 1 || bUp2 == 1);//defining what is up button
@@ -329,7 +281,7 @@ void manualLiftControl(struct liftMech* lift, int bUp, int bDown, int bUp2, int 
 	else if (downButton) liftMove(lift, dir * -maxSpeed);//down max speed
 	else liftMove(lift, 0);
 }
-void LiftLift(struct liftMech* lift, int bUp, int bDown, int bUp2, int bDown2, float velLimit) {
+void LiftLift(const struct liftMech* lift, int bUp, int bDown, int bUp2, int bDown2, float velLimit) {
 	if (bUp || bDown || bUp2 || bDown2) {
 		lift->PID.isRunning = false;
 		manualLiftControl(lift, bUp, bDown, bUp2, bDown2, false, 127);
@@ -346,7 +298,7 @@ void LiftLift(struct liftMech* lift, int bUp, int bDown, int bUp2, int bDown2, f
 		PIDLift(lift);//calls the pid function for the lifts
 	}
 }
-void UpUntilStack(struct liftMech* lift, int goal, int speed) {//uses sonar for bringing lift up
+void UpUntilStack(const struct liftMech* lift, int goal, int speed) {//uses sonar for bringing lift up
 	lift->PID.isRunning = false;
 	int currentPos;
 	while (SensorValue[lift->sensor] < goal || (SensorValue[sonar] <= 13 && SensorValue[sonar] >= 0)) {//brings lift up to goal (ACCOUNTS FOR SONAR)
@@ -361,7 +313,7 @@ void UpUntilStack(struct liftMech* lift, int goal, int speed) {//uses sonar for 
 	}
 	return;
 }
-void UpUntil(struct liftMech* lift, int goal, int speed) {
+void UpUntil(const struct liftMech* lift, int goal, int speed) {
 	lift->PID.isRunning = false;
 	while (SensorValue[lift->sensor] < goal) {//brings lift up to goal
 		liftMove(lift, speed);
@@ -414,14 +366,14 @@ task LiftControlTask() {
 *| '--------------' || '--------------' || '--------------' || '--------------' |*
 * '----------------'  '----------------'  '----------------'  '----------------' *
 \*******************************************************************************/
-float TruSpeed(float value) {//for all other polynomials; visit: goo.gl/mhvbx4
+float TruSpeed(const float value) {//for all other polynomials; visit: goo.gl/mhvbx4
 	return(getSign(value) * ( (value*value) / (127) ));//squaring
 }//function for calculating the truSpeed function based off a polynomial
-void baseMove(struct sideMech* side, int speed) {
+void baseMove(const struct sideMech* side, int speed) {
 	motor[side->motors[0]] = speed;//up is fast
 	motor[side->motors[1]] = speed;//up is fast
 }
-void driveLR(int powerR, int powerL) {
+void driveLR(const int powerR, const int powerL) {
 	if(autonRunning){
 		if(!Right.stalling) baseMove(&Right, powerR);
 		else {
@@ -448,13 +400,13 @@ void driveCtrlr() {
 	TruSpeed(primary*vexRT[Ch3] + partner*vexRT[Ch3Xmtr2])
 	);
 }
-void fwds(int power, float angle) {//drive base forwards
+void fwds(const int power, const float angle) {//drive base forwards
 	int speed = limitUpTo(127, power);
 	const float scalar = 10;//scalar for rotation
 	float dirSkew = limitUpTo(speed, scalar*(mRot - angle));
 	driveLR(speed - dirSkew, speed + dirSkew);
 }
-void rot(float speed) {//rotates base
+void rot(const float speed) {//rotates base
 	driveLR(speed, -speed);
 }
 void driveFor(float goal) {//drives for certain inches
@@ -491,24 +443,6 @@ void rotFor(float rotGoal) {//rotates for certain degrees
 	rot(0);
 	return;
 }
-void goTo(struct position goal, struct position now) {
-	float x = goal.X - (-now.X);
-	float y = goal.Y - now.Y;
-	float dist = sqrt(sqr(x) + sqr(y));
-	float theta = atan(y / x) * (180.0/PI);
-	//rotate to goal
-	rotFor(now.angle-theta);
-	rot(0);
-	delay(500);
-	//drive distance
-	driveFor(dist);
-	fwds(0, now.angle);
-	delay(500);
-	//rotate to desired angle
-	rotFor(now.angle - goal.angle);
-	rot(0);
-	return;
-}
 /********************************************************************************\
 * .----------------.  .----------------.  .----------------.  .----------------. *
 *| .--------------. || .--------------. || .--------------. || .--------------. |*
@@ -522,25 +456,25 @@ void goTo(struct position goal, struct position now) {
 *| '--------------' || '--------------' || '--------------' || '--------------' |*
 * '----------------'  '----------------'  '----------------'  '----------------' *
 \********************************************************************************/
-float calcVel(struct liftMech* lift, float dist, float delayAmount) {
+float calcVel(const struct liftMech* lift, const float dist, const float delayAmount) {
 	float velocity = ((SensorValue(lift->sensor) - lift->past) / dist) / ((float)(delayAmount / 1000));//1000ms in 1s
 	lift->past = SensorValue[lift->sensor];
 	return (velocity);//1000 ms in 1s;
 }
-float calcVel(struct sideMech* side, float dist, float delayAmount) {
+float calcVel(const struct sideMech* side, const float dist, const float delayAmount) {
 	float velocity = limitDownTo(1, ((SensorValue(side->sensor) - side->past) / dist) / ((float)(delayAmount / 1000)));//1000 ms in 1s;
 	side->past = SensorValue[side->sensor];
 	return(velocity);//1000 ms in 1s;
 }
 float calcRotVel(){
-	float velocity = SensorValue[RightGyro] - pastRot;
-	pastRot = SensorValue[RightGyro];
+	float velocity = SensorValue[Gyro] - pastRot;
+	pastRot = SensorValue[Gyro];
 	return(velocity);
 }
 task MeasureSpeed() {
 	/*MEASURING IN IN/SEC*/
-	float dist = 1.125*PI;
-	float delayAmount = 50;
+	const float dist = 1.125*PI;
+	const float delayAmount = 50;
 	for (;;) {
 		//base velocity
 		Right.velocity = calcVel(&Right, circum, delayAmount);
@@ -664,14 +598,10 @@ task displayLCD(){
 task sensorsUpdate() {
 	//int rot=0;
 	for (;;) {
-		mRot = (int)((float)((15.0/8.0)*0.5*(SensorValue[RightGyro] + SensorValue[LeftGyro])));
+		mRot = (float)((15.0/8.0)*SensorValue[Gyro]);
 		encoderAvg = avg(SensorValue[Right.sensor], SensorValue[Left.sensor]);
 		//encoderAvg = SensorValue[LeftEncoder];
-		//figure out how to update the relative position
-		current.angle = mRot + 90;//initially starts at 90 degrees
-		current.X += velocity/circum * cos(current.angle * PI/180) * (PI/180);
-		current.Y += velocity/circum * sin(current.angle * PI/180) * (PI/180);
-		delay(1);//really quick delay
+		delay(5);//really quick delay
 		//SensorValue[RightEncoder] = 0;
 	}
 }
@@ -719,7 +649,7 @@ task antiStall(){
 \********************************************************************************/
 void pre_auton() {//dont care
 	bStopTasksBetweenModes = true;
-	SensorType[RightGyro] = sensorGyro;
+	SensorType[Gyro] = sensorGyro;
 	wait1Msec(2000);
 	//Adjust SensorScale to correct the scaling for your gyro
 	scaleGyros();
@@ -834,7 +764,7 @@ void kamakaze(){//ram auton
 	fwds(0, mRot);
 	return;
 }
-void twentyPointScore(int dir){
+void twentyPointScore(const int dir){
 	rotFor(-dir*45);
 	mainLift.goal = 0.5*(mainLift.min + mainLift.max)+200;//gets lift up and out of way
 	driveFor(-22);//-25 tho
@@ -850,12 +780,12 @@ void twentyPointScore(int dir){
 	driveFor(-15);
 	MoGo.PID.kP = 0.15;
 }
-void fivePointScore(int dir){
+void fivePointScore(const int dir){
 	rotFor(-dir*180);
 	UpUntil(&MoGo, MoGo.max - 100, 127);
 	driveFor(-15);
 }
-void threeConeAuton(bool left){
+void threeConeAuton(const bool left){
 	int dir = 1;//left auton
 	if(left) dir = -1;
 	autonRunning = true;
@@ -913,7 +843,7 @@ void threeConeAuton(bool left){
 	autonRunning = false;
 	return;
 }
-void EZAuton(bool left){
+void EZAuton(const bool left){
 	int dir = 1;//left auton
 	if(left) dir = -1;
 	autonRunning = true;
