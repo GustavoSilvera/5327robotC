@@ -191,7 +191,7 @@ void initializeOpControl(const bool driver) {
 	initMech( &baseLeft,	 DRIVE,	      LeftBaseEnc,		LBaseFront,		  LBaseBack,	  	LBaseMid			);//LEFT BASE
 	initMech( &baseRight,	 DRIVE,		  RightBaseEnc,		RBaseFront,		  RBaseBack,	  	RBaseMid			);//RIGHT BASE
 	initLift( &lock,					  LockPot,			lockMotor,		  0,							0,	4095);//(min) && (max)
-	initPID(  &lock.PID, lock.m.sensor, 30, 0.15, 0.0, 0.05, false, true);
+	initPID ( &lock.PID, lock.m.sensor, 30, 0.15, 0.0, 0.05, false, true);
 	pastRot = mRot;
 }
 //function for driving the robot
