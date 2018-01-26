@@ -222,7 +222,7 @@ void initializeOpControl(bool driver) {
 	);
 	mainLift.goal = SensorValue[mainLift.sensor[0]];
 	mainLift.sensor[1] = RightLiftPot;
-	initPID(&mainLift.PID, mainLift.sensor[0], 30, 0.35, 0.0, 0.01, 0, 0, true, true);//threshold CAN be much lower, like 30
+	initPID(&mainLift.PID, mainLift.sensor[0], 30, 0.45, 0.0, 0.05, 0, 0, true, true);//threshold CAN be much lower, like 30
 	initLiftType(//FOURBAR
 	&FourBar,//for Four Bar
 	NORMAL,//only goes up and down (BINARY)
