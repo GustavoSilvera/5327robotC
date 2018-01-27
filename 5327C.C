@@ -196,18 +196,18 @@ void initializeOpControl(const bool driver) {
 	velocity = 0.0;
 
 	//-LIFT---------&reference--TYPE--------sensor-1--------sensor-2--------motor-1-----motor-2-----max------min----delay(opt)
-	initLiftType(	&mainLift,	DUALSENSOR,	LeftLiftPot,	RightLiftPot,	LiftRight,	LiftLeft, 	2150,	 620	  );
-	initLiftType(	&FourBar,	NORMAL,	 	FourBarPot,		0,				R4Bar,		L4Bar,		2550,	 1020,	10);
-	initLiftType(	&MoGo,		NORMAL,		MoGoPot,		0,				RMogo,		LMogo,		4000,	 2000,	  );
+	initLiftType(	&mainLift,	DUALSENSOR,	LeftLiftPot,	RightLiftPot,	LiftRight,		LiftLeft, 	2150,	 	620	  );
+	initLiftType(	&FourBar,	NORMAL,	 	FourBarPot,		0,					R4Bar,			L4Bar,		2550,	 	1020,	10);
+	initLiftType(	&MoGo,		NORMAL,		MoGoPot,			0,					RMogo,			LMogo,		4000,	 	2000,	  );
 
 	//-PID------&reference------sensor----------------thresh----kP-------kI-----kD------reversed----running(opt)
-	initPID(	&mainLift.PID,	mainLift.sensor[0],	  30,	    0.45,	 0.0,	0.05, 	true, 		true);
-	initPID(	&FourBar.PID, 	FourBar.sensor[0], 	  10, 	    0.1, 	 0.0,   0.01,   true, 		true);
-	initPID(	&MoGo.PID, 		MoGo.sensor[0], 	  30, 	    0.15,    0.0,   0.0,    true, 		true);
+	initPID(	&mainLift.PID,	mainLift.sensor[0],	  	  30,	      0.45,	   0.0,	 0.05, 	true, 		true);
+	initPID(	&FourBar.PID, 	FourBar.sensor[0], 	     10, 	   0.1, 	   0.0,   0.01,   true, 		true);
+	initPID(	&MoGo.PID, 		MoGo.sensor[0], 	  	     30, 	   0.15,    0.0,   0.0,    true, 		true);
 
 	//-SIDE---------&reference----sensor------------motor-1-----------motor-2------
 	initsideMech( 	&Left, 		  LeftEncoder, 		LBaseFront, 	  LBaseBack	);
-	initsideMech( 	&Right, 	  RightEncoder,		RBaseFront,		  RBaseBack);
+	initsideMech( 	&Right, 	  	  RightEncoder,		RBaseFront,		  RBaseBack);
 	pastRot = mRot;
 }
 //function for driving the robot
