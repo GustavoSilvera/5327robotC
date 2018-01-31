@@ -1,5 +1,5 @@
-#pragma config(Sensor, in7,    LockPot,        sensorPotentiometer)
-#pragma config(Sensor, in2,    RLinn,           sensorLineFollower)
+#pragma config(Sensor, in1,    LockPot,        sensorPotentiometer)
+#pragma config(Sensor, in2,    RLin,          sensorLineFollower)
 #pragma config(Sensor, in3,    LLin,           sensorLineFollower)
 #pragma config(Sensor, in4,    TLin,           sensorLineFollower)
 #pragma config(Sensor, in5,    BLin,           sensorLineFollower)
@@ -9,8 +9,8 @@
 #pragma config(Sensor, dgtl3,  RightBaseEnc,   sensorQuadEncoder)
 #pragma config(Sensor, dgtl5,  BtnMogo,        sensorTouch)
 #pragma config(Motor,  port1,           LockMotor,     tmotorVex393_HBridge, openLoop)
-#pragma config(Motor,  port3,           RBaseFront,    tmotorVex393_MC29, openLoop)
-#pragma config(Motor,  port4,           RBaseBack,     tmotorVex393_MC29, openLoop)
+#pragma config(Motor,  port3,           RBaseFront,    tmotorVex393_MC29, openLoop, reversed)
+#pragma config(Motor,  port4,           RBaseBack,     tmotorVex393_MC29, openLoop, reversed)
 #pragma config(Motor,  port6,           ConveyorMotor, tmotorVex393_MC29, openLoop, reversed)
 #pragma config(Motor,  port7,           LBaseFront,    tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port8,           LBaseBack,     tmotorVex393_MC29, openLoop)
@@ -190,7 +190,7 @@ void initializeOpControl(const bool driver) {
 	initMech( &conveyer,	 CONVEYER,    0,		ConveyorMotor,		0 	);//CONVEYER
 	initMech( &baseLeft,	 DRIVE,	      LeftBaseEnc,		LBaseFront,		  LBaseBack);//LEFT BASE
 	initMech( &baseRight,	 DRIVE,		  RightBaseEnc,		RBaseFront,		  RBaseBack);//RIGHT BASE
-	initLift( &lock,					  LockPot,			lockMotor,		  0,		1150	,	2260);//(min) && (max)
+	initLift( &lock,					  LockPot,			LockMotor,		  0,		1150	,	2260);//(min) && (max)
 	initPID ( &lock.PID, lock.m.sensor, 30, 0.15, 0.0, 0.05, false, true);
 	pastRot = mRot;
 }
@@ -660,6 +660,10 @@ task usercontrol() {//initializes everything
 	for (;;) {
 		//debug controls
 		if(U8) progSkillsTest();
+		if(L7) rotFor(90);
+		if(R7) rotFor(-90);
+		if(U7) driveFor(10);
+		if(D7) driveFor(-10);
 		LiftLift(&lock, U5, D5, U5_2, D5_2, 180);
 		delay(15);//~60hz
 	}
