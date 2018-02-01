@@ -1,14 +1,12 @@
-#pragma config(Sensor, in1,    LockPot,        sensorPotentiometer)
+#pragma config(Sensor, in7,    LockPot,        sensorPotentiometer)
 #pragma config(Sensor, in2,    RLin,          sensorLineFollower)
 #pragma config(Sensor, in3,    LLin,           sensorLineFollower)
-#pragma config(Sensor, in4,    TLin,           sensorLineFollower)
-#pragma config(Sensor, in5,    BLin,           sensorLineFollower)
 #pragma config(Sensor, in6,    Gyro,           sensorGyro)
 #pragma config(Sensor, in8,    BATERY_2_PORT,  sensorAnalog)
 #pragma config(Sensor, dgtl1,  LeftBaseEnc,    sensorQuadEncoder)
 #pragma config(Sensor, dgtl3,  RightBaseEnc,   sensorQuadEncoder)
 #pragma config(Sensor, dgtl5,  BtnMogo,        sensorTouch)
-#pragma config(Motor,  port1,           LockMotor,     tmotorVex393_HBridge, openLoop)
+#pragma config(Motor,  port10,           LockMotor,    tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port3,           RBaseFront,    tmotorVex393_MC29, openLoop, reversed)
 #pragma config(Motor,  port4,           RBaseBack,     tmotorVex393_MC29, openLoop, reversed)
 #pragma config(Motor,  port6,           ConveyorMotor, tmotorVex393_MC29, openLoop, reversed)
@@ -190,7 +188,7 @@ void initializeOpControl(const bool driver) {
 	initMech( &conveyer,	 CONVEYER,    0,		ConveyorMotor,		0 	);//CONVEYER
 	initMech( &baseLeft,	 DRIVE,	      LeftBaseEnc,		LBaseFront,		  LBaseBack);//LEFT BASE
 	initMech( &baseRight,	 DRIVE,		  RightBaseEnc,		RBaseFront,		  RBaseBack);//RIGHT BASE
-	initLift( &lock,					  LockPot,			LockMotor,		  0,		1150	,	2260);//(min) && (max)
+	initLift( &lock,								 LockPot,			LockMotor,		  0,		1200	,	2000);//(min) && (max)
 	initPID ( &lock.PID, lock.m.sensor, 30, 0.15, 0.0, 0.05, false, true);
 	pastRot = mRot;
 }
@@ -215,15 +213,15 @@ void mechMove(const struct mechanism* mech, const int speed) {
 	motor[mech->motors[0]] = speed;//up is fast
 	motor[mech->motors[1]] = speed;//up is fast
 }
-void buttonMechControl(const struct mechanism* mech,const int bUp, const int bDown, const int bUp2, const int bDown2, bool reversed, const int maxSpeed = 127) {
+void buttonMechControl(const struct mechanism* mech, const int bUp, const int bDown, const int bUp2, const int bDown2, bool reversed, const int maxSpeed = 127) {
 	int dir = 1;
 	if (reversed) dir = -1;
 	const bool upButton = (bUp == 1 || bUp2 == 1);//defining what is up button
 	const bool downButton = (bDown == 1 || bDown2 == 1);//defining what is down button
 	if (!upButton && !downButton) 	mechMove(mech, 0);//not pressed any buttons
-	else if (upButton) 				mechMove(mech, dir * maxSpeed);//up max speed
-	else if (downButton) 			mechMove(mech, dir * -maxSpeed);//down max speed
-	else 							mechMove(mech, 0);
+	else if (upButton) 					mechMove(mech, dir * maxSpeed);//up max speed
+	else if (downButton) 				mechMove(mech, dir * -maxSpeed);//down max speed
+	else 										mechMove(mech, 0);
 }
 void analogMechControl(const struct mechanism* mech, const float power) {
 	int speed = TruSpeed(power);
@@ -271,15 +269,15 @@ void driveFor(float goal) {//drives for certain inches
 	return;
 }
 void rotFor(float rotGoal) {//rotates for certain degrees
-	const int rotScale = 1;//gyro is from -3600 to 3600 (NOT ANYMORE)
-	const int thresh = 4 * rotScale;//4 degrees
-	rotGoal *= rotScale;//scales to degrees
-	int initial = mRot;
-	float dP = 5;//multiplier for velocity controller
+	const int rotScale = 10.0;
+	rotGoal *= rotScale;
+	const int thresh = 3;//5 degrees
+	const float kP = 5;
+	const int initial = mRot;
 	int current = 0;//how much the robot has rotated
-	while (abs(current - rotGoal) > thresh) {
-		current = (mRot - initial);
-		rot(dP * ((rotGoal - current - (mainVelocity * 0))));//SO GOOD
+	while ( abs ( current - rotGoal ) > thresh ) {
+		current = ( mRot - initial );
+		rot( kP * ( limitDownTo(10, rotGoal/10.0 - current/10.0) ) );//SO GOOD
 	}
 	rot(0);
 	return;
@@ -289,6 +287,7 @@ task MechControlTask() {
 	const float partner = 0.8;
 	for (;;) {//while true
 		buttonMechControl(&conveyer.m, U6, D6, U6_2, D6_2, false);
+		limitMechControl(&lock.m, U5, D5, U5_2, D5_2, lock.max, lock.min, true);
 		analogMechControl(&baseRight.m, primary*vexRT[Ch2] + partner*vexRT[Ch2Xmtr2]);
 		analogMechControl(&baseLeft.m, primary*vexRT[Ch3] + partner*vexRT[Ch3Xmtr2]);
 		delay(10);
@@ -664,7 +663,7 @@ task usercontrol() {//initializes everything
 		if(R7) rotFor(-90);
 		if(U7) driveFor(10);
 		if(D7) driveFor(-10);
-		LiftLift(&lock, U5, D5, U5_2, D5_2, 180);
+		//LiftLift(&lock, U5, D5, U5_2, D5_2, 180);
 		delay(15);//~60hz
 	}
 }//function for operator control
