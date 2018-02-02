@@ -6,7 +6,6 @@
 #pragma config(Sensor, in7,    RightLiftPot,   sensorPotentiometer)
 #pragma config(Sensor, dgtl1,  LeftEncoder,    sensorQuadEncoder)
 #pragma config(Sensor, dgtl5,  RightEncoder,   sensorQuadEncoder)
-#pragma config(Sensor, dgtl8,  sonar,          sensorSONAR_cm)
 #pragma config(Sensor, dgtl11, OddLED,         sensorLEDtoVCC)
 #pragma config(Sensor, dgtl12, EvenLED,        sensorLEDtoVCC)
 #pragma config(Motor,  port1,           R4Bar,         tmotorVex393_HBridge, openLoop)
@@ -197,7 +196,7 @@ void initializeOpControl(const bool driver) {
 
 	//-LIFT---------&reference--TYPE--------sensor-1--------sensor-2--------motor-1-----motor-2-----max------min----delay(opt)
 	initLiftType(	&mainLift,	DUALSENSOR,	LeftLiftPot,	RightLiftPot,	LiftRight,		LiftLeft, 	2150,	 	620	  );
-	initLiftType(	&FourBar,	NORMAL,	 	FourBarPot,		0,					R4Bar,			L4Bar,		2550,	 	1020,	10);
+	initLiftType(	&FourBar,	NORMAL,	 	FourBarPot,		0,					R4Bar,			L4Bar,		2550,	 	1400,	10);
 	initLiftType(	&MoGo,		NORMAL,		MoGoPot,			0,					RMogo,			LMogo,		4000,	 	2000,	  );
 
 	//-PID------&reference------sensor----------------thresh----kP-------kI-----kD------reversed----running(opt)
@@ -297,21 +296,6 @@ void LiftLift(const struct liftMech* lift, int bUp, int bDown, int bUp2, int bDo
 		}
 		PIDLift(lift);//calls the pid function for the lifts
 	}
-}
-void UpUntilStack(const struct liftMech* lift, int goal, int speed) {//uses sonar for bringing lift up
-	lift->PID.isRunning = false;
-	int currentPos;
-	while (SensorValue[lift->sensor] < goal || (SensorValue[sonar] <= 13 && SensorValue[sonar] >= 0)) {//brings lift up to goal (ACCOUNTS FOR SONAR)
-		liftMove(lift, speed);
-		currentPos = SensorValue[lift->sensor];
-		if(stopAutoStack) return;
-	}
-	if(SensorValue[sonar] <= 15 && SensorValue[sonar] >= 0){
-		while(SensorValue[lift->sensor] < currentPos + 150){
-			liftMove(lift, speed);//moves a bit more if triggered sensor
-		}
-	}
-	return;
 }
 void UpUntil(const struct liftMech* lift, int goal, int speed) {
 	lift->PID.isRunning = false;
@@ -566,7 +550,7 @@ void autonSelect(int delayTime = 5000){
 			if( nLCDButtons == RIGHT && value < 5)
 				value ++;
 			displayAuton(value);//dosent say "ACTIVE"
-			clearTimer(T4);
+			clearTimer(T4)
 		}
 		// Select this choice
 		if( nLCDButtons == CENTER ) {
@@ -657,9 +641,9 @@ void pre_auton() {//dont care
 		autonSelect(nLCDButtons);
 	}
 }
-const int heightValues[11] = {220, 220, 370, 500, 650, 750, 870, 1050, 1170, 1300, 1450};//values for where the lift should go to when autoStacking
+const int heightValues[11] = {220, 220, 370, 500, 620, 740, 830, 900, 1100, 1250, 1400};//values for where the lift should go to when autoStacking
 const int coneHeight = 150;//how much the lift goes up DOWN after reaching height values
-const int delayValues[11] = {0, 0, 0, 0, 0, 0, 0, 150, 100, 0, 0};//values for individual delays when autstacking
+const int delayValues[11] = {400, 0, 0, 0, 0, 0, 100, 150, 100, 0, 0};//values for individual delays when autstacking
 //const int delayValues[11] = {0, 0, 0, 0, 0, 0, 150, 150, 240, 200, 200};//values for individual delays when autstacking
 task autoStack() {
 	for (;;) {
@@ -671,6 +655,7 @@ task autoStack() {
 			FourBar.PID.isRunning = true;
 			//brings four bar up to prevent cone hitting mogo
 			FourBar.goal = 1700;//0.5*(FourBar.min + FourBar.max);//brings up a bit
+			UpUntil(&FourBar, FourBar.min + 200, 127);
 			delay(100);
 			//brings lift up to value based on coneIndex
 			UpUntil(&mainLift, limitUpTo(mainLift.max, heightValues[currentCone] + mainLift.min + 100), 127);//USES SONAR
