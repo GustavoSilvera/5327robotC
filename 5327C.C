@@ -377,7 +377,7 @@ void driveLR(const int powerR, const int powerL) {
 }
 void driveCtrlr() {
 	//scale for joystick
-	const float partner = 0.8;
+	const float partner = 1;//0.8;
 	const float primary = 1;
 	driveLR(//trusped taking both controllers
 	TruSpeed(primary*vexRT[Ch2] + partner*vexRT[Ch2Xmtr2]),
@@ -707,7 +707,8 @@ task autoStack() {
 		}
 		//mogo thing
 		if ((R7 || R7_2) && !autonRunning){
-
+			//MoGo.goal = MoGo.min;
+			//MoGo.PID.isRunning = true;
 			DownUntil(&MoGo, 2500, -80);
 			//liftMove(&MoGo, -20);
 			delay(300);
