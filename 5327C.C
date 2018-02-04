@@ -70,6 +70,7 @@ struct PIDPar {
 	volatile bool isRunning;
 	float Integral, Derivative, LastError;
 };
+struct PIDPar gyroBase;
 enum liftType{BINARY, DUALSENSOR, NORMAL};//what kinds of lift we have
 struct liftMech {
 	enum liftType type;
@@ -99,6 +100,7 @@ volatile float velocity = 0;
 volatile float rotVelocity = 0;
 volatile float pastRot;
 int currentCone = 0;
+static const float GyroK = 15.0/80.0;//scales to normal +-360 degrees
 static int currentAutonomous = 0;
 volatile bool autonRunning = false;
 volatile bool autoStacking = false;
@@ -203,6 +205,7 @@ void initializeOpControl(const bool driver) {
 	initPID(	&mainLift.PID,	mainLift.sensor[0],	  	  30,	      0.45,	   0.0,	 0.05, 	true, 		true);
 	initPID(	&FourBar.PID, 	FourBar.sensor[0], 	     10, 	   0.1, 	   0.0,   0.01,   true, 		true);
 	initPID(	&MoGo.PID, 		MoGo.sensor[0], 	  	     30, 	   0.15,    0.0,   0.0,    false, 		true);
+	initPID ( &gyroBase, 	Gyro, 				0,  0.525, 0.0, 0.5, true, false);
 
 	//-SIDE---------&reference----sensor------------motor-1-----------motor-2------
 	initsideMech( 	&Left, 		  LeftEncoder, 		LBaseFront, 	  LBaseBack	);
@@ -409,17 +412,23 @@ void driveFor(float goal) {//drives for certain inches
 	fwds(0, initDir);
 	return;
 }
-void rotFor(float rotGoal) {//rotates for certain degrees
-	int rotScale = 1;//gyro is from -3600 to 3600 (NOT ANYMORE)
-	const int thresh = 4 * rotScale;//4 degrees
-	rotGoal *= rotScale;//scales to degrees
-	int initial = mRot;
-	float dP = 5;//multiplier for velocity controller
-	int current = 0;//how much the robot has rotated
-	while (abs(current - rotGoal) > thresh) {
-		current = (mRot - initial);
-		rot(dP * ((rotGoal - current - (velocity *0))));//SO GOOD
+void rotFor(float target){
+	gyroBase.isRunning = true;
+	SensorValue[Gyro] = 0;//resets gyros
+	SensorScale[Gyro] = 260;
+	while(abs(SensorValue[Gyro]*GyroK - target) > 0.5){//2 dF
+		rot(limitDownTo(15, pidController(&gyroBase, (target)/GyroK)));
 	}
+	rot(0);//gives settle time
+	gyroBase.isRunning = false;
+	resetPIDVals(&gyroBase);
+	delay(target * 2);
+	//check for overshoots
+	const int slowPower = 60;
+		while(SensorValue[Gyro]*GyroK > target + 0.5)
+			rot(-abs(slowPower));
+		while(SensorValue[Gyro]*GyroK < target - 0.5)
+			rot(+abs(slowPower));
 	rot(0);
 	return;
 }
@@ -633,8 +642,9 @@ void pre_auton() {//dont care
 	wait1Msec(2000);
 	//Adjust SensorScale to correct the scaling for your gyro
 	scaleGyros();
-	while( bIfiRobotDisabled ){//in preauton
+	while( bIfiRobotDisabled ){//in preauton...bIfiRobotDisabled ||
 		autonSelect(nLCDButtons);
+		delay(100);
 	}
 }
 const int heightValues[11] = {220, 220, 370, 500, 620, 740, 830, 900, 1100, 1250, 1400};//values for where the lift should go to when autoStacking
@@ -741,11 +751,11 @@ void kamakaze(){//ram auton
 	return;
 }
 void twentyPointScore(const int dir){
-	rotFor(-dir*40);
+	rotFor(-dir*45);
 	mainLift.goal = 0.5*(mainLift.min + mainLift.max)+200;//gets lift up and out of way
 	driveFor(-22);//-25 tho
 	//position -135 degrees relative to starting position
-	rotFor(-dir*100);//87 tho
+	rotFor(-dir*90);//87 tho
 	delay(200);
 	MoGo.PID.kP = 0.05;
 	MoGo.PID.isRunning = true;
@@ -823,7 +833,8 @@ void EZAuton(const bool left){
 	int dir = 1;//left auton
 	if(left) dir = -1;
 	autonRunning = true;
-	MoGo.goal = MoGo.min;//bring out mogo & drive
+	//MoGo.PID.kP = 0.;
+	MoGo.goal = MoGo.min-300;//bring out mogo & drive
 	MoGo.PID.isRunning = true;
 	mainLift.goal = 1400;//bring up lift
 	mainLift.PID.isRunning = true;
@@ -831,16 +842,18 @@ void EZAuton(const bool left){
 	FourBar.goal = FourBar.min;//four bar down
 	FourBar.PID.isRunning = true;
 	initMRot = mRot;
+	//MoGo.PID.kP
 	delay(400);//wait for mogo to come out mostly
-	driveFor(51);//49
+	driveFor(49);//49
 	delay(300);
 	//PRELOAD (MOGO WITH CONE)
 	MoGo.goal = MoGo.max;
 	delay(550);
-	DownUntil(&mainLift, mainLift.min + 100, 127);//brings lift down
+	DownUntil(&mainLift, mainLift.min - 50, 127);//brings lift down
 	FourBar.goal = 0.5*(FourBar.max + FourBar.min);//brings halfway
+	delay(200);
 	mainLift.goal = 0.5*(mainLift.min + mainLift.max);//brings halfway
-	driveFor(-47);//-45
+	driveFor(-43);//-45
 	twentyPointScore(dir);
 	autonRunning = false;
 	return;
@@ -913,7 +926,9 @@ task usercontrol() {//initializes everything
 	clearLCDLine(1); // Clear line 2 (1) of the LCD
 	for (;;) {
 		//debug controls
-		if (L7 || L7_2 )EZAuton(LEFT);
+		if (L7 || L7_2 )EZAuton(RIGHT);
+		//if (L7 || L7_2 )EZAuton(RIGHT);
+
 		driveCtrlr();
 		delay(15);//~60hz
 	}
