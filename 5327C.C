@@ -195,14 +195,14 @@ void initializeOpControl(const bool driver) {
 	velocity = 0.0;
 
 	//-LIFT---------&reference--TYPE--------sensor-1--------sensor-2--------motor-1-----motor-2-----max------min----delay(opt)
-	initLiftType(	&mainLift,	DUALSENSOR,	LeftLiftPot,	RightLiftPot,	LiftRight,		LiftLeft, 	2150,	 	620	  );
+	initLiftType(	&mainLift,	DUALSENSOR,	LeftLiftPot,	LeftLiftPot,	LiftRight,		LiftLeft, 	2150,	 	620	  );
 	initLiftType(	&FourBar,	NORMAL,	 	FourBarPot,		0,					R4Bar,			L4Bar,		2550,	 	1400,	10);
-	initLiftType(	&MoGo,		NORMAL,		MoGoPot,			0,					RMogo,			LMogo,		4000,	 	2000,	  );
+	initLiftType(	&MoGo,		NORMAL,		MoGoPot,			0,					RMogo,			LMogo,		3735,	 	1120, 	  );
 
 	//-PID------&reference------sensor----------------thresh----kP-------kI-----kD------reversed----running(opt)
 	initPID(	&mainLift.PID,	mainLift.sensor[0],	  	  30,	      0.45,	   0.0,	 0.05, 	true, 		true);
 	initPID(	&FourBar.PID, 	FourBar.sensor[0], 	     10, 	   0.1, 	   0.0,   0.01,   true, 		true);
-	initPID(	&MoGo.PID, 		MoGo.sensor[0], 	  	     30, 	   0.15,    0.0,   0.0,    true, 		true);
+	initPID(	&MoGo.PID, 		MoGo.sensor[0], 	  	     30, 	   0.15,    0.0,   0.0,    false, 		true);
 
 	//-SIDE---------&reference----sensor------------motor-1-----------motor-2------
 	initsideMech( 	&Left, 		  LeftEncoder, 		LBaseFront, 	  LBaseBack	);
@@ -229,8 +229,8 @@ float PolyReg(const float amnt){
 void liftMove(const struct liftMech* lift, const float speed) {
 	float power = limitUpTo(127, speed);
 	if(lift->sensor[1] != 0 && lift->type == DUALSENSOR){//HAS to be mainLift because has initialized 2nd sensor
-		const float scalar = 0.05;//scalar for potentiometer difference
-		float powSkew = limitUpTo(20, scalar*(PolyReg(SensorValue[mainLift.sensor[0]]) - SensorValue[mainLift.sensor[1]]));
+		//const float scalar = 0.05;//scalar for potentiometer difference
+		float powSkew = 0;//limitUpTo(20, scalar*(PolyReg(SensorValue[mainLift.sensor[0]]) - SensorValue[mainLift.sensor[1]]));
 		motor[lift->motors[0]] = power - powSkew;//one side goes faster/slower to compensate
 		motor[lift->motors[1]] = -(power - powSkew);//one side goes faster/slower to compensate
 	}
@@ -324,9 +324,9 @@ task LiftControlTask() {
 			LiftLift(&mainLift, U6, D6, U6_2, D6_2, 180);
 			LiftLift(&FourBar, U5, D5, U5_2, D5_2, 1200);
 			LiftLift(&MoGo, D8, U8, D8_2, U8_2, 600);
-			if(SensorValue[MoGo.sensor[0]] > MoGo.max + 350){
-				liftMove(&MoGo, 80);//keeps mogo down
-			}
+			/*if(SensorValue[MoGo.sensor[0]] > 2000){
+				liftMove(&MoGo, -15);//keeps mogo down
+			}*/
 		}
 		else {
 			mainLift.PID.kP = 0.15;
@@ -377,7 +377,7 @@ void driveLR(const int powerR, const int powerL) {
 }
 void driveCtrlr() {
 	//scale for joystick
-	const float partner = 0.8;
+	const float partner = 1;//0.8;
 	const float primary = 1;
 	driveLR(//trusped taking both controllers
 	TruSpeed(primary*vexRT[Ch2] + partner*vexRT[Ch2Xmtr2]),
@@ -418,10 +418,6 @@ void rotFor(float rotGoal) {//rotates for certain degrees
 	int current = 0;//how much the robot has rotated
 	while (abs(current - rotGoal) > thresh) {
 		current = (mRot - initial);
-		//if(abs(current - 360) < 3) {
-		///	rotGoal = getSign(rotGoal)*(abs(rotGoal) - 360);
-		//	current = 0;
-		///}
 		rot(dP * ((rotGoal - current - (velocity *0))));//SO GOOD
 	}
 	rot(0);
@@ -550,7 +546,7 @@ void autonSelect(int delayTime = 5000){
 			if( nLCDButtons == RIGHT && value < 5)
 				value ++;
 			displayAuton(value);//dosent say "ACTIVE"
-			clearTimer(T4)
+			clearTimer(T4);
 		}
 		// Select this choice
 		if( nLCDButtons == CENTER ) {
@@ -643,11 +639,11 @@ void pre_auton() {//dont care
 }
 const int heightValues[11] = {220, 220, 370, 500, 620, 740, 830, 900, 1100, 1250, 1400};//values for where the lift should go to when autoStacking
 const int coneHeight = 150;//how much the lift goes up DOWN after reaching height values
-const int delayValues[11] = {400, 0, 0, 0, 0, 0, 100, 150, 100, 0, 0};//values for individual delays when autstacking
+const int delayValues[11] = {400, 0, 0, 0, 0, 0, 100, 150, 100, 0, 0};//values for individual delays when autostacking
 //const int delayValues[11] = {0, 0, 0, 0, 0, 0, 150, 150, 240, 200, 200};//values for individual delays when autstacking
 task autoStack() {
 	for (;;) {
-		if ((U7 || U7_2) && currentCone < 13) {
+		if ((U7 || U7_2) && currentCone < 11) {
 			autoStacking = true;
 			stopAutoStack = false;
 			FourBar.PID.kP = 0.15;
@@ -658,7 +654,7 @@ task autoStack() {
 			UpUntil(&FourBar, FourBar.min + 200, 127);
 			delay(100);
 			//brings lift up to value based on coneIndex
-			UpUntil(&mainLift, limitUpTo(mainLift.max, heightValues[currentCone] + mainLift.min + 100), 127);//USES SONAR
+			UpUntil(&mainLift, limitUpTo(mainLift.max, heightValues[currentCone] + mainLift.min + 100), 127);
 			FourBar.PID.isRunning = false;
 			//bring fourbar up
 			delay(delayValues[currentCone] * 0.75);
@@ -682,13 +678,13 @@ task autoStack() {
 				autoStacking = false;
 		}
 		if (D7 || D7_2) currentCone = 0;//reset
-			if ((R8 || R8_2) && time1[T2]>300 && currentCone > 0) {
+		if ((R8 || R8_2) && time1[T2]>300 && currentCone > 0) {
 			currentCone -= 1; //subtract one cone if autostack missed
 			playSound(soundDownwardTones);
 			clearTimer(T2);
 		}
-		if ((L8 || L8_2) && time1[T3]>300 && currentCone < 13) {
-			currentCone += 1; //subtract one cone if autostack missed
+		if ((L8 || L8_2) && time1[T3]>300 && currentCone < 11) {
+			currentCone += 1; //add one cone
 			playSound(soundUpwardTones);
 			clearTimer(T3);
 		}
@@ -711,18 +707,13 @@ task autoStack() {
 		}
 		//mogo thing
 		if ((R7 || R7_2) && !autonRunning){
-			MoGo.PID.isRunning = true;
-			MoGo.goal = 3100;
-			MoGo.PID.kP = 1;
-			//liftMove(&MoGo, -60);//stops mogo
-			delay(500);
-			MoGo.PID.isRunning = false;
-			UpUntil(&MoGo, 3200, 50);
-			liftMove(&MoGo, -80);
-			delay(700);
-			UpUntil(&MoGo, MoGo.max-200, 20);//sets power of 0, no PID
-			MoGo.PID.kP = 0.15;
-			MoGo.PID.isRunning = false;
+			//MoGo.goal = MoGo.min;
+			//MoGo.PID.isRunning = true;
+			DownUntil(&MoGo, 2500, -80);
+			//liftMove(&MoGo, -20);
+			delay(300);
+			DownUntil(&MoGo, 1250, -20);
+
 		}
 		delay(30);
 	}
@@ -750,11 +741,11 @@ void kamakaze(){//ram auton
 	return;
 }
 void twentyPointScore(const int dir){
-	rotFor(-dir*45);
+	rotFor(-dir*40);
 	mainLift.goal = 0.5*(mainLift.min + mainLift.max)+200;//gets lift up and out of way
 	driveFor(-22);//-25 tho
 	//position -135 degrees relative to starting position
-	rotFor(-dir*83);//87 tho
+	rotFor(-dir*100);//87 tho
 	delay(200);
 	MoGo.PID.kP = 0.05;
 	MoGo.PID.isRunning = true;
@@ -767,14 +758,14 @@ void twentyPointScore(const int dir){
 }
 void fivePointScore(const int dir){
 	rotFor(-dir*180);
-	UpUntil(&MoGo, MoGo.max - 100, 127);
+	UpUntil(&MoGo, MoGo.min - 100, 127);
 	driveFor(-15);
 }
 void threeConeAuton(const bool left){
 	int dir = 1;//left auton
 	if(left) dir = -1;
 	autonRunning = true;
-	MoGo.goal = MoGo.max;//bring out mogo & drive
+	MoGo.goal = MoGo.min;//bring out mogo & drive
 	MoGo.PID.isRunning = true;
 	mainLift.goal = 0.5*(mainLift.max + mainLift.min) - 200;//bring up lift
 	mainLift.PID.isRunning = true;
@@ -786,7 +777,7 @@ void threeConeAuton(const bool left){
 	driveFor(49);
 	delay(300);
 	//PRELOAD (MOGO WITH CONE)
-	MoGo.goal = MoGo.min;
+	MoGo.goal = MoGo.max;
 	delay(200);
 	DownUntil(&mainLift, mainLift.min + 50, 127);//brings lift down
 	delay(200);
@@ -832,21 +823,21 @@ void EZAuton(const bool left){
 	int dir = 1;//left auton
 	if(left) dir = -1;
 	autonRunning = true;
-	MoGo.goal = MoGo.max;//bring out mogo & drive
+	MoGo.goal = MoGo.min;//bring out mogo & drive
 	MoGo.PID.isRunning = true;
-	mainLift.goal = 0.5*(mainLift.max + mainLift.min) - 200;//bring up lift
+	mainLift.goal = 1400;//bring up lift
 	mainLift.PID.isRunning = true;
-	FourBar.PID.kP = 0.01;//slow down four bar so cone doesn't fly out
-	FourBar.goal = 1000;//four bar down
+	FourBar.PID.kP = 0.05;//slow down four bar so cone doesn't fly out
+	FourBar.goal = FourBar.min;//four bar down
 	FourBar.PID.isRunning = true;
 	initMRot = mRot;
 	delay(400);//wait for mogo to come out mostly
 	driveFor(51);//49
 	delay(300);
 	//PRELOAD (MOGO WITH CONE)
-	MoGo.goal = MoGo.min;
-	delay(200);
-	DownUntil(&mainLift, mainLift.min + 50, 127);//brings lift down
+	MoGo.goal = MoGo.max;
+	delay(550);
+	DownUntil(&mainLift, mainLift.min + 100, 127);//brings lift down
 	FourBar.goal = 0.5*(FourBar.max + FourBar.min);//brings halfway
 	mainLift.goal = 0.5*(mainLift.min + mainLift.max);//brings halfway
 	driveFor(-47);//-45
@@ -892,6 +883,7 @@ task autonomous() {
 	return;
 }
 
+
 /********************************************************************************\
 * .----------------.  .----------------.  .----------------.  .----------------. *
 *| .--------------. || .--------------. || .--------------. || .--------------. |*
@@ -905,6 +897,7 @@ task autonomous() {
 *| '--------------' || '--------------' || '--------------' || '--------------' |*
 * '----------------'  '----------------'  '----------------'  '----------------' *
 \********************************************************************************/
+bool testing;
 task usercontrol() {//initializes everything
 	initializeOpControl(true);//driver init
 	startTask(LiftControlTask);//individual pid for lift type
@@ -920,7 +913,7 @@ task usercontrol() {//initializes everything
 	clearLCDLine(1); // Clear line 2 (1) of the LCD
 	for (;;) {
 		//debug controls
-		//	if ( (L7 || L7_2 ) && !autonRunning) threeConeAuton(LEFT);//should have direction correction enabled
+		if (L7 || L7_2 )EZAuton(LEFT);
 		driveCtrlr();
 		delay(15);//~60hz
 	}
