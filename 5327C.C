@@ -197,7 +197,7 @@ void initializeOpControl(const bool driver) {
 	velocity = 0.0;
 
 	//-LIFT---------&reference--TYPE--------sensor-1--------sensor-2--------motor-1-----motor-2-----max------min----delay(opt)
-	initLiftType(	&mainLift,	DUALSENSOR,	LeftLiftPot,	LeftLiftPot,	LiftRight,		LiftLeft, 	2150,	 	620	  );
+	initLiftType(	&mainLift,	DUALSENSOR,	LeftLiftPot,	LeftLiftPot,	LiftRight,		LiftLeft, 	2150,	 	580	  );
 	initLiftType(	&FourBar,	NORMAL,	 	FourBarPot,		0,					R4Bar,			L4Bar,		2550,	 	1400,	10);
 	initLiftType(	&MoGo,		NORMAL,		MoGoPot,			0,					RMogo,			LMogo,		3735,	 	1120, 	  );
 
@@ -719,12 +719,22 @@ task autoStack() {
 		if ((R7 || R7_2) && !autonRunning){
 			//MoGo.goal = MoGo.min;
 			//MoGo.PID.isRunning = true;
-			DownUntil(&MoGo, 2500, -80);
-			//liftMove(&MoGo, -20);
-			delay(300);
-			DownUntil(&MoGo, 1250, -20);
 
-		}
+			DownUntil(&MoGo, 2400, -80);
+			DownUntil(&MoGo, 1350, -10);
+			/*
+			DownUntil(&MoGo, 2400, -80);
+			DownUntil(&MoGo, 1650, 0);
+			MoGo.PID.isRunning = false;
+			liftMove(&MoGo,-30);
+			//liftMove(&MoGo, 20);
+			delay(500);
+			//DownUntil(&MoGo, 1250, -20);*/
+			/*
+			MoGo.PID.isRunning = true;
+			delay(500);
+			MoGo.PID.isRunning = false;*/
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       		}
 		delay(30);
 	}
 }
@@ -751,7 +761,7 @@ void kamakaze(){//ram auton
 	return;
 }
 void twentyPointScore(const int dir){
-	rotFor(-dir*45);
+	rotFor(-dir*30);
 	mainLift.goal = 0.5*(mainLift.min + mainLift.max)+200;//gets lift up and out of way
 	driveFor(-22);//-25 tho
 	//position -135 degrees relative to starting position
@@ -768,46 +778,55 @@ void twentyPointScore(const int dir){
 }
 void fivePointScore(const int dir){
 	rotFor(-dir*180);
-	UpUntil(&MoGo, MoGo.min - 100, 127);
-	driveFor(-15);
+	MoGo.goal = MoGo.min - 300;//bring out mogo & drive
+	delay(1000);
+	MoGo.PID.isRunning = false;
+	driveFor(-10);
 }
 void threeConeAuton(const bool left){
-	int dir = 1;//left auton
+	int dir = 1;//left autonv         anm
 	if(left) dir = -1;
 	autonRunning = true;
-	MoGo.goal = MoGo.min;//bring out mogo & drive
+	MoGo.goal = MoGo.min - 400;//bring out mogo & drive
 	MoGo.PID.isRunning = true;
 	mainLift.goal = 0.5*(mainLift.max + mainLift.min) - 200;//bring up lift
 	mainLift.PID.isRunning = true;
 	FourBar.PID.kP = 0.01;//slow down four bar so cone doesn't fly out
-	FourBar.goal = 1000;//four bar down
+	FourBar.goal = FourBar.min + 300;//1000;//four bar down
 	FourBar.PID.isRunning = true;
 	initMRot = mRot;
 	delay(400);//wait for mogo to come out mostly
-	driveFor(49);
+	driveFor(31);//49);
 	delay(300);
 	//PRELOAD (MOGO WITH CONE)
 	MoGo.goal = MoGo.max;
-	delay(200);
+	delay(650);
 	DownUntil(&mainLift, mainLift.min + 50, 127);//brings lift down
+	FourBar.PID.kP = 0.15;//return to normal kP value
+	FourBar.goal = FourBar.min;
+	//DownUntil(&FourBar, FourBar.min, 127);//bring fourbar down
 	delay(200);
 	//CONE 2
 	mainLift.goal = mainLift.min + 400;
-	FourBar.PID.kP = 0.15;//return to normal kP value
+
 	UpUntil(&FourBar, FourBar.min + 400, 127);//brings lift up for next cone
 	delay(200);
-	driveFor(3);
+	driveFor(5);
 	FourBar.goal = FourBar.min;
 	DownUntil(&mainLift, mainLift.min, 127);//brings lift down (GRABBED CONE 1)
 	delay(200);
-	FourBar.goal = FourBar.max;//brings up lift to prepare stack
-	UpUntil(&mainLift, mainLift.min + 300, 127);
-	delay(100);
-	driveFor(3);
-	DownUntil(&mainLift, mainLift.min + 50, 127);//brings down lift
-	FourBar.goal = FourBar.min;//															(RELEASED CONE 1)
-	//UpUntil(&mainLift, mainLift.min + 300, 127);//brings lift up for next cone pickup
+	//FourBar.goal = FourBar.max;//brings up lift to prepare stack
+	UpUntil(&mainLift, mainLift.min + 500, 127); //+300;
+	UpUntil(&FourBar, FourBar.max, 127);
+	delay(300);
 	driveFor(2);
+	DownUntil(&mainLift, mainLift.min, 127);//brings down lift
+	delay(300);
+	FourBar.goal = FourBar.min;//									(RELEASED CONE 1)
+	delay(500);
+	//UpUntil(&mainLift, mainLift.min + 300, 127);//brings lift up for next cone pickup
+
+	//driveFor(2);
 	mainLift.PID.isRunning = true;
 	mainLift.goal = SensorValue[mainLift.sensor[0]] + 200;
 	delay(250);
@@ -819,13 +838,28 @@ void threeConeAuton(const bool left){
 	UpUntil(&FourBar, FourBar.max, 127);
 	DownUntil(&mainLift, mainLift.min + 200, 127);
 	FourBar.goal = FourBar.min; //														(RELEASED CONE 2)
+	/*
 	if(abs(initMRot - mRot) > 3){
 		rot(getSign(initMRot - mRot)*dir*127);//checking direction if skewed too far
 		delay(100);
-	}
-	FourBar.goal = 0.5*(FourBar.max + FourBar.min);//brings halfway
-	driveFor(-66);//-53
-	twentyPointScore(dir);
+	}*/
+
+
+	mainLift.goal = mainLift.max;
+	FourBar.goal = FourBar.max;//bring up fourbar and lift
+
+	//simple placing
+	/*
+	driveFor(-5);
+	MoGo.goal = MoGo.min-300;
+	delay(1000);
+	driveFor(-3);
+	MoGo.PID.isRunning = false;*/
+
+	//scoring in zone
+	driveFor(-35);//-53
+	//delay(2000);
+	fivePointScore(dir);//twentyPointScore(dir);
 	autonRunning = false;
 	return;
 }
@@ -853,6 +887,7 @@ void EZAuton(const bool left){
 	FourBar.goal = 0.5*(FourBar.max + FourBar.min);//brings halfway
 	delay(200);
 	mainLift.goal = 0.5*(mainLift.min + mainLift.max);//brings halfway
+	rotFor(-5);
 	driveFor(-43);//-45
 	twentyPointScore(dir);
 	autonRunning = false;
@@ -910,7 +945,7 @@ task autonomous() {
 *| '--------------' || '--------------' || '--------------' || '--------------' |*
 * '----------------'  '----------------'  '----------------'  '----------------' *
 \********************************************************************************/
-bool testing;
+
 task usercontrol() {//initializes everything
 	initializeOpControl(true);//driver init
 	startTask(LiftControlTask);//individual pid for lift type
@@ -926,9 +961,7 @@ task usercontrol() {//initializes everything
 	clearLCDLine(1); // Clear line 2 (1) of the LCD
 	for (;;) {
 		//debug controls
-		if (L7 || L7_2 )EZAuton(RIGHT);
-		//if (L7 || L7_2 )EZAuton(RIGHT);
-
+		if (L7 || L7_2 )threeConeAuton(LEFT);//rotFor(-10);
 		driveCtrlr();
 		delay(15);//~60hz
 	}
