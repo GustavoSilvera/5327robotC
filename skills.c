@@ -312,7 +312,7 @@ bool nearStopped(int velThresh, int motorThresh){
 	);
 }
 void settle(){
-	while(!nearStopped(30, 40)){//threshold for waiting
+	while(!nearStopped(30, 20)){//threshold for waiting
 		fwds(0, mRot);
 	}
 	return;
@@ -359,7 +359,8 @@ void rotFor(float target){
 	gyroBase.isRunning = true;
 	SensorValue[Gyro] = 0;//resets gyros
 	SensorScale[Gyro] = 260;
-	while(abs(SensorValue[Gyro]*GyroK - target) > 2){//2 dF
+	clearTimer(T2);
+	while(abs(SensorValue[Gyro]*GyroK - target) > 3 && time1[T2] < 500){//2 dF
 		rot(limitDownTo(15, pidController(&gyroBase, (target)/GyroK)));
 	}
 	rot(0);//gives settle time
@@ -369,9 +370,11 @@ void rotFor(float target){
 	//check for overshoots
 	const int slowPower = 70;
 	const int dF = 2;//degrees of freedom
-	while(SensorValue[Gyro]*GyroK > target + dF)
+	clearTimer(T2);
+	while(SensorValue[Gyro]*GyroK > target + dF && time1[T2] < 500)
 		rot(-abs(slowPower));
-	while(SensorValue[Gyro]*GyroK < target - dF)
+	clearTimer(T2);
+	while(SensorValue[Gyro]*GyroK < target - dF && time1[T2] < 500)
 		rot(+abs(slowPower));
 	rot(0);
 	settle();
@@ -458,6 +461,8 @@ task intakeToLock(){
 	while(SensorValue[MogoEnd] == 0){
 		mechMove(&conveyer.m, INTAKE);
 	}
+	lock.goal = lock.min;//turns on PID
+	lock.PID.isRunning = true;
 	delay(300);
 								/*while(SensorValue[MogoEnd] == 1){
 									mechMove(&conveyer.m, INTAKE/6);
@@ -475,7 +480,8 @@ task intakeToSecond(){
 	while(SensorValue[MogoFront] == 0){
 		mechMove(&conveyer.m, INTAKE);
 	}
-	delay(30);
+	delay(100);
+	clawControl(OPEN);
 	while(SensorValue[MogoFront] == 1){
 		mechMove(&conveyer.m, INTAKE/3);//slower speed once intook (button pressed)
 	}
@@ -489,7 +495,7 @@ task dropCone(){
 		continue;
 	playSound(soundUpwardTones);
 	clawControl(OPEN);clawControl(OPEN);clawControl(OPEN);clawControl(OPEN);clawControl(OPEN);//spams claw open to ensure
-	delay(400);
+	delay(1000);
 	fourBar.goal = fourBar.min + 400;//then brings out the fourbar a bit
 	fourBar.PID.isRunning = true;
 }
@@ -653,15 +659,14 @@ void crossField(const int initialDistance, const int secondaryDistance, bool wit
 	lock.goal = lock.max;
 	UNLOCK;
 	fourBar.goal = RELEASE + 500;
-	if (withCone) clawControl(CLOSE);
 	fourBar.PID.isRunning = true;
 	startTask(intakeToLock);//picks up first mogo
 	driveFor(initialDistance);
 	fourBar.goal = RELEASE;
-	delay(1000);
+	delay(500);
 	startTask(intakeToSecond);
 	if (withCone) startTask(dropCone);
-	driveFor(SecondaryDistance);
+	driveFor(secondaryDistance);
 	if (withCone) startTask(dropCone);
 	fourBar.goal = avg(fourBar.min, fourBar.max);
 	conveyer.speed = INTAKE / 6;
@@ -671,56 +676,86 @@ void crossField(const int initialDistance, const int secondaryDistance, bool wit
 	delay(300);
 	fourBar.goal = fourBar.goal - 400;
 }
+volatile int clawSpeed = 0;
+task clawHold(){
+	for(;;){
+		motor[ClawMotor] = clawSpeed;
+		delay(10);
+	}
+}
 void progSkillsTest(){
 	startTask(conveyerMove);
 	startTask(killswitch);
 	startTask(liftPID);
 	autonRunning = true;
 	resetGyros();
-	//cross field pickup 2 mogos
-		crossField(60, 65, true);
-	//align to 20 and score
-	rotFor(90);
-	delay(300);
-	driveFor(-13.5);
-	delay(300);
+																				/*
+																					//cross field pickup 2 mogos
+																						crossField(63, 74, true);
+																					//align to 20 and score
+																					rotFor(90);
+																					fourBar.goal = RELEASE;
+																					delay(300);
+																					driveFor(-14);
+																					settle();
+																					rotFor(90);
+																					lock.PID.isRunning = false;
+																					conveyer.speed = 0;
+																					twentyScore();//SCORES FIRST TWO IN ZONE
+																					settle();
+																					delay(300);
+																					driveFor(19);
+																					fourBar.goal = RELEASE;//brings to rear again
+																					//'s' motion
+																					alignToLine();//aligns to tape line
+																					conveyer.speed = INTAKE/8;//turn off conveyer
+																					settle();
+																					//fourBar.goal = PICKUP;
+																					rotFor(95);
+																					settle();
+																					driveFor(18.5);
+																					settle();
+																					rotFor(-80);//innaccurate but reliable
+																					settle();
+																					delay(300);
+																					//cross field pickup 2 mogos
+																						crossField(65, 55, false);
+																					rotFor(87);
+																					driveFor(-16);
+																					settle();
+																					rotFor(88);
+																					lock.PID.isRunning = false;
+																					twentyScore();
+																					driveFor(20);
+																					*/
+	alignToLine();
+	rot(90);
+	delay(600);
+	driveFor(37);
+	rot(-80);
+	delay(400);
 	settle();
-	rotFor(90);
-	delay(300);
-	lock.PID.isRunning = false;
-	conveyer.speed = 0;
-	twentyScore();//SCORES FIRST TWO IN ZONE
-	driveFor(21);
-	delay(100);
-	fourBar.goal = RELEASE;//brings to rear again
-	//'s' motion
-	alignToLine();//aligns to tape line
-	conveyer.speed = 0;//turn off conveyer
-	settle();
-	delay(100);
-	//fourBar.goal = PICKUP;
-	rotFor(95);
-	settle();
-	delay(200);
-	driveFor(17);
-	settle();
-	delay(300);
-	rotFor(-70);//innaccurate but reliable
+	startTask(intakeToLock);
+	driveFor(64);
 	settle();
 	delay(500);
-	//cross field pickup 2 mogos
-		crossField(65, 60, false);
-	rotFor(90);
-	delay(300);
-	driveFor(-13);
-	delay(300);
-	settle();
-	rotFor(90);
-	delay(300);
-	lock.PID.isRunning = false;
-	driveFor(-5);//drive a little bit closer (and SLAM align)
-	twentyScore();
-	driveFor(20);
+	driveFor(-10);
+	fourBar.goal = PICKUP;
+	clawSpeed = -80;
+	startTask(clawHold);
+	delay(500);
+	rotFor(-50);
+	driveFor(8);
+	clawSpeed = 100;
+	delay(400);
+	stopTask(clawHold);
+	fourBar.goal = RELEASE;
+	delay(400);
+	startTask(intakeToSecond);
+	driveFor(25);
+	fourBar.goal = PICKUP;
+	delay(500);
+	rotFor(-50);
 	//DONE
 	autonRunning = false;
 	startTask(MechControlTask);
