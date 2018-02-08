@@ -8,7 +8,7 @@
 #pragma config(Sensor, dgtl3,  RightBaseEnc,   sensorQuadEncoder)
 #pragma config(Sensor, dgtl5,  MogoFront,      sensorTouch)
 #pragma config(Sensor, dgtl6,  MogoEnd,        sensorTouch)
-#pragma config(Sensor, dgtl8,  sonar,          sensorSONAR_cm)
+#pragma config(Sensor, dgtl8,  sonar,          sensorSONAR_inch)
 #pragma config(Motor,  port2,           ClawMotor,     tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port3,           RBaseFront,    tmotorVex393_MC29, openLoop, reversed)
 #pragma config(Motor,  port4,           RBaseBack,     tmotorVex393_MC29, openLoop, reversed)
@@ -26,38 +26,18 @@
 #pragma competitionControl(Competition)
 //Main competition background code...do not modify!5
 #include "Vex_Competition_Includes.c"
-
+#include "randomstuff.c"
 #define PI 3.1415
-
-//controller
-#define U5    		vexRT[Btn5U]//5U
-#define D5	  		vexRT[Btn5D]//5D
-#define U6  		vexRT[Btn6U]//6U
-#define D6	  		vexRT[Btn6D]//6D
-#define U7  		vexRT[Btn7U]//7U
-#define D7	  		vexRT[Btn7D]//7D
-#define L7    		vexRT[Btn7L]//7L
-#define R7			vexRT[Btn7R]//7R
-#define U8  		vexRT[Btn8U]//8U
-#define D8	  		vexRT[Btn8D]//8D
-#define L8    		vexRT[Btn8L]//8L
-#define R8	  		vexRT[Btn8R]//8R
-//partner controller
-#define U5_2    	vexRT[Btn5UXmtr2]//5U2
-#define D5_2	    vexRT[Btn5DXmtr2]//5D2
-#define U6_2		vexRT[Btn6UXmtr2]//6U2
-#define D6_2	    vexRT[Btn6DXmtr2]//622
-#define U7_2  		vexRT[Btn7UXmtr2]//7U2
-#define D7_2	    vexRT[Btn7DXmtr2]//7D2
-#define L7_2    	vexRT[Btn7LXmtr2]//7L2
-#define R7_2	    vexRT[Btn7RXmtr2]//7R2
-#define U8_2  		vexRT[Btn8UXmtr2]//8U2
-#define D8_2	    vexRT[Btn8DXmtr2]//8D2
-#define L8_2    	vexRT[Btn8LXmtr2]//8L2
-#define R8_2	    vexRT[Btn8RXmtr2]//8R2
 
 #define LEFT true
 #define RIGHT false
+
+#define SQUARE(x) (x * x)
+#define AVG(x,y) ((x + y)/2)
+#define MIN(x,y) (x <= y ? x : y)
+#define GETSIGN(x) (x < 0 ? -1 : 1)
+//#define LimitUpTo(x,y) (y < x ? y : x)
+//#define LIMITDOWN(x,y) (y > x ? x : y)
 
 #define INTAKE 127
 #define OUTTAKE -127
@@ -117,16 +97,17 @@ string mainBattery, powerExpander;
 volatile float mRot = 0.0;//current rotation
 volatile float encoderAvg;//used only for straight fwds and bkwds direction
 //MISC FUNCTIONS
+
 int getSign(int check) {
 	if (check < 0) return -1;
 	else if (check > 0) return 1;
 	return 0;
 }
-float limitUpTo(float max, float val) {
+float LimitUpTo(float max, float val) {
 	if (abs(val) < abs(max)) return val;
 	else return getSign(val) * max;
 }
-float limitDownTo(float min, float val) {
+float LimitDownTo(float min, float val) {
 	if (abs(val) > abs(min)) return val;
 	else return getSign(val) * min;
 }
@@ -207,9 +188,10 @@ void initializeOpControl(const bool driver) {
 	initMech( &baseRight,	 DRIVE,		  	RightBaseEnc,		RBaseFront,		  RBaseBack);//RIGHT BASE
 	initLift( &lock,								LockPot,			LockMotor, 			0,						1000, 2000);//(min) && (max)
 	initLift( &fourBar,							FourBarPot,		RFourBarMotor,		LFourBarMotor,		1300,	3500, 10);
-	initPID ( &fourBar.PID, fourBar.m.sensor, 50, 0.05, 0.0, 0.05, true, true);
-	initPID ( &lock.PID, lock.m.sensor, 		30, 0.5, 0.0, 0.0, true, true);
-	initPID ( &gyroBase, 	Gyro, 				1,  0.525, 0.0, 0.5, true, false);
+	//--------&reference-------Sensor------thresh---kP---kI---kD---reversed---isRunning
+	initPID ( &fourBar.PID, fourBar.m.sensor, 50, 0.05,  0.0, 0.05, 	true, 		true);
+	initPID ( &lock.PID,		lock.m.sensor, 		30, 0.5, 	 0.0, 0.0, 		true, 		true);
+	initPID ( &gyroBase, 		Gyro, 						1,  1, 0.0, 0.0, 		true, 		false);//kP = .35, kD = 0.6
 	pastRot = mRot;
 }
 void resetPIDVals(struct PIDPar* pid) {
@@ -250,7 +232,7 @@ float pidController(struct PIDPar* PIDtype, const float goal) {
 *'----------------'  '----------------'  '----------------'  '----------------'  *
 \*******************************************************************************/
 float TruSpeed(const float value) {//for all other polynomials; visit: goo.gl/mhvbx4
-	return(getSign(value) * ((value*value) / (127)));//squaring
+	return(GETSIGN(value) * (SQUARE(value) / (127));//squaring
 }//function for calculating the truSpeed function based off a polynomial
 void mechMove(const struct mechanism* mech, const int speed) {
 	if(!mech->stalling){
@@ -293,15 +275,59 @@ void limitMechControl(const struct mechanism* mech, int bUp, int bDown, int bUp2
 	else mechMove(mech, 0);
 }
 void fwds(const int power, const float angle) {//drive base forwards
-	const int speed = limitUpTo(127, power);
+	const int speed = LimitUpTo(127, power);
 	const float scalar = 20;//scalar for rotation
-	float dirSkew = limitUpTo(speed, scalar*(mRot - angle));
+	float dirSkew = LimitUpTo(speed, scalar*(mRot - angle));
 	analogMechControl(&baseRight.m, speed - dirSkew);
 	analogMechControl(&baseLeft.m, speed + dirSkew);
 }
 void rot(float power) {//rotates base
+
 	analogMechControl(&baseRight.m, power);
 	analogMechControl(&baseLeft.m, -power);
+	/*motor[RBaseFront] = power;
+	motor[RBaseBack] = power;
+	motor[LBaseFront] = -power;
+	motor[LBaseBack] = -power;*/
+}
+void swingR(float power) {//swings right base
+	analogMechControl(&baseRight.m, power);
+}
+void swingL(float power) {//swings right base
+	analogMechControl(&baseRight.m, power);
+}
+
+void turn(int deg, int df){
+	int speed = GETSIGN(deg) * 127;
+	float initialRot = mRot*GyroK;
+
+	motor[RBaseFront] = speed;
+	motor[RBaseBack] = speed;
+	motor[LBaseFront] = -speed;
+	motor[LBaseBack] = -speed;
+
+	switch(abs(deg)){
+		case 45:
+			delay(250);
+			break;
+		case 90:
+			delay(400);
+			break;
+	}
+
+	motor[RBaseFront] = 0;
+	motor[RBaseBack] = 0;
+	motor[LBaseFront] = 0;
+	motor[LBaseBack] = 0;
+
+	float error = (mRot - initialRot);
+	while (abs(error - deg) < df) {
+		speed = GETSIGN(error) * 75;
+		motor[RBaseFront] = speed;
+		motor[RBaseBack] = speed;
+		motor[LBaseFront] = -speed;
+		motor[LBaseBack] = -speed;
+	}
 }
 bool nearStopped(int velThresh, int motorThresh){
 	return(abs(mainVelocity) < velThresh && //low base velocity
@@ -323,10 +349,15 @@ void driveFor(float goal) {//drives for certain inches
 	const int thresh = 5;//10 ticks
 	const int initDir = mRot;
 	//ClearTimer(T1);
-	const float encoderScale = 0.5;//number of motor rotations = this() rotations
-	const float dP = 20;//multiplier for velocity controller
-	while (abs(goal * circum - encoderAvg*encoderScale) > thresh) {
-		fwds(limitDownTo(15, dP * ((goal*circum - encoderAvg*encoderScale - 0.3*mainVelocity))), mRot);//initDir);
+	//const float encoderScale = 1;//number of motor rotations = this() rotations
+	const float dP = 25;//multiplier for velocity controller
+	//while (abs(goal * circum - encoderAvg*encoderScale) > thresh) {
+		//fwds(LimitDownTo(15, dP * ((goal*circum - encoderAvg*encoderScale - 0.3*mainVelocity))), mRot);//initDir);
+	const float scalar = 2;
+	while (abs(goal * circum - encoderAvg*scalar) > thresh) {
+		int power = (LimitDownTo(15, dP * ((goal*circum - encoderAvg*scalar - 0.3*mainVelocity));//initDir);
+		analogMechControl(&baseRight.m, power );
+		analogMechControl(&baseLeft.m, power);
 	}
 	fwds(0, initDir);
 	settle();
@@ -335,23 +366,29 @@ void driveFor(float goal) {//drives for certain inches
 void alignToLine(int dir = 1){
 	const float lineThresh = 1000;
 	bool isAligned = (SensorValue[RLin] + SensorValue[LLin] < lineThresh);
-	const int power = dir * 75;
+	const int power = dir * 65;
 	while(!isAligned){
 		if(SensorValue[LLin] < lineThresh){
 			fwds(0, mRot);
 			while(SensorValue[RLin] > lineThresh){
-				rot(+abs(power-10));
+				swingR(power);
 			}
 			isAligned = true;
 		}
 		else if (SensorValue[RLin] < lineThresh){
 			fwds(0, mRot);
 			while(SensorValue[LLin] > lineThresh){
-				rot(-abs(power-10));
+				swingL(power);
 			}
 			isAligned = true;
 		}
-		else fwds(power, mRot); //speed where robot will stop on line
+		else fwds(dir*60, mRot);// fwds(power, mRot); //speed where robot will stop on line
+	}
+	fwds(0, mRot);
+}
+void alignFromWall(int goal){ //use sonar to reach distance in inches
+	while(SensorValue[sonar]!= goal){
+		fwds(65, mRot);
 	}
 	fwds(0, mRot);
 }
@@ -360,23 +397,17 @@ void rotFor(float target){
 	SensorValue[Gyro] = 0;//resets gyros
 	SensorScale[Gyro] = 260;
 	clearTimer(T2);
-	while(abs(SensorValue[Gyro]*GyroK - target) > 3 && time1[T2] < 500){//2 dF
-		rot(limitDownTo(15, pidController(&gyroBase, (target)/GyroK)));
+	while(abs(SensorValue[Gyro]*GyroK - target) > 3 && time1[T2] < 900){//2 dF
+		rot( 0.3*pidController( & gyroBase, target/GyroK) );
 	}
-	rot(0);//gives settle time
+	int power;
+	if(target < 0) power = 127;
+	else power = 127;
+	rot(getSign(mainVelocity)*power);//gives settle time
+	delay(100);
+	rot(0);
 	gyroBase.isRunning = false;
 	resetPIDVals(&gyroBase);
-	delay(target * 2);
-	//check for overshoots
-	const int slowPower = 70;
-	const int dF = 2;//degrees of freedom
-	clearTimer(T2);
-	while(SensorValue[Gyro]*GyroK > target + dF && time1[T2] < 500)
-		rot(-abs(slowPower));
-	clearTimer(T2);
-	while(SensorValue[Gyro]*GyroK < target - dF && time1[T2] < 500)
-		rot(+abs(slowPower));
-	rot(0);
 	settle();
 	return;
 }
@@ -461,9 +492,9 @@ task intakeToLock(){
 	while(SensorValue[MogoEnd] == 0){
 		mechMove(&conveyer.m, INTAKE);
 	}
+	delay(500);
 	lock.goal = lock.min;//turns on PID
 	lock.PID.isRunning = true;
-	delay(300);
 								/*while(SensorValue[MogoEnd] == 1){
 									mechMove(&conveyer.m, INTAKE/6);
 								}*/
@@ -483,7 +514,7 @@ task intakeToSecond(){
 	delay(100);
 	clawControl(OPEN);
 	while(SensorValue[MogoFront] == 1){
-		mechMove(&conveyer.m, INTAKE/3);//slower speed once intook (button pressed)
+		mechMove(&conveyer.m, INTAKE);//slower speed once intook (button pressed)
 	}
 	clawControl(OPEN);clawControl(OPEN);clawControl(OPEN);clawControl(OPEN);//spams claw open just to make sure
 	playSound(soundBlip);
@@ -537,7 +568,7 @@ task liftPID(){
 * '----------------'  '----------------'  '----------------'  '----------------' *
 \********************************************************************************/
 float calcVel(struct mechanism* mech, float dist, float delayAmount) {
-	float velocity = limitDownTo(1, ((SensorValue(mech->sensor) - mech->past) / dist) / ((float)(delayAmount / 1000)));//1000 ms in 1s;
+	float velocity = LimitDownTo(1, ((SensorValue(mech->sensor) - mech->past) / dist) / ((float)(delayAmount / 1000)));//1000 ms in 1s;
 	mech->past = SensorValue[mech->sensor];
 	return(velocity);//1000 ms in 1s;
 }
@@ -607,11 +638,24 @@ void checkStalling(struct mechanism* mech) {
 	else mech->stalling = false;
 	if (mech->stalling) playSound(soundBlip);
 }
+
 task antiStall() {
 	for (;;) {
 		checkStalling(&baseRight.m);
 		checkStalling(&baseLeft.m);
 		delay(50);
+	}
+}
+void displayBatteryLevels(){
+	//Display the Primary Robot battery voltage
+	displayLCDString(0, 0, "Primary: ");
+	sprintf(mainBattery, "%1.2f%c", nImmediateBatteryLevel/1000.0,'V'); //Build the value to be displayed
+	displayNextLCDString(mainBattery);
+}
+task displayLCD(){
+	for(;;){
+		displayBatteryLevels();
+		delay(30);
 	}
 }
 /********************************************************************************\
@@ -663,6 +707,7 @@ void crossField(const int initialDistance, const int secondaryDistance, bool wit
 	startTask(intakeToLock);//picks up first mogo
 	driveFor(initialDistance);
 	fourBar.goal = RELEASE;
+	fwds(70, mRot);
 	delay(500);
 	startTask(intakeToSecond);
 	if (withCone) startTask(dropCone);
@@ -673,8 +718,6 @@ void crossField(const int initialDistance, const int secondaryDistance, bool wit
 	delay(300);
 	lock.goal = lock.min;
 	settle();
-	delay(300);
-	fourBar.goal = fourBar.goal - 400;
 }
 volatile int clawSpeed = 0;
 task clawHold(){
@@ -689,16 +732,16 @@ void progSkillsTest(){
 	startTask(liftPID);
 	autonRunning = true;
 	resetGyros();
-																				/*
+
 																					//cross field pickup 2 mogos
-																						crossField(63, 74, true);
+																						crossField(55, 55, true);
 																					//align to 20 and score
-																					rotFor(90);
+																					rotFor(120);
 																					fourBar.goal = RELEASE;
 																					delay(300);
-																					driveFor(-14);
+																					driveFor(-12);
 																					settle();
-																					rotFor(90);
+																					rotFor(120);
 																					lock.PID.isRunning = false;
 																					conveyer.speed = 0;
 																					twentyScore();//SCORES FIRST TWO IN ZONE
@@ -711,28 +754,28 @@ void progSkillsTest(){
 																					conveyer.speed = INTAKE/8;//turn off conveyer
 																					settle();
 																					//fourBar.goal = PICKUP;
-																					rotFor(95);
+																					rotFor(120);
 																					settle();
-																					driveFor(18.5);
+																					driveFor(17);
 																					settle();
-																					rotFor(-80);//innaccurate but reliable
+																					rotFor(-120);//innaccurate but reliable
 																					settle();
 																					delay(300);
 																					//cross field pickup 2 mogos
-																						crossField(65, 55, false);
-																					rotFor(87);
-																					driveFor(-16);
+																						crossField(65, 47, false);
+																					rotFor(120);
+																					driveFor(-15);
 																					settle();
-																					rotFor(88);
+																					rotFor(120);
 																					lock.PID.isRunning = false;
 																					twentyScore();
 																					driveFor(20);
-																					*/
-	alignToLine();
+
+/*	alignToLine();
 	rot(90);
 	delay(600);
 	driveFor(37);
-	rot(-80);
+	rot(-90);
 	delay(400);
 	settle();
 	startTask(intakeToLock);
@@ -755,11 +798,17 @@ void progSkillsTest(){
 	driveFor(25);
 	fourBar.goal = PICKUP;
 	delay(500);
-	rotFor(-50);
+	rotFor(-50);*/
 	//DONE
 	autonRunning = false;
 	startTask(MechControlTask);
 	return;
+}
+void progSkillsTest2() {
+	alignToLine();
+	crossField(63, 70, false);
+	alignToLine();
+	rotFor(90);
 }
 task autonomous() {
 	autonRunning = true;
@@ -793,8 +842,8 @@ task usercontrol() {//initializes everything
 	startTask(MeasureSpeed);//velocity measurer for base
 	startTask(sensorsUpdate);
 	//startTask(antiStall);
-	//startTask(killswitch);
-	//startTask(displayLCD);
+	startTask(killswitch);
+	startTask(displayLCD);
 	startTask(clawTask);
 	SensorValue[Gyro] = 0;//resets gyros
 	SensorScale[Gyro] = 260;
@@ -805,10 +854,10 @@ task usercontrol() {//initializes everything
 	for (;;) {
 		//debug controls
 		//if(U8) progSkillsTest();
-		if(L7) alignToLine();
-		if(R7) clawControl(OPEN);
+		if(L7) rotFor(-90); //alignToLine();
+		if(R7) rotFor(90);//clawControl(OPEN);
 		if(U7) progSkillsTest();
-		if(D7) startTask(intakeToLock);
+		if(D7) turn(45, 2);
 		LiftLift(&fourBar, D5, U5, D5_2, U5_2, 5000, true);
 		LiftLift(&lock, U8, D8, U8_2, D8_2, 100, true);
 	//	LOCK;
