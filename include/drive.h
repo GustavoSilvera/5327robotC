@@ -82,21 +82,21 @@ void alignToLine(float dir){
 			}
 			isAligned = true;
 		}
-		else fwds(power);// fwds(power, mRot); //speed where robot will stop on line
-	}
-	fwds(0);
-}
-void untilLine(int power){
-	const float lineThresh = 1000;
-	while((SensorValue[LLin] > lineThresh) && (SensorValue[RLin] > lineThresh)){
-		fwds(power, mRot);
+		else fwds(dir*65, mRot);// fwds(power, mRot); //speed where robot will stop on line
 	}
 	fwds(0, mRot);
 }
+//void untilLine(int power){
+//	const float lineThresh = 1000;
+//	while((SensorValue[LLin] > lineThresh) && (SensorValue[RLin] > lineThresh)){
+//		fwds(power, mRot);
+//	}
+//	fwds(0, mRot);
+//}
 void alignSonar(int goal){ //use sonar to reach distance in inches
 	while(SensorValue[sonar] > goal){
-		fwds(100);
+		fwds(100, mRot);
 	}
-	fwds(-127);
+	fwds(-127, mRot);
 	delay(50);
 }

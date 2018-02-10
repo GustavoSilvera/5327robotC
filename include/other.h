@@ -67,7 +67,7 @@ task displayLCD(){
 }
 task killswitch() {
 	for (;;) {
-		if (R7 && autonRunning) {
+		if (D7 && autonRunning) {
 			stopAllTasks();
 		}
 		delay(50);

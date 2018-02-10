@@ -49,7 +49,7 @@ void scaleGyros() {
 	//Adjust SensorFullCount to set the "rollover" point. 3600 sets the rollover point to +/-3600
 	//NO RESET
 	SensorScale[Gyro] = 260;
-	SensorFullCount[Gyro] = 36000;
+	SensorFullCount[Gyro] = 3600;
 }
 void resetGyros() {
 	SensorType[in6] = sensorNone;

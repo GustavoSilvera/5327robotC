@@ -41,12 +41,12 @@ void turn(int deg, int df){
 	motor[LBaseFront] = -speed;
 	motor[LBaseBack] = -speed;
 	switch(abs(deg)){
-	case 45:
-		delay(250);
-		break;
-	case 90:
-		delay(400);
-		break;
+		case 45:
+			delay(250);
+			break;
+		case 90:
+			delay(400);
+			break;
 	}
 	motor[RBaseFront] = 0;
 	motor[RBaseBack] = 0;
@@ -64,10 +64,10 @@ void turn(int deg, int df){
 }
 void rotFor(float target){
 	gyroBase.isRunning = true;
-	SensorValue[Gyro] = 0;//resets gyros
-	SensorScale[Gyro] = 260;
+	SensorValue[Gyro2] = 0;//resets gyros
+	SensorScale[Gyro2] = 260;
 	clearTimer(T2);
-	while(abs(SensorValue[Gyro]*GyroK - target) > 3 && time1[T2] < 900){//2 dF
+	while(abs(SensorValue[Gyro2]*GyroK - target) > 3 && time1[T2] < 900){//2 dF
 		rot( 0.35*pidController( & gyroBase, target/GyroK) );
 	}
 	int power;

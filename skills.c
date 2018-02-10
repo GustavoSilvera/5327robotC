@@ -4,6 +4,7 @@
 #pragma config(Sensor, in4,    FourBarPot,     sensorPotentiometer)
 #pragma config(Sensor, in5,    BATERY_2_PORT,  sensorAnalog)
 #pragma config(Sensor, in6,    Gyro,           sensorGyro)
+#pragma config(Sensor, in7,    Gyro2,          sensorGyro)
 #pragma config(Sensor, dgtl1,  LeftBaseEnc,    sensorQuadEncoder)
 #pragma config(Sensor, dgtl3,  RightBaseEnc,   sensorQuadEncoder)
 #pragma config(Sensor, dgtl5,  MogoFront,      sensorTouch)
@@ -25,14 +26,14 @@
 #pragma competitionControl(Competition)
 //Main competition background code...do not modify!5
 #include "Vex_Competition_Includes.c"
-#include "randomstuff.h"
-#include "dataStructures.h"
-#include "mech.h"
-#include "rotate.h"
-#include "physics.h"
-#include "lift.h"
-#include "init.h"
-#include "other.h"
+#include "include/randomstuff.h"
+#include "include/dataStructures.h"
+#include "include/mech.h"
+#include "include/rotate.h"
+#include "include/physics.h"
+#include "include/lift.h"
+#include "include/init.h"
+#include "include/other.h"
 void pre_auton() {//dont care
 	bStopTasksBetweenModes = true;
 	SensorType[Gyro] = sensorGyro;
@@ -40,7 +41,7 @@ void pre_auton() {//dont care
 	//Adjust SensorScale to correct the scaling for your gyro
 	scaleGyros();
 	while (bIfiRobotDisabled) {//in preauton
-	//	autonSelect(nLCDButtons);
+		//	autonSelect(nLCDButtons);
 	}
 }
 void initializeOpControl(const bool driver) {
@@ -57,14 +58,14 @@ void initializeOpControl(const bool driver) {
 	//--------&reference-------Sensor------thresh---kP---kI---kD---reversed---isRunning
 	initPID ( &fourBar.PID, fourBar.m.sensor, 50, 0.05,  0.0, 0.05, 	true, 		true);
 	initPID ( &lock.PID,		lock.m.sensor, 		30, 0.5, 	 0.0, 0.0, 		true, 		true);
-	initPID ( &gyroBase, 		Gyro, 						1,  1, 0.0, 0, 		true, 		false);//kP = .35, kD = 0.6
+	initPID ( &gyroBase, 		Gyro2, 						1,  1, 0.0, 0, 		true, 		false);//kP = .35, kD = 0.6
 	pastRot = mRot;
 }
 task intakeToLock(){
 	while(SensorValue[MogoEnd] == 0){
 		mechMove(&conveyer.m, INTAKE);
 	}
-	delay(200);
+	delay(250);
 	lock.goal = lock.min;//turns on PID
 	lock.PID.isRunning = true;
 	playSound(soundBeepBeep);
@@ -103,10 +104,19 @@ task conveyerMove(){
 	stopTask(MechControlTask);
 	for(;;){
 		if(autonRunning) mechMove(&conveyer.m, conveyer.speed);//allows multitasking
-		delay(50);
+			delay(50);
+	}
+}
+volatile int clawSpeed = 0;
+task clawHold(){
+	for(;;){
+		motor[ClawMotor] = clawSpeed;
+		delay(30);
 	}
 }
 void twentyScore(){
+	lock.PID.isRunning = true;
+	conveyer.speed = 0;
 	lock.goal = lock.max;//unlocks mogo
 	fwds(-127, mRot);
 	delay(600);
@@ -128,82 +138,20 @@ void crossField(const int initialDistance, const int secondaryDistance, bool wit
 	fourBar.goal = RELEASE;
 	fwds(70, mRot);//slows down drive
 	clearTimer(T1);
-		while(abs(SensorValue[Gyro]*GyroK - initialMRot) > 1 && time1[T1] < 500)	rot(-10*(SensorValue[Gyro]*GyroK - initialMRot));//corrects angle if off course
+	while(abs(SensorValue[Gyro]*GyroK - initialMRot) > 1 && time1[T1] < 500)
+		rot(-10*(SensorValue[Gyro]*GyroK - initialMRot));//corrects angle if off course
 	delay(500);//waits for mogo pickup
 	startTask(intakeSecond);
 	if (withCone) startTask(dropCone);
-	driveFor(secondaryDistance);
+	alignSonar(35);//aligns to the wall using the sonar... should be p consistent (TUNE)
+	//driveFor(secondaryDistance);
 	fourBar.goal = avg(fourBar.min, fourBar.max);
 	conveyer.speed = INTAKE / 6;
 	delay(300);
 	lock.goal = lock.min;
 	settle();
 }
-volatile int clawSpeed = 0;
-task clawHold(){
-	for(;;){
-		motor[ClawMotor] = clawSpeed;
-		delay(10);
-	}
-}
-void progSkillsTest(){
-	startTask(conveyerMove);
-	startTask(killswitch);
-	startTask(liftPID);
-	autonRunning = true;
-	//resetGyros();//NEVER USE (for some reason?)
-	///////////////////////////////STAGE 1/////////////////////////////
-	crossField(80, 70, true);
-	conveyer.speed = 0;
-	delay(100);
-	rotAcc(87.5, 1000);
-	fourBar.goal = RELEASE;
-	delay(300);
-	driveFor(-12.5);//-12);
-	settle();
-	delay(100);
-	rotAcc(85);
-	delay(50);
-	SensorValue[Gyro] = 0;
-	fourBar.goal = avg(fourBar.min, fourBar.max);
-	lock.PID.isRunning = false;
-	conveyer.speed = 0;
-	twentyScore();//SCORES FIRST TWO IN ZONE
-	settle();
-	delay(300);
-	driveFor(30);
-	fourBar.goal = RELEASE;//brings to rear again
-	//'s' motion
-	alignToLine(1);//aligns to tape line
-	conveyer.speed = INTAKE/8;//turn off conveyer
-	settle();
-	delay(200);
-	rotAcc(90);
-	settle();
-	alignSonar(42);
-	settle();
-	delay(400);
-	rotAcc(-88);
-	settle();
-	///////////////////////////////STAGE 2/////////////////////////////
-	delay(300);
-	crossField(80, 62, false);
-	fourBar.goal = RELEASE;
-	conveyer.speed = 0;
-	rotAcc(90);
-	driveFor(-11);
-	settle();
-	rotAcc(85);
-	lock.PID.isRunning = false;
-	twentyScore();
-	driveFor(26);
-	///////////////////////////////STAGE 3/////////////////////////////
-	alignToLine(1);
-	rotAcc(90);
-	alignSonar(27);
-	settle();
-	delay(200);
-	rotAcc(-46,1000);
+void stageThree(){
 	const int initialMRot = SensorValue[Gyro]*GyroK;
 	settle();
 	delay(50);
@@ -211,9 +159,10 @@ void progSkillsTest(){
 	delay(200);
 	driveFor(80);
 	clearTimer(T1);
-	while(abs(SensorValue[Gyro]*GyroK - initialMRot) > 1 && time1[T1] < 500)	rot(-10*(SensorValue[Gyro]*GyroK - initialMRot));
+	while(abs(SensorValue[Gyro]*GyroK - initialMRot) > 1 && time1[T1] < 500)
+		rot(-10*(SensorValue[Gyro]*GyroK - initialMRot));
 	settle();
-	delay(300);
+	delay(100);
 	driveFor(-7);
 	fourBar.goal = PICKUP;
 	clawSpeed = -127;
@@ -240,6 +189,65 @@ void progSkillsTest(){
 	conveyer.speed = 0;
 	delay(500);
 	rotAcc(-50, 1000);
+}
+void progSkillsTest(){
+	startTask(conveyerMove);
+	startTask(killswitch);
+	startTask(liftPID);
+	autonRunning = true;
+	//resetGyros();//NEVER USE (for some reason?)
+	///////////////////////////////STAGE 1/////////////////////////////
+	crossField(80, 70, true);//second distance dosent do anything (TUNE) (using sonar for 2nd distance)
+	conveyer.speed = 0;
+	delay(100);
+	timeTurn(90, 2);//time based turn with 2 mogos @ 90°
+	fourBar.goal = RELEASE;
+	delay(300);
+	driveFor(-12.5);
+	settle();
+	delay(100);
+	timeTurn(90, 2);//time based turn with 2 mogos @ 90°
+	fourBar.goal = avg(fourBar.min, fourBar.max);
+	delay(300);
+	twentyScore();//SCORES FIRST TWO IN ZONE
+	settle();
+	delay(100);
+	fwds(127);
+	delay(500);//time based drive to go over 10pt pole but not pass line (TUNE)
+	//for ^ could also use driveFor(25) ish, need to (TUNE) regardless
+	fourBar.goal = RELEASE;//brings to rear again
+	//'s' motion
+	alignToLine(1);//aligns to tape line
+	conveyer.speed = 0;//turn off conveyer
+	settle();
+	delay(200);
+	rotAcc(90, 1500);//should be solid 90 every time
+	settle();
+	alignSonar(42);
+	settle();
+	delay(300);
+	rotAcc(-88);
+	settle();
+	///////////////////////////////STAGE 2/////////////////////////////
+	crossField(80, 62, false);
+	fourBar.goal = RELEASE;
+	conveyer.speed = 0;
+	timeTurn(90, 2);//time based turn with 2 mogos @ 90°
+	driveFor(-11);
+	settle();
+	timeTurn(90, 2);//time based turn with 2 mogos @ 90°
+	twentyScore();
+	fwds(127);
+	delay(500);//time based drive to go over 10pt pole but not pass line (TUNE)
+	//for ^ could also use driveFor(25) ish, need to (TUNE) regardless
+	///////////////////////////////STAGE 3/////////////////////////////
+	alignToLine(1);
+	rotAcc(90);//should be accurate 90 every time
+	alignSonar(27);
+	settle();
+	delay(200);
+	rotAcc(-46,1000);
+	stageThree();
 	//DONE
 	autonRunning = false;
 	startTask(MechControlTask);
@@ -274,10 +282,10 @@ task usercontrol() {//initializes everything
 	else playSound(soundUpwardTones);
 	for (;;) {
 		//debug controls
-		if(L7) rotAcc(45);
-		if(R7) rotAcc(-45);//clawControl(OPEN);
+		if(L7) timeTurn(90, 2);//(TUNE)
+		if(R7) timeTurn(-90, 2);//(TUNE)
 		if(U7) progSkillsTest();
-		if(D7) turn(45, 2);
+		if(D7) timeTurn(45, 2);
 		LiftLift(&fourBar, D5, U5, D5_2, U5_2, 5000, true);
 		LiftLift(&lock, U8, D8, U8_2, D8_2, 100, true);
 		delay(30);//~60hz

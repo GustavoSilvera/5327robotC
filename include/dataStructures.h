@@ -58,9 +58,9 @@ float LimitDownTo(float min, float val) {
 	if (abs(val) > abs(min)) return val;
 	else return getSign(val) * min;
 }
-float sqr(float val) {
-	return val*val;
-}
+//float sqr(float val) {
+//	return val*val;
+//}
 float avg(float a, float b) {
 	return 0.5*(a + b);//avg between two things
 }
