@@ -127,7 +127,7 @@ void crossField(const int initialDistance, const int secondaryDistance, bool wit
 	driveFor(initialDistance);
 	fourBar.goal = RELEASE;
 	fwds(70, mRot);//slows down drive
-	clearTimer[T1];
+	clearTimer(T1);
 		while(abs(SensorValue[Gyro]*GyroK - initialMRot) > 1 && time1[T1] < 500)	rot(-10*(SensorValue[Gyro]*GyroK - initialMRot));//corrects angle if off course
 	delay(500);//waits for mogo pickup
 	startTask(intakeSecond);
