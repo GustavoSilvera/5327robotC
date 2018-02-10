@@ -36,10 +36,7 @@ void turn(int deg, int df){
 	int speed = GETSIGN(deg) * 127;
 	float initialRot = mRot*GyroK;
 
-	motor[RBaseFront] = speed;
-	motor[RBaseBack] = speed;
-	motor[LBaseFront] = -speed;
-	motor[LBaseBack] = -speed;
+	rot(speed);
 	switch(abs(deg)){
 		case 45:
 			delay(250);
