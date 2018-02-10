@@ -8,7 +8,7 @@
 #pragma config(Sensor, dgtl3,  RightBaseEnc,   sensorQuadEncoder)
 #pragma config(Sensor, dgtl5,  MogoFront,      sensorTouch)
 #pragma config(Sensor, dgtl6,  MogoEnd,        sensorTouch)
-#pragma config(Sensor, dgtl8,  sonar,          sensorSONAR_inch)
+#pragma config(Sensor, dgtl8,  sonar,          sensorSONAR_cm)
 #pragma config(Motor,  port2,           ClawMotor,     tmotorVex393_MC29, openLoop)
 #pragma config(Motor,  port3,           RBaseFront,    tmotorVex393_MC29, openLoop, reversed)
 #pragma config(Motor,  port4,           RBaseBack,     tmotorVex393_MC29, openLoop, reversed)
@@ -275,12 +275,24 @@ void limitMechControl(const struct mechanism* mech, int bUp, int bDown, int bUp2
 	}
 	else mechMove(mech, 0);
 }
-void fwds(const int power, const float angle) {//drive base forwards
-	const int speed = LimitUpTo(127, power);
-	const float scalar = 0;//scalar for rotation (CHANGED)
-	float dirSkew = LimitUpTo(speed, scalar*(mRot - angle));
-	analogMechControl(&baseLeft.m, speed + dirSkew);
-	analogMechControl(&baseRight.m, speed - dirSkew);
+void fwdsLong(const int power, const float angle = mRot) {//drive base forwards
+	const float speed = LimitUpTo(127, power);
+	//const float scalar = 0;//scalar for rotation (CHANGED)
+	//float dirSkew = LimitUpTo(speed, scalar*(mRot - angle));
+	motor[RBaseFront] = speed;
+	motor[RBaseBack] = speed;
+	motor[LBaseFront] = speed*0.625;
+	motor[LBaseBack] = speed*0.625;
+	//analogMechControl(&baseLeft.m, speed + dirSkew);
+	//analogMechControl(&baseRight.m, speed - dirSkew);
+}
+
+void fwds(const int power, const float angle = mRot) {//drive base forwards
+	const float speed = LimitUpTo(127, power);
+	motor[RBaseFront] = speed;
+	motor[RBaseBack] = speed;
+	motor[LBaseFront] = speed;
+	motor[LBaseBack] = speed;
 }
 void rot(float power) {//rotates base
 
@@ -353,19 +365,22 @@ void driveFor(float goal) {//drives for certain inches
 	//const float encoderScale = 1;//number of motor rotations = this() rotations
 	const float dP = 20;//25;//multiplier for velocity controller
 	//while (abs(goal * circum - encoderAvg) > thresh) {
-	while (abs(goal * circum - SensorValue[LeftBaseEnc]*0.75) > thresh) {
-		fwds(LimitDownTo(15, dP * ((goal*circum - SensorValue[LeftBaseEnc]*0.75 - 0.3*mainVelocity))), mRot);//initDir);
-	/*const float scalar = 1;//2;
-	while (abs(goal * circum - encoderAvg*scalar) > thresh) {
-		int power = (LimitDownTo(15, dP * ((goal*circum - encoderAvg*scalar - 0.3*mainVelocity));//initDir);
-		analogMechControl(&baseRight.m, power);
-		analogMechControl(&baseLeft.m, power);*/
+	if(goal < 40){
+		while (abs(goal * circum - SensorValue[LeftBaseEnc]*0.75) > thresh) {
+			fwds(LimitDownTo(15, dP * ((goal*circum - SensorValue[LeftBaseEnc]*0.75 - 0.3*mainVelocity))), mRot);//initDir);
+		}
 	}
+	else{
+		while (abs(goal * circum - SensorValue[LeftBaseEnc]*0.75) > thresh) {
+			fwdsLong(LimitDownTo(15, dP * ((goal*circum - SensorValue[LeftBaseEnc]*0.75 - 0.3*mainVelocity))), mRot);//initDir);
+		}
+	}
+
 	fwds(0, initDir);
 	settle();
 	return;
 }
-void alignToLine(int dir){
+void alignToLine(float dir){
 	const float lineThresh = 1000;
 	bool isAligned = (SensorValue[RLin] + SensorValue[LLin] < lineThresh);
 	const int power = dir * 65;
@@ -395,11 +410,12 @@ void untilLine(int power){
 	}
 	fwds(0, mRot);
 }
-void alignFromWall(int goal){ //use sonar to reach distance in inches
-	while(SensorValue[sonar]!= goal){
-		fwds(65, mRot);
+void alignSonar(int goal){ //use sonar to reach distance in inches
+	while(SensorValue[sonar] > goal){
+		fwds(127, mRot);
 	}
-	fwds(0, mRot);
+	fwds(-127, mRot);
+	delay(50);
 }
 void rotFor(float target){
 	gyroBase.isRunning = true;
@@ -419,6 +435,31 @@ void rotFor(float target){
 	resetPIDVals(&gyroBase);
 	settle();
 	return;
+}
+void rotEnc(int target){
+	SensorValue[LeftBaseEnc] = 0;///reset
+	SensorValue[Gyro] = 0;//resets gyros
+	SensorScale[Gyro] = 260;
+	delay(100);
+	if(abs(target) == 90){
+		while(abs(SensorValue[LeftBaseEnc]) < 250){
+			rot(getSign(target)*127);
+		}
+		rot(-getSign(target)*127);
+		delay(100);
+		while(SensorValue[Gyro]*GyroK < target) rot(60);
+		while(SensorValue[Gyro]*GyroK > target) rot(-60);
+	}
+}
+void rotAcc(int target, int delayTime = 1200){
+	SensorValue[LeftBaseEnc] = 0;///reset
+	SensorValue[Gyro] = 0;//resets gyros
+	SensorScale[Gyro] = 260;
+	clearTimer(T2);
+	while(time1[T2] < delayTime){
+		rot(LimitDownTo(10, -5*(SensorValue[Gyro]*GyroK - target)));
+	}
+	settle();
 }
 void clawControl(int close, int open){
 	if (open) {
@@ -501,7 +542,7 @@ task intakeToLock(){
 	while(SensorValue[MogoEnd] == 0){
 		mechMove(&conveyer.m, INTAKE);
 	}
-	delay(100);
+	delay(200);
 	lock.goal = lock.min;//turns on PID
 	lock.PID.isRunning = true;
 								/*while(SensorValue[MogoEnd] == 1){
@@ -525,7 +566,7 @@ task intakeToSecond(){
 	while(SensorValue[MogoFront] == 1){
 		mechMove(&conveyer.m, INTAKE);//slower speed once intook (button pressed)
 	}
-	clawControl(OPEN);clawControl(OPEN);clawControl(OPEN);clawControl(OPEN);//spams claw open just to make sure
+	//clawControl(OPEN);clawControl(OPEN);clawControl(OPEN);clawControl(OPEN);//spams claw open just to make sure
 	playSound(soundBlip);
 	mechMove(&conveyer.m, 0);
 	return;
@@ -534,7 +575,7 @@ task dropCone(){
 	while(SensorValue[MogoFront] == 0)//wait until button pressed
 		continue;
 	playSound(soundUpwardTones);
-	clawControl(OPEN);clawControl(OPEN);clawControl(OPEN);clawControl(OPEN);clawControl(OPEN);//spams claw open to ensure
+	clawControl(OPEN);//spams claw open to ensure
 	delay(1000);
 	fourBar.goal = fourBar.min + 400;//then brings out the fourbar a bit
 	fourBar.PID.isRunning = true;
@@ -656,15 +697,17 @@ task antiStall() {
 		delay(50);
 	}
 }
-void displayBatteryLevels(){
-	//Display the Primary Robot battery voltage
-	displayLCDString(0, 0, "Primary: ");
-	sprintf(mainBattery, "%1.2f%c", nImmediateBatteryLevel/1000.0,'V'); //Build the value to be displayed
-	displayNextLCDString(mainBattery);
-}
 task displayLCD(){
 	for(;;){
-		displayBatteryLevels();
+		string mRotangle;
+		//Display the Primary Robot battery voltage
+		displayLCDString(0, 0, "Primary: ");
+		sprintf(mainBattery, "%1.2f%c", nImmediateBatteryLevel/1000.0,'V'); //Build the value to be displayed
+		displayNextLCDString(mainBattery);
+		//Display the Power Expander voltage
+		displayLCDString(1, 0, "Angle: ");
+		sprintf(mRotangle, "%1.2f%c",   SensorValue[Gyro]*GyroK);//Build the value to be displayed
+		displayNextLCDString(mRotangle);
 		delay(30);
 	}
 }
@@ -711,7 +754,10 @@ void twentyScore(){
 }
 void crossField(const int initialDistance, const int secondaryDistance, bool withCone) {
 	lock.goal = lock.max;
+	//rot(100);
+	//delay(5);
 	UNLOCK;
+	conveyer.speed = INTAKE/2;
 	fourBar.goal = RELEASE + 500;
 	fourBar.PID.isRunning = true;
 	startTask(intakeToLock);//picks up first mogo
@@ -736,27 +782,48 @@ task clawHold(){
 		delay(10);
 	}
 }
+void timeEmpty(int target){
+	rot(getSign(target)*127);
+	if(abs(target) == 90) delay(420);
+	else if(abs(target) == 45) delay(270);
+	else delay(400);
+	settle();
+}
+
+void timeDual(int target){
+	rot(getSign(target)*127);
+	if(abs(target) == 90) delay(630);
+	else delay(500);
+	settle();
+}
 void progSkillsTest(){
 	startTask(conveyerMove);
 	startTask(killswitch);
 	startTask(liftPID);
 	autonRunning = true;
-	resetGyros();
+	//resetGyros();
+
 
 																					//cross field pickup 2 mogos
-																						conveyer.speed = INTAKE/2;
-																						crossField(80, 60, true);
+																						crossField(80, 70, true);
 																					//crossField(63,74,true);
-																						alignToLine(1);
+																						//alignToLine(1);
 																					//align to 20 and score
-																						driveFor(10);
+																						//driveFor(6);
 																					conveyer.speed = 0;
-																					rotFor(95);
+																					delay(100);
+																					rotAcc(87.5, 1000);
 																					fourBar.goal = RELEASE;
 																					delay(300);
-																					driveFor(-12);//-12);
+																					driveFor(-12.5);//-12);
 																					settle();
-																					rotFor(90);
+																					delay(100);
+																					rotAcc(85);
+																					//rot(127);//TIME BASED TURN
+																					//delay(500);
+																					//rot(0);
+																					delay(50);
+																					SensorValue[Gyro] = 0;
 																					fourBar.goal = avg(fourBar.min, fourBar.max);
 																					lock.PID.isRunning = false;
 																					conveyer.speed = 0;
@@ -764,60 +831,82 @@ void progSkillsTest(){
 																					settle();
 																					delay(300);
 																					//untilLine(127);
-																					driveFor(35);
+																					driveFor(30);
 																					fourBar.goal = RELEASE;//brings to rear again
 																					//'s' motion
-																					alignToLine(-1);//aligns to tape line
+																					alignToLine(1);//aligns to tape line
 																					conveyer.speed = INTAKE/8;//turn off conveyer
 																					settle();
 																					//fourBar.goal = PICKUP;
-																					rotFor(90);
+																					delay(200);
+																					rotAcc(90);
 																					settle();
-																					driveFor(14);
+																					alignSonar(42);
 																					settle();
-																					delay(300);
-																					rotFor(-77);//innaccurate but reliable
+																					delay(400);
+																					rotAcc(-88);
 																					settle();
-																					alignToLine(-1);//aligns to tape line
+																					//alignToLine(-1);//aligns to tape line
 																					delay(300);
 																					//cross field pickup 2 mogos
-																						crossField(69, 70, false);
-																					rotFor(100);
-																					driveFor(-15);
+																					crossField(80, 62, false);
+																					fourBar.goal = RELEASE;
+																					conveyer.speed = 0;
+																					rotAcc(90);
+																					driveFor(-11);
 																					settle();
-																					rotFor(90);
+																					rotAcc(85);
 																					lock.PID.isRunning = false;
 																					twentyScore();
-																					driveFor(20);
-
-/*	alignToLine();
-	rot(90);
-	delay(600);
-	driveFor(37);
-	rot(-90);
-	delay(400);
+																					driveFor(26);
+	alignToLine(1);
+	rotAcc(90);
+	alignSonar(27);
 	settle();
+	delay(200);
+	rotAcc(-46,1000);
+	int initialMRot = SensorValue[Gyro]*GyroK;
+	//rot(-127);
+	//delay(270);//TIME BASED 45er
+	//SensorValue[LeftBaseEnc] = 0;
+	//while(abs(SensorValue[LeftBaseEnc]) < 100){continue;}
+	settle();
+	delay(50);
+//	alignToLine(0.9);
 	startTask(intakeToLock);
-	driveFor(64);
+	delay(200);
+	driveFor(80);
+	clearTimer(T1);
+	while(abs(SensorValue[Gyro]*GyroK - initialMRot) > 1 && time1[T1] < 500)	rot(-10*(SensorValue[Gyro]*GyroK - initialMRot));
 	settle();
-	delay(500);
-	driveFor(-10);
+	delay(300);
+	driveFor(-7);
 	fourBar.goal = PICKUP;
-	clawSpeed = -80;
+	clawSpeed = -127;
 	startTask(clawHold);
-	delay(500);
-	rotFor(-50);
-	driveFor(8);
-	clawSpeed = 100;
+	delay(400);
+	rotAcc(-18.5, 800);
+	settle();
+	delay(100);
+	driveFor(9);
+	clawSpeed = 100;//pickup cone
 	delay(400);
 	stopTask(clawHold);
-	fourBar.goal = RELEASE;
-	delay(400);
+	delay(400);//settling
+	DownUntil(&fourBar, fourBar.min, 80);
+	delay(100);
+	settle();
+	delay(300);
+	rotAcc(-11, 300);
+	startTask(dropCone);
 	startTask(intakeToSecond);
-	driveFor(25);
+	driveFor(34);
+	//clawControl(OPEN);
+	delay(600);
 	fourBar.goal = PICKUP;
+	conveyer.speed = 0;
 	delay(500);
-	rotFor(-50);*/
+	rotAcc(-50, 1000);
 	//DONE
 	autonRunning = false;
 	startTask(MechControlTask);
@@ -867,8 +956,10 @@ task usercontrol() {//initializes everything
 	for (;;) {
 		//debug controls
 		//if(U8) progSkillsTest();
-		if(L7) rotFor(-90); //alignToLine();
-		if(R7) rotFor(90);//clawControl(OPEN);
+		if(L7){// timeempty(45); //alignToLine();
+			rotAcc(45);
+		}
+		if(R7) rotAcc(-45);//clawControl(OPEN);
 		if(U7) progSkillsTest();
 		if(D7) turn(45, 2);
 		LiftLift(&fourBar, D5, U5, D5_2, U5_2, 5000, true);
