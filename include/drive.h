@@ -10,8 +10,8 @@ void fwdsLong(const int power, const float angle = mRot) {//drive base forwards
 	const float speed = LimitUpTo(127, power);
 	motor[RBaseFront] = speed;
 	motor[RBaseBack] = speed;
-	motor[LBaseFront] = speed*0.625;
-	motor[LBaseBack] = speed*0.625;
+	motor[LBaseFront] = speed;//*0.625;
+	motor[LBaseBack] = speed;//*0.625;
 }
 
 void fwds(const int power, const float angle = mRot) {//drive base forwards
@@ -85,11 +85,17 @@ void alignToLine(float dir){
 //	}
 //	fwds(0, mRot);
 //}
-void alignSonar(int goal){ //use sonar to reach distance in inches
+void alignSonar(int goal, float kP){ //use sonar to reach distance in inches
+	/*
 	while(SensorValue[sonar] > goal){
 		fwds(100);
 	}
 	fwds(-127);
 	delay(100);
+	return;*/
+
+	while(SensorValue[sonar] > goal){
+		fwds(kP*(SensorValue[sonar] - goal));
+	}
 	return;
 }

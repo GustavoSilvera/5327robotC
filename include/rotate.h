@@ -16,7 +16,7 @@ void timeTurn(int target, int numMogos){//(TUNE)
 			delay(270);
 			break;
 		case 90:
-			delay(420);
+			delay(430);
 			break;
 		}
 	}
@@ -30,6 +30,7 @@ void timeTurn(int target, int numMogos){//(TUNE)
 			break;
 		}
 	}
+	rot(0);
 	return;
 }
 void turn(int deg, int df){
@@ -61,10 +62,10 @@ void turn(int deg, int df){
 }
 void rotFor(float target){
 	gyroBase.isRunning = true;
-	SensorValue[Gyro2] = 0;//resets gyros
-	SensorScale[Gyro2] = 260;
+	SensorValue[Gyro] = 0;//resets gyros
+	SensorScale[Gyro] = 260;
 	clearTimer(T2);
-	while(abs(SensorValue[Gyro2]*GyroK - target) > 3 && time1[T2] < 900){//2 dF
+	while(abs(SensorValue[Gyro]*GyroK - target) > 3 && time1[T2] < 900){//2 dF
 		rot( 0.35*pidController( & gyroBase, target/GyroK) );
 	}
 	int power;
@@ -93,13 +94,13 @@ void rotEnc(int target){
 		while(SensorValue[Gyro]*GyroK > target) rot(-60);
 	}
 }
-void rotAcc(int target, int delayTime = 1200){
+void rotAcc(int target, float kP, int delayTime = 1200){
 	SensorValue[LeftBaseEnc] = 0;///reset
 	SensorValue[Gyro] = 0;//resets gyros
 	SensorScale[Gyro] = 260;
 	clearTimer(T2);
 	while(time1[T2] < delayTime){
-		rot(LimitDownTo(10, -5*(SensorValue[Gyro]*GyroK - target)));
+		rot(LimitDownTo(10, -kP*(SensorValue[Gyro]*GyroK - target)));
 	}
 	settle();
 }

@@ -61,7 +61,7 @@ task MechControlTask() {
 	for (;;) {//while true
 		buttonMechControl(&conveyer.m, U6, D6, U6_2, D6_2, false);
 		//limitMechControl(&fourBar.m, U5, D5, U5_2, D5_2, FourBar.min, FourBar,nax, false);
-		///limitMechControl(&lock.m, U8, D8, U8_2, D8_2, lock.min, lock.max, false);
+		limitMechControl(&lock.m, U8, D8, U8_2, D8_2, lock.min, lock.max, false);
 		//binaryMechControl(&lock.m, U8, lock.max, lock.min, false, 50);
 		analogMechControl(&baseRight.m, primary*vexRT[Ch2] + partner*vexRT[Ch2Xmtr2]);
 		analogMechControl(&baseLeft.m, primary*vexRT[Ch3] + partner*vexRT[Ch3Xmtr2]);
