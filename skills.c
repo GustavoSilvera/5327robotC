@@ -34,6 +34,7 @@
 #include "include/lift.h"
 #include "include/init.h"
 #include "include/other.h"
+
 void pre_auton() {//dont care
 	bStopTasksBetweenModes = true;
 	SensorType[Gyro] = sensorGyro;
@@ -41,7 +42,7 @@ void pre_auton() {//dont care
 	//Adjust SensorScale to correct the scaling for your gyro
 	scaleGyros();
 	while (bIfiRobotDisabled) {//in preauton
-		//	autonSelect(nLCDButtons);
+		startTask(displayLCD);
 	}
 }
 void initializeOpControl(const bool driver) {
@@ -138,13 +139,19 @@ void crossField(const int initialDistance, const int secondaryDistance, bool wit
 	fourBar.goal = RELEASE;
 	fwds(70, mRot);//slows down drive
 	clearTimer(T1);
-	while(abs(SensorValue[Gyro]*GyroK - initialMRot) > 1 && time1[T1] < 500)
-		rot(-10*(SensorValue[Gyro]*GyroK - initialMRot));//corrects angle if off course
+	if(withCone){
+		while(abs(SensorValue[Gyro]*GyroK - initialMRot) > 1 && time1[T1] < 500)
+			rot(-10*(SensorValue[Gyro]*GyroK - initialMRot));//corrects angle if off course
+	}
+	else{
+		while(SensorValue[Gyro]*GyroK > initialMRot && time1[T1] < 500)
+			rot(-10*(SensorValue[Gyro]*GyroK - initialMRot));//corrects angle if off course
+	}
 	delay(500);//waits for mogo pickup
 	startTask(intakeSecond);
 	if (withCone) startTask(dropCone);
-	if (!withCone) driveFor(40);//drive initial distance to get to cone-free wall
-	if (withCone) alignSonar(45, 4);//aligns to the wall using the sonar... should be p consistent (TUNE)
+	driveFor(40);//drive initial distance to get to cone-free wall
+	if (withCone) alignSonar(40, 4);//aligns to the wall using the sonar... should be p consistent (TUNE)
 	else alignSonar(35, 4);
 	//driveFor(secondaryDistance);
 	fourBar.goal = avg(fourBar.min, fourBar.max);
@@ -156,139 +163,71 @@ void crossField(const int initialDistance, const int secondaryDistance, bool wit
 void Thoar(){
 	const int initialMRot = SensorValue[Gyro]*GyroK;
 	settle();
-	delay(50);
 	startTask(intakeToLock);
-	delay(200);
-	driveFor(80);
+	driveFor(90);
 	clearTimer(T1);
-	while(SensorValue[Gyro]*GyroK > initialMRot && time1[T1] < 500)
-		rot(-10*(SensorValue[Gyro]*GyroK - initialMRot));
+	//while(SensorValue[Gyro]*GyroK > initialMRot && time1[T1] < 700)
+	//	rot(-10*(SensorValue[Gyro]*GyroK - initialMRot));
 	settle();
-	delay(100);
 	driveFor(-10);
 	fourBar.goal = PICKUP;
+	delay(200);
 	clawSpeed = -127;
 	startTask(clawHold);
-	delay(400);
-	rotAcc(-27, 5, 800);
+	delay(200);
+	while(SensorValue[Gyro] > -25) rot(-127);
 	settle();
-	delay(100);
-	driveFor(9);
-	clawSpeed = 100;//pickup cone
-	delay(400);
+	driveFor(13);
+	clawSpeed = 40;//pickup cone
+	delay(250);
 	stopTask(clawHold);
-	delay(400);//settling
-	DownUntil(&fourBar, fourBar.min, 80);
-	delay(100);
+	delay(100);//settling
+	DownUntil(&fourBar, fourBar.min, 90);
+	while(SensorValue[Gyro] > -55) rot(-127);
+	//delay(000);
 	settle();
+	driveFor(23);
+	delay(100);
+	startTask(intakeSecond);
 	delay(300);
 	startTask(dropCone);
-	startTask(intakeSecond);
-	driveFor(35);
+	startTask(clawHold);
+	fwds(127);
+	delay(800);
+	driveFor(-5);
 	settle();
-	clawControl(OPEN);
 	delay(400);
-	driveFor(-7);
+	startTask(clawHold);
+	clawSpeed = -127;
+	delay(500);
+	driveFor(-10);
+	clawSpeed = 80;
+	stopTask(clawHold);
+	delay(100);
 	fourBar.goal = PICKUP;
 	conveyer.speed = 0;
-	delay(500);
-	rotAcc(-50, 5, 1000);
-
+	delay(400);
+	rotAcc(-50, 15);
 }
-void progSkillsTest(){
+void progSkills(){
 	startTask(conveyerMove);
 	startTask(killswitch);
 	startTask(liftPID);
 	autonRunning = true;
-	/*
-	//resetGyros();//NEVER USE (for some reason?)
-	///////////////////////////////STAGE 1/////////////////////////////
-	crossField(80, 70, true);//second distance dosent do anything (TUNE) (using sonar for 2nd distance)
-	//conveyer.speed = 0;
-	delay(100);
-	rotAcc(-90);
-	//timeTurn(90, 2);//time based turn with 2 mogos @ 90°
-	fourBar.goal = RELEASE;
-	delay(300);
-	alignSonar(57, 4);
-	settle();
-	delay(100);
-	rotFor(-90);
-	//timeTurn(90, 2);//time based turn with 2 mogos @ 90°
-	fourBar.goal = avg(fourBar.min, fourBar.max);
-	delay(400);
-	twentyScore();//SCORES FIRST TWO IN ZONE
-	settle();
-	delay(100);
-	fwds(127);
-	delay(450);//time based drive to go over 10pt pole but not pass line (TUNE)
-	//for ^ could also use driveFor(25) ish, need to (TUNE) regardless
-	fourBar.goal = RELEASE;//brings to rear again
-	//'s' motion
-	alignToLine(1);//aligns to tape line
-	conveyer.speed = 0;//turn off conveyer
-	settle();
-	delay(200);
-	rotAcc(90, 1500);//should be solid 90 every time
-	settle();
-	alignSonar(42,4.5);
-	settle();
-	delay(300);
-	rotAcc(-88);
-	settle();
-	///////////////////////////////STAGE 2/////////////////////////////
-	crossField(80, 62, false);
-	fourBar.goal = RELEASE;
-	conveyer.speed = 0;
-	rotAcc(-90);
-	//timeTurn(90, 2);//time based turn with 2 mogos @ 90°
-	alignSonar(64, 4);
-	settle();
-	rotFor(-90);
-	//timeTurn(90, 2);//time based turn with 2 mogos @ 90°
-	twentyScore();
-	fwds(127);
-	delay(500);//time based drive to go over 10pt pole but not pass line (TUNE)
-
-	//for ^ could also use driveFor(25) ish, need to (TUNE) regardless
-	*/
-	///////////////////////////////STAGE 3/////////////////////////////
-	alignToLine(1);
-	rotAcc(90, 5);//should be accurate 90 every time
-	alignSonar(25.5, 4);
-	settle();
-	delay(200);
-	rotAcc(-44, 5,1000);
-	Thoar();//
-
-
-	driveFor(40);
-	rotAcc(-45, 5, 900);
-	driveFor(15);
+	startTask(intakeToLock);
+	driveFor(90);
+	delay(500);
+	driveFor(-80);
+	rotAcc(45, 5);
+	int goal = 32.5;
+	while(SensorValue[sonar] < goal){
+		fwds(4*(SensorValue[sonar] - goal));
+	}
 	rotAcc(-90, 5);
 	UNLOCK;
 	conveyer.speed = INTAKE;
 	driveFor(-15);
-	settle();
-	delay(400);
-	driveFor(15);
-	alignToLine(1);
-	rotAcc(-90, 5);
-	alignSonar(27, 2);
-	rotAcc(-90, 5);
-
-	//DONE
-	autonRunning = false;
-	startTask(MechControlTask);
-	return;
-}
-void progSkillsTestFIRST(){
-	startTask(conveyerMove);
-	startTask(killswitch);
-	startTask(liftPID);
-	autonRunning = true;
-
-	//resetGyros();//NEVER USE (for some reason?)
+	delay(200);
 	///////////////////////////////STAGE 1/////////////////////////////
 	crossField(80, 70, true);//second distance dosent do anything (TUNE) (using sonar for 2nd distance)
 	//conveyer.speed = 0;
@@ -297,7 +236,7 @@ void progSkillsTestFIRST(){
 	//timeTurn(90, 2);//time based turn with 2 mogos @ 90°
 	fourBar.goal = RELEASE;
 	delay(300);
-	alignSonar(57, 4);
+	alignSonar(68, 4);
 	settle();
 	delay(100);
 	rotFor(-90);
@@ -316,12 +255,12 @@ void progSkillsTestFIRST(){
 	conveyer.speed = 0;//turn off conveyer
 	settle();
 	delay(200);
-	rotAcc(90,5, 1500);//should be solid 90 every time
+	rotAcc(90, 5, 900);//should be solid 90 every time
 	settle();
-	alignSonar(42,4.5);
+	alignSonar(42, 5.5);
 	settle();
 	delay(300);
-	rotAcc(-88, 5);
+	rotAcc(-89, 5, 1100);
 	settle();
 	///////////////////////////////STAGE 2/////////////////////////////
 	crossField(80, 62, false);
@@ -335,8 +274,27 @@ void progSkillsTestFIRST(){
 	//timeTurn(90, 2);//time based turn with 2 mogos @ 90°
 	twentyScore();
 	fwds(127);
-	delay(500);//time based drive to go over 10pt pole but not pass line (TUNE)
+	delay(600);//time based drive to go over 10pt pole but not pass line (TUNE)
 
+	///////////////////////////////STAGE 3/////////////////////////////
+	//alignToLine(1);
+	//rotAcc(90, 5);//should be accurate 90 every time
+	//alignSonar(25, 6);
+	//settle();
+	//rotAcc(-45, 2);
+//	Thoar();//
+//	driveFor(50);
+//	alignToLine(1.5);
+//	rotAcc(-90, 5);
+//	alignSonar(90, 4);
+//	rotFast(-90);
+//	UNLOCK;
+//	conveyer.speed = INTAKE;
+////	driveFor(-15);
+////	settle();
+//	delay(400);
+//	driveFor(15);
+////	alignToLine(1);
 	//DONE
 	autonRunning = false;
 	startTask(MechControlTask);
@@ -349,9 +307,8 @@ task autonomous() {
 	startTask(MeasureSpeed);//velocity measurer for base
 	startTask(sensorsUpdate);
 	startTask(conveyerMove);//allows for multitasking
-	//startTask(antiStall);
 	startTask(clawTask);
-	progSkillsTest();
+	progSkills();
 	return;
 }
 task usercontrol() {//initializes everything
@@ -371,9 +328,9 @@ task usercontrol() {//initializes everything
 	else playSound(soundUpwardTones);
 	for (;;) {
 		//debug controls
-		if(D7) rotFor(90);//timeTurn(90, 2);//(TUNED)
-		if(R7) rotFor(-90);//timeTurn(-90, 2);//(TUNED)
-		if(U7) progSkillsTest();
+		//if(D7) rotFast(45);//timeTurn(90, 2);//(TUNED)
+		//if(R7) rotFast(-45);
+		if(U7) progSkills();
 		if(L7) progSkillsTestFIRST();
 		LiftLift(&fourBar, D5, U5, D5_2, U5_2, 5000, true);
 		LiftLift(&lock, U8, D8, U8_2, D8_2, 100, true);

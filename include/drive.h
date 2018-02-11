@@ -4,7 +4,7 @@ void swingR(float power) {//swings right base
 	analogMechControl(&baseRight.m, power);
 }
 void swingL(float power) {//swings right base
-	analogMechControl(&baseRight.m, power);
+	analogMechControl(&baseLeft.m, power);
 }
 void fwdsLong(const int power, const float angle = mRot) {//drive base forwards
 	const float speed = LimitUpTo(127, power);
@@ -56,9 +56,9 @@ void driveFor(float goal) {//drives for certain inches
 	return;
 }
 void alignToLine(float dir){
-	const float lineThresh = 1000;
+	const float lineThresh = 1500;
 	bool isAligned = (SensorValue[RLin] + SensorValue[LLin] < lineThresh);
-	const int power = dir * 65;
+	const int power = dir * 75;
 	while(!isAligned){
 		if(SensorValue[LLin] < lineThresh){
 			fwds(0, mRot);
@@ -74,7 +74,30 @@ void alignToLine(float dir){
 			}
 			isAligned = true;
 		}
-		else fwds(power);// fwds(power, mRot); //speed where robot will stop on line
+		else fwds(power*0.5);// fwds(power, mRot); //speed where robot will stop on line
+	}
+	fwds(0);
+}
+void alignToDark(float dir){
+	const float lineThresh = 1500;
+	bool isAligned = (SensorValue[RLin] + SensorValue[LLin] > lineThresh);
+	const int power = dir * 75;
+	while(!isAligned){
+		if(SensorValue[LLin] > lineThresh){
+			fwds(0, mRot);
+			while(SensorValue[RLin] < lineThresh){
+				swingR(power);
+			}
+			isAligned = true;
+		}
+		else if (SensorValue[RLin] > lineThresh){
+			fwds(0, mRot);
+			while(SensorValue[LLin]< lineThresh){
+				swingL(power);
+			}
+			isAligned = true;
+		}
+		else fwds(power*0.5);// fwds(power, mRot); //speed where robot will stop on line
 	}
 	fwds(0);
 }

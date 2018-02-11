@@ -79,28 +79,47 @@ void rotFor(float target){
 	settle();
 	return;
 }
-void rotEnc(int target){
+void rotFast(int target){
 	SensorValue[LeftBaseEnc] = 0;///reset
 	SensorValue[Gyro] = 0;//resets gyros
-	SensorScale[Gyro] = 260;
-	delay(100);
 	if(abs(target) == 90){
-		while(abs(SensorValue[LeftBaseEnc]) < 250){
+		while(abs(SensorValue[LeftBaseEnc]) < 230){
 			rot(getSign(target)*127);
 		}
-		rot(-getSign(target)*127);
-		delay(100);
-		while(SensorValue[Gyro]*GyroK < target) rot(60);
-		while(SensorValue[Gyro]*GyroK > target) rot(-60);
+	}
+	else if (abs(target) == 45){
+		while(abs(SensorValue[LeftBaseEnc]) < 120){
+			rot(getSign(target)*127);
+		}
+	}
+	rot(-getSign(target)*127);
+	delay(10);
+	clearTimer(T2);
+	while(abs(SensorValue[Gyro] - target) > 1 && time1[T2] < 500){
+		while(SensorValue[Gyro]*GyroK < target) rot(20);
+		while(SensorValue[Gyro]*GyroK > target) rot(-20);
+		delay(10);
 	}
 }
 void rotAcc(int target, float kP, int delayTime = 1200){
-	SensorValue[LeftBaseEnc] = 0;///reset
 	SensorValue[Gyro] = 0;//resets gyros
 	SensorScale[Gyro] = 260;
 	clearTimer(T2);
 	while(time1[T2] < delayTime){
-		rot(LimitDownTo(10, -kP*(SensorValue[Gyro]*GyroK - target)));
+		rot(LimitDownTo(35, -0.2*kP*(SensorValue[Gyro]*GyroK - target)));
 	}
+	settle();
+}
+void rotAccFast(int target){
+	SensorValue[Gyro] = 0;//resets gyros
+	SensorScale[Gyro] = 260;
+	clearTimer(T2);
+	while(abs(SensorValue[Gyro] - target) > 0){
+		rot(target - SensorValue[Gyro]*GyroK );
+	}
+	rot(-getSign(target - SensorValue[Gyro]*GyroK )*127);//hard break
+	delay(10);
+	while(SensorValue[Gyro]*GyroK < target) rot(60);
+	while(SensorValue[Gyro]*GyroK > target) rot(-60);
 	settle();
 }
