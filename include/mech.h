@@ -57,7 +57,7 @@ void limitMechControl(const struct mechanism* mech, int bUp, int bDown, int bUp2
 }
 task MechControlTask() {
 	const float primary = 1;
-	const float partner = 0.8;
+	const float partner = 1;
 	for (;;) {//while true
 		buttonMechControl(&conveyer.m, U6, D6, U6_2, D6_2, false);
 		//limitMechControl(&fourBar.m, U5, D5, U5_2, D5_2, FourBar.min, FourBar,nax, false);
@@ -65,6 +65,6 @@ task MechControlTask() {
 		//binaryMechControl(&lock.m, U8, lock.max, lock.min, false, 50);
 		analogMechControl(&baseRight.m, primary*vexRT[Ch2] + partner*vexRT[Ch2Xmtr2]);
 		analogMechControl(&baseLeft.m, primary*vexRT[Ch3] + partner*vexRT[Ch3Xmtr2]);
-		delay(10);
+		delay(1);
 	}
 }

@@ -74,11 +74,11 @@ task killswitch() {
 	}
 }
 void clawControl(int close, int open){
-	if (open) {
+	if (open || L8_2) {
 		motor[ClawMotor] = 127;
-		delay(700);
+		delay(500);
 	}
-	else if (close){
+	else if (close || R8_2){
 		motor[ClawMotor] = -80;
 		delay(200);
 	}
@@ -87,7 +87,7 @@ void clawControl(int close, int open){
 task clawTask(){
 	for(;;){
 		clawControl(L8, R8);//allows manual claw control
-		delay(100);
+		delay(50);
 	}
 }
 task liftPID(){
