@@ -40,8 +40,8 @@ void gyroBias(){
     SensorBias[Gyro] = realBias;
 }
 void resetGyros() {
-	SensorType[in1] = sensorNone;
-	SensorType[in1] = sensorGyro;//resets gyro sensor, rly sketchy
+	//SensorType[in1] = sensorNone;
+	//SensorType[in1] = sensorGyro;//resets gyro sensor, rly sketchy
 	SensorValue[Gyro] = 0;//resets gyro sensor
 	delay(300);
 	scaleGyros();

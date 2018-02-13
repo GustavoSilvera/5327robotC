@@ -102,14 +102,20 @@ void manualLiftControl(const struct liftMech* lift, int bUp, int bDown, int bUp2
 		if(getSign(power) > 0) goal = lift->max - decelZone;
 		else goal = lift->min + decelZone;
 	}
-	if(lift->type == DIFFERENTIAL) liftDiff(lift, power);//main lift and 4bar are normal-er
+	if(lift->type == DIFFERENTIAL){
+		if(abs(power) > 0) {
+			mainLift.PID.isRunning = false;
+			liftDiff(lift, power);//main lift and 4bar are normal-er
+		}
+		else return;
+	}
 	else if (lift->type == BINARY) goUntil(lift, goal);//brings to goal
 	else liftMove(lift, power);//mogo has motors going opposite speeds
 }
-void LiftLift(const struct liftMech* lift, int bUp, int bDown, int bUp2, int bDown2, float velLimit = 100) {
+void LiftLift(const struct liftMech* lift, int bUp, int bDown, int bUp2, int bDown2, bool reversed, float velLimit = 100) {
 	if (bUp || bDown || bUp2 || bDown2) {
 		lift->PID.isRunning = false;
-		manualLiftControl(lift, bUp, bDown, bUp2, bDown2, false, 127);
+		manualLiftControl(lift, bUp, bDown, bUp2, bDown2, reversed, 127);
 	}
 	else if(lift->type != NOPID || lift->type != DIFFERENTIAL){//INTAKE & DIFFERENTIAL is only type without PID
 		if (abs(SensorValue[lift->sensor] - lift->goal) < lift->PID.thresh || abs(lift->velocity) < velLimit) {
@@ -124,14 +130,15 @@ void LiftLift(const struct liftMech* lift, int bUp, int bDown, int bUp2, int bDo
 	}
 	else if (lift->type == NOPID) 		liftMove(lift, 0);
 	else if (lift->type == DIFFERENTIAL)return;//dont even touch motors
+	else return;
 }
 task LiftControlTask() {
 	for (;;) {//while true
 		if(!autonRunning){
-			LiftLift(&mainLift, U6, D6, U6_2, D6_2, 180);
-			LiftLift(&mogo, 	U8, D8, U8_2, D8_2, 180);
-			LiftLift(&FourBar,	U5, D5, U5_2, D5_2, 1200);
-			LiftLift(&goliat,	L8, R8, L8_2, R8_2);
+			if(U8 || D8 || U8_2 || D8_2)	LiftLift(&mogo, 	U8, D8, U8_2, D8_2, false,  180);
+			else LiftLift(&mainLift, U6, D6, U6_2, D6_2, false, 300);
+			LiftLift(&FourBar,	U5, D5, U5_2, D5_2, false, 1200);
+			LiftLift(&goliat,	L8, R8, L8_2, R8_2, false);
 		}
 		else {
 			PIDLift(&mainLift);//calls the pid function for the lifts
