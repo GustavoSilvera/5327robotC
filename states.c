@@ -5,6 +5,7 @@
 #pragma config(Sensor, in6,    BATERY_2_PORT,  sensorAnalog)
 #pragma config(Sensor, dgtl1,  LeftEncoder,    sensorQuadEncoder)
 #pragma config(Sensor, dgtl3,  RightEncoder,   sensorQuadEncoder)
+#pragma config(Sensor, dgtl5,  ultraSound,     sensorSONAR_cm)
 #pragma config(Sensor, dgtl11, OddLED,         sensorLEDtoVCC)
 #pragma config(Sensor, dgtl12, EvenLED,        sensorLEDtoVCC)
 #pragma config(Motor,  port1,           goliath,       tmotorVex393_HBridge, openLoop)
@@ -52,7 +53,7 @@ void initializeOpControl(const bool driver) {
 	initLiftType(	&mainLift,	NORMAL,			LiftPot,		LiftTop,	LiftBottom, 2150,	 580	);
 	initLiftType(	&mogo,		DIFFERENTIAL,	LiftPot,		LiftTop,	LiftBottom, 2150,	 580	);
 	initLiftType(	&FourBar,	BINARY,	 		FourBarPot,		Bar,		NONE,		3900,	 2000,	10);
-	initLiftType(	&goliat,	INTAKE,	 		NONE,			goliath,	NONE,		10000,	 -10000	);//(TUNE)
+	initLiftType(	&goliat,	NOPID,	 		NONE,			goliath,	NONE,		10000,	 -10000	);//(TUNE)
 
 	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)
 	initPID(	&mainLift.PID,	mainLift.sensor,	30,	    0.45,	0.0,	0.05, 	reversed,	true);
@@ -123,6 +124,11 @@ task usercontrol() {//initializes everything
 	bLCDBacklight = true;// Turn on LCD Backlight
 	clearLCDLine(0); // Clear line 1 (0) of the LCD
 	clearLCDLine(1); // Clear line 2 (1) of the LCD
+	if(nImmediateBatteryLevel < 8500) playSound(soundException);
+	else playSound(soundUpwardTones);
+	if(SensorValue[ultraSound] < 1){//0 or error
+		playSound(soundLowBuzz);//sonar error (CRITICAL)
+	}
 	for (;;) {
 		//debug controls
 		if (L7 || L7_2 )threeConeAuton(LEFT);//rotFor(-10);

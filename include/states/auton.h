@@ -13,73 +13,24 @@
 | '--------------' || '--------------' || '--------------' || '--------------' || '--------------' |
 '----------------'  '----------------'  '----------------'  '----------------'  '----------------'
 */
+const int INTAKE = 127;//for
+const int OUTTAKE = -127;
 const int heightValues[11] = {220, 220, 370, 500, 620, 740, 830, 900, 1100, 1250, 1400};//values for where the lift should go to when autoStacking
 const int coneHeight = 150;//how much the lift goes up DOWN after reaching height values
 const int delayValues[11] = {400, 0, 0, 0, 0, 0, 100, 150, 100, 0, 0};//values for individual delays when autostacking
 //const int delayValues[11] = {0, 0, 0, 0, 0, 0, 150, 150, 240, 200, 200};//values for individual delays when autstacking
 task autoStack() {
 	for (;;) {
-		if ((U7 || U7_2) && currentCone < 11) {
+		if (U7 || U7_2) {
 			autoStacking = true;
-			stopAutoStack = false;
-			FourBar.PID.kP = 0.15;
-			mainLift.PID.isRunning = false;
-			FourBar.PID.isRunning = true;
-			//brings four bar up to prevent cone hitting mogo
-			FourBar.goal = 1700;//0.5*(FourBar.min + FourBar.max);//brings up a bit
-			UpUntil(&FourBar, FourBar.min + 200, 127);
-			delay(100);
-			//brings lift up to value based on coneIndex
-			UpUntil(&mainLift, limitUpTo(mainLift.max, heightValues[currentCone] + mainLift.min + 100), 127);
-			FourBar.PID.isRunning = false;
-			//bring fourbar up
-			delay(delayValues[currentCone] * 0.75);
-			UpUntil(&FourBar, FourBar.max, 127);
-			//keep fourbar up
-			FourBar.goal = FourBar.max;
-			FourBar.PID.isRunning = false;
-			delay(delayValues[currentCone] * 0.9);
-			//bring lift down
-			if(currentCone == 0)	DownUntil(&mainLift,mainLift.min, 127);
-			DownUntil(&mainLift, heightValues[currentCone] + mainLift.min - coneHeight, 127);
-			//bring fourbar down
-			FourBar.PID.kP = 0.35;//keeps in place
-			FourBar.goal = FourBar.max + 50;
-			if(currentCone == 0) delay(200);
-			DownUntil(&FourBar, FourBar.min, 127);
-			//	UpUntil(&FourBar, 1600, 127);//brings 4bar back up
-			FourBar.PID.isRunning = true;
-			FourBar.PID.kP = 0.15;
-			if(!stopAutoStack) currentCone++;//assumes got cone
-				autoStacking = false;
-		}
-		if (D7 || D7_2) currentCone = 0;//reset
-			if ((R8 || R8_2) && time1[T2]>300 && currentCone > 0) {
-			currentCone -= 1; //subtract one cone if autostack missed
-			playSound(soundDownwardTones);
-			clearTimer(T2);
-		}
-		if ((L8 || L8_2) && time1[T3]>300 && currentCone < 11) {
-			currentCone += 1; //add one cone
-			playSound(soundUpwardTones);
-			clearTimer(T3);
-		}
-		//led stuff
-		if(currentCone % 2 == 0) {
-			SensorValue[EvenLED] = 1;//even led on
-			SensorValue[OddLED] = 0;
-		}
-		else if (currentCone == 11){
-			SensorValue[EvenLED] = 0;
-			SensorValue[OddLED] = 1;
-			delay(100);
-			SensorValue[EvenLED] = 1;
-			SensorValue[OddLED] = 0;
-			delay(100);
-		}
-		else {
-			SensorValue[EvenLED] = 0;
-			SensorValue[OddLED] = 1;//odd led on
+			UpUntilSonar(&mainLift);//brings lift up until sonar detects no obstruction
+			UpUntil(&FourBar, FourBar.max);
+			liftMove(&goliat, OUTTAKE);
+			delay(500);//timed delay for goliath
+			UpUntil(&mainLift, SensorValue[mainLift.sensor] + 100);//brings lift up a tad
+			DownUntil(&FourBar, FourBar.min);
+
+			autoStacking = false;
 		}
 		delay(30);
 	}
@@ -91,7 +42,6 @@ task killswitch(){
 			stopAllTasks();
 		}
 		if((D7 || D7_2) && autoStacking ) {//autostack killswitch
-			stopAutoStack = true;
 			stopTask(autoStack);
 			playSound(soundBeepBeep);//killed autostack
 			delay(100);

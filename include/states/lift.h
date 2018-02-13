@@ -46,6 +46,10 @@ float pidCompute(const struct PIDs* PIDtype, const int goal) {
 	return dir * PIDtype->kP * error + PIDtype->kI * PIDtype->Integral + PIDtype->kD * PIDtype->Derivative;
 	//return(dir * getSign(error) * abs((PIDtype->kP * error) + (PIDtype->kI * PIDtype->Integral) + (PIDtype->kD * PIDtype->Derivative)));
 }
+void enablePID(struct liftMech* lift){
+	lift->goal = SensorValue[lift->sensor];//keeps lift in last position
+	lift->PID.isRunning = true;//re-enables pid
+}
 void PIDLift(const struct liftMech* lift) {
 	if (lift->PID.isRunning) liftMove(lift, pidCompute(lift->PID, lift->goal));//power the lift with its PID
 	else resetPIDVals(lift->PID);//turn off the PID and reset values
@@ -53,22 +57,24 @@ void PIDLift(const struct liftMech* lift) {
 }
 void UpUntil(const struct liftMech* lift, int goal, int speed = 127) {
 	lift->PID.isRunning = false;
-	while (SensorValue[lift->sensor] < goal) {//brings lift up to goal
+	while (SensorValue[lift->sensor] < goal) //brings lift up to goal
 		liftMove(lift, abs(speed));
-		if(stopAutoStack) return;
-	}
-	lift->goal = SensorValue[lift->sensor];//keeps lift in last position
-	lift->PID.isRunning = true;//re-enables pid
+	enablePID(lift);
+	return;
+}
+void UpUntilSonar(const struct liftMech* lift, int speed = 127) {
+	lift->PID.isRunning = false;
+	const int threshold = 10;//10cm from cone max
+	while (SensorValue[ultraSound] < threshold) //brings lift up to goal
+		liftMove(lift, abs(speed));
+	enablePID(lift);
 	return;
 }
 void DownUntil(struct liftMech* lift, int goal, int speed = 127) {
 	lift->PID.isRunning = false;
-	while (SensorValue[lift->sensor] > goal ) {//brings lift down to goal
+	while (SensorValue[lift->sensor] > goal )//brings lift down to goal
 		liftMove(lift, -abs(speed));
-		if(stopAutoStack) return;
-	}
-	lift->goal = SensorValue[lift->sensor];//keeps lift in last position
-	lift->PID.isRunning = true;//re-enables pid
+	enablePID(lift);
 	return;
 }
 void goUntil(struct liftMech* lift, int goal, int speed = 127){
@@ -105,7 +111,7 @@ void LiftLift(const struct liftMech* lift, int bUp, int bDown, int bUp2, int bDo
 		lift->PID.isRunning = false;
 		manualLiftControl(lift, bUp, bDown, bUp2, bDown2, false, 127);
 	}
-	else if(lift->type != INTAKE || lift->type != DIFFERENTIAL){//INTAKE & DIFFERENTIAL is only type without PID
+	else if(lift->type != NOPID || lift->type != DIFFERENTIAL){//INTAKE & DIFFERENTIAL is only type without PID
 		if (abs(SensorValue[lift->sensor] - lift->goal) < lift->PID.thresh || abs(lift->velocity) < velLimit) {
 			if (!lift->PID.isRunning) lift->goal = SensorValue[lift->sensor];//sets goal if not already running
 				lift->PID.isRunning = true;//now pid is definitely running
@@ -116,7 +122,7 @@ void LiftLift(const struct liftMech* lift, int bUp, int bDown, int bUp2, int bDo
 		}
 		PIDLift(lift);//calls the pid function for the lifts
 	}
-	else if (lift->type == INTAKE) 		liftMove(lift, 0);
+	else if (lift->type == NOPID) 		liftMove(lift, 0);
 	else if (lift->type == DIFFERENTIAL)return;//dont even touch motors
 }
 task LiftControlTask() {

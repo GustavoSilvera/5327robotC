@@ -25,7 +25,7 @@ struct PIDs {
 };
 struct PIDs gyroBase;
 
-enum liftType{BINARY, DIFFERENTIAL, NORMAL, INTAKE};//what kinds of lift we have
+enum liftType{BINARY, DIFFERENTIAL, NORMAL, NOPID};//what kinds of lift we have
 
 struct liftMech {
 	enum liftType type;

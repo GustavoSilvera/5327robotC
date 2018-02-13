@@ -55,7 +55,6 @@ static const float GyroK = 15.0/80.0;//scales to normal +-360 degrees
 static int currentAutonomous = 0;
 volatile bool autonRunning = false;
 volatile bool autoStacking = false;
-volatile bool stopAutoStack = false;
 const float GyroK = 15.0/80.0;
 string mainBattery, powerExpander;
 //int startRot = 90;
