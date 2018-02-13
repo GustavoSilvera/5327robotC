@@ -56,6 +56,7 @@ static int currentAutonomous = 0;
 volatile bool autonRunning = false;
 volatile bool autoStacking = false;
 volatile bool stopAutoStack = false;
+const float GyroK = 15.0/80.0;
 string mainBattery, powerExpander;
 //int startRot = 90;
 volatile float mRot;//current rotation
@@ -79,6 +80,12 @@ float sqr(const float val){
 }
 float cube(const float x){
 	return x*x*x;
+}
+float quar(const float x){
+	return x*x*x*x;
+}
+float cinq(const float x){
+	return x*x*x*x*x;
 }
 float avg2(const float a, const float b){
 	return 0.5*(a+b);//avg between two things

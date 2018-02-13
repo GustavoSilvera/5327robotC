@@ -24,18 +24,24 @@ struct PIDs {
 	float Integral, Derivative, LastError;
 };
 struct PIDs gyroBase;
-enum liftType{BINARY, DIFFERENTIAL, NORMAL};//what kinds of lift we have
+
+enum liftType{BINARY, DIFFERENTIAL, NORMAL, INTAKE};//what kinds of lift we have
+
 struct liftMech {
 	enum liftType type;
 	int motors[2];
-	char sensor[2];
+	char sensor;
 	float max, min, liftPIDelay, past;
 	struct PIDs PID;
 	volatile float goal;
 	float velocity;
 };
-struct liftMech MogoLift;
+
+struct liftMech mainLift;
+struct liftMech mogo;
 struct liftMech FourBar;
+struct liftMech goliat;
+
 struct sideBase{
 	int motors[3];
 	char sensor;
@@ -46,10 +52,9 @@ struct sideBase{
 struct sideBase Left;
 struct sideBase Right;
 
-void initLiftType(const struct liftMech* lift, enum liftType type, char sensor, char sensor2, int m1, int m2, int max, int min, int delayAmnt = 20) {
+void initLiftType(const struct liftMech* lift, enum liftType type, char sensor, int m1, int m2, int max, int min, int delayAmnt = 20) {
 	lift->type = type;
-	lift->sensor[0] = sensor;
-	lift->sensor[1] = sensor2;//null second sensor (FOR ALL LIFTS OTHER THAN MAINLIFT)
+	lift->sensor = sensor;
 	lift->motors[0] = m1;
 	lift->motors[1] = m2;
 	lift->max = max;
@@ -57,7 +62,7 @@ void initLiftType(const struct liftMech* lift, enum liftType type, char sensor, 
 	lift->liftPIDelay = delayAmnt;
 	lift->velocity = 0.0;
 	lift->past = 0;
-	lift->goal = SensorValue[lift->sensor[0]];
+	lift->goal = SensorValue[lift->sensor];
 }
 void initPID(const struct PIDs* PIDType, char sensor, int thresh, float kP, float kI, float kD, bool reversed, bool isRunning = true) {
 	PIDType->sensor = sensor;

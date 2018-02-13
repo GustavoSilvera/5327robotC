@@ -53,7 +53,7 @@ void resetEncoders(){
 task sensorsUpdate() {
 	//int rot=0;
 	for (;;) {
-		mRot = (float)((15.0/8.0)*SensorValue[Gyro]);
+		mRot = (float)(GyroK*SensorValue[Gyro]);
 		encoderAvg = avg2(SensorValue[Right.sensor], SensorValue[Left.sensor]);
 		//encoderAvg = SensorValue[LeftEncoder];
 		delay(5);//really quick delay
@@ -129,7 +129,7 @@ task MeasureSpeed() {
 		velocity = avg2(Right.velocity, Left.velocity);//overall velocity (avdg between the two)
 		rotVelocity = calcRotVel();//calculates rotational velocity
 		//lift velocities
-		MogoLift.velocity = calcVel(&MogoLift, dist, delayAmount);
+		mainLift.velocity = calcVel(&mainLift, dist, delayAmount);
 		FourBar.velocity = calcVel(&FourBar, dist, delayAmount);
 		//does the waitings
 		delay(delayAmount);

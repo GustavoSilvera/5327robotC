@@ -23,14 +23,14 @@ task autoStack() {
 			autoStacking = true;
 			stopAutoStack = false;
 			FourBar.PID.kP = 0.15;
-			MogoLift.PID.isRunning = false;
+			mainLift.PID.isRunning = false;
 			FourBar.PID.isRunning = true;
 			//brings four bar up to prevent cone hitting mogo
 			FourBar.goal = 1700;//0.5*(FourBar.min + FourBar.max);//brings up a bit
 			UpUntil(&FourBar, FourBar.min + 200, 127);
 			delay(100);
 			//brings lift up to value based on coneIndex
-			UpUntil(&MogoLift, limitUpTo(MogoLift.max, heightValues[currentCone] + MogoLift.min + 100), 127);
+			UpUntil(&mainLift, limitUpTo(mainLift.max, heightValues[currentCone] + mainLift.min + 100), 127);
 			FourBar.PID.isRunning = false;
 			//bring fourbar up
 			delay(delayValues[currentCone] * 0.75);
@@ -40,8 +40,8 @@ task autoStack() {
 			FourBar.PID.isRunning = false;
 			delay(delayValues[currentCone] * 0.9);
 			//bring lift down
-			if(currentCone == 0)	DownUntil(&MogoLift,MogoLift.min, 127);
-			DownUntil(&MogoLift, heightValues[currentCone] + MogoLift.min - coneHeight, 127);
+			if(currentCone == 0)	DownUntil(&mainLift,mainLift.min, 127);
+			DownUntil(&mainLift, heightValues[currentCone] + mainLift.min - coneHeight, 127);
 			//bring fourbar down
 			FourBar.PID.kP = 0.35;//keeps in place
 			FourBar.goal = FourBar.max + 50;
@@ -84,160 +84,160 @@ task autoStack() {
 		delay(30);
 	}
 }
-	int initMRot;
-	task killswitch(){
-		for(;;){
-			if(R7 && autonRunning){
-				stopAllTasks();
-			}
-			if((D7 || D7_2) && autoStacking ) {//autostack killswitch
-				stopAutoStack = true;
-				stopTask(autoStack);
-				playSound(soundBeepBeep);//killed autostack
-				delay(100);
-				startTask(autoStack);
-			}
-			delay(50);
+int initMRot;
+task killswitch(){
+	for(;;){
+		if(R7 && autonRunning){
+			stopAllTasks();
 		}
+		if((D7 || D7_2) && autoStacking ) {//autostack killswitch
+			stopAutoStack = true;
+			stopTask(autoStack);
+			playSound(soundBeepBeep);//killed autostack
+			delay(100);
+			startTask(autoStack);
+		}
+		delay(50);
 	}
-	void kamakaze(){//ram auton
-		fwds(127, mRot);
-		delay(5000);
-		fwds(0, mRot);
-		return;
-	}
-	void twentyPointScore(const int dir){
-		rotFor(-dir*30);
-		MogoLift.goal = 0.5*(MogoLift.min + MogoLift.max)+200;//gets lift up and out of way
-		driveFor(-22);//-25 tho
-		//position -135 degrees relative to starting position
-		rotFor(-dir*90);//87 tho
-		delay(200);
-		//////////////MoGo.PID.kP = 0.05;
-		//////////////MoGo.PID.isRunning = true;
-		driveFor(6);
-		//////////////MoGo.goal = 3000;
-		fwds(90, mRot);//70
-		delay(1000);
-		driveFor(-15);
-		//////////////MoGo.PID.kP = 0.15;
-	}
-	void fivePointScore(const int dir){
-		rotFor(-dir*180);
-		//////////////MoGo.goal = //////////////MoGo.min - 300;//bring out mogo & drive
-		delay(1000);
-		//////////////MoGo.PID.isRunning = false;
-		driveFor(-10);
-	}
-	void threeConeAuton(const bool left){
-		int dir = 1;//left autonv         anm
-		if(left) dir = -1;
-		autonRunning = true;
-		//////////////MoGo.goal = //////////////MoGo.min - 400;//bring out mogo & drive
-		//////////////MoGo.PID.isRunning = true;
-		MogoLift.goal = 0.5*(MogoLift.max + MogoLift.min) - 200;//bring up lift
-		MogoLift.PID.isRunning = true;
-		FourBar.PID.kP = 0.01;//slow down four bar so cone doesn't fly out
-		FourBar.goal = FourBar.min + 300;//1000;//four bar down
-		FourBar.PID.isRunning = true;
-		initMRot = mRot;
-		delay(400);//wait for mogo to come out mostly
-		driveFor(31);//49);
-		delay(300);
-		//PRELOAD (MOGO WITH CONE)
-		//////////////MoGo.goal = //////////////MoGo.max;
-		delay(650);
-		DownUntil(&MogoLift, MogoLift.min + 50, 127);//brings lift down
-		FourBar.PID.kP = 0.15;//return to normal kP value
-		FourBar.goal = FourBar.min;
-		//DownUntil(&FourBar, FourBar.min, 127);//bring fourbar down
-		delay(200);
-		//CONE 2
-		MogoLift.goal = MogoLift.min + 400;
+}
+void kamakaze(){//ram auton
+	fwds(127, mRot);
+	delay(5000);
+	fwds(0, mRot);
+	return;
+}
+void twentyPointScore(const int dir){
+	rotFor(-dir*30);
+	mainLift.goal = 0.5*(mainLift.min + mainLift.max)+200;//gets lift up and out of way
+	driveFor(-22);//-25 tho
+	//position -135 degrees relative to starting position
+	rotFor(-dir*90);//87 tho
+	delay(200);
+	//////////////MoGo.PID.kP = 0.05;
+	//////////////MoGo.PID.isRunning = true;
+	driveFor(6);
+	//////////////MoGo.goal = 3000;
+	fwds(90, mRot);//70
+	delay(1000);
+	driveFor(-15);
+	//////////////MoGo.PID.kP = 0.15;
+}
+void fivePointScore(const int dir){
+	rotFor(-dir*180);
+	//////////////MoGo.goal = //////////////MoGo.min - 300;//bring out mogo & drive
+	delay(1000);
+	//////////////MoGo.PID.isRunning = false;
+	driveFor(-10);
+}
+void threeConeAuton(const bool left){
+	int dir = 1;//left autonv         anm
+	if(left) dir = -1;
+	autonRunning = true;
+	//////////////MoGo.goal = //////////////MoGo.min - 400;//bring out mogo & drive
+	//////////////MoGo.PID.isRunning = true;
+	mainLift.goal = 0.5*(mainLift.max + mainLift.min) - 200;//bring up lift
+	mainLift.PID.isRunning = true;
+	FourBar.PID.kP = 0.01;//slow down four bar so cone doesn't fly out
+	FourBar.goal = FourBar.min + 300;//1000;//four bar down
+	FourBar.PID.isRunning = true;
+	initMRot = mRot;
+	delay(400);//wait for mogo to come out mostly
+	driveFor(31);//49);
+	delay(300);
+	//PRELOAD (MOGO WITH CONE)
+	//////////////MoGo.goal = //////////////MoGo.max;
+	delay(650);
+	DownUntil(&mainLift, mainLift.min + 50, 127);//brings lift down
+	FourBar.PID.kP = 0.15;//return to normal kP value
+	FourBar.goal = FourBar.min;
+	//DownUntil(&FourBar, FourBar.min, 127);//bring fourbar down
+	delay(200);
+	//CONE 2
+	mainLift.goal = mainLift.min + 400;
 
-		UpUntil(&FourBar, FourBar.min + 400, 127);//brings lift up for next cone
-		delay(200);
-		driveFor(5);
-		FourBar.goal = FourBar.min;
-		DownUntil(&MogoLift, MogoLift.min, 127);//brings lift down (GRABBED CONE 1)
-		delay(200);
-		//FourBar.goal = FourBar.max;//brings up lift to prepare stack
-		UpUntil(&MogoLift, MogoLift.min + 500, 127); //+300;
-		UpUntil(&FourBar, FourBar.max, 127);
-		delay(300);
-		driveFor(2);
-		DownUntil(&MogoLift, MogoLift.min, 127);//brings down lift
-		delay(300);
-		FourBar.goal = FourBar.min;//									(RELEASED CONE 1)
-		delay(500);
-		//UpUntil(&MogoLift, MogoLift.min + 300, 127);//brings lift up for next cone pickup
+	UpUntil(&FourBar, FourBar.min + 400, 127);//brings lift up for next cone
+	delay(200);
+	driveFor(5);
+	FourBar.goal = FourBar.min;
+	DownUntil(&mainLift, mainLift.min, 127);//brings lift down (GRABBED CONE 1)
+	delay(200);
+	//FourBar.goal = FourBar.max;//brings up lift to prepare stack
+	UpUntil(&mainLift, mainLift.min + 500, 127); //+300;
+	UpUntil(&FourBar, FourBar.max, 127);
+	delay(300);
+	driveFor(2);
+	DownUntil(&mainLift, mainLift.min, 127);//brings down lift
+	delay(300);
+	FourBar.goal = FourBar.min;//									(RELEASED CONE 1)
+	delay(500);
+	//UpUntil(&mainLift, mainLift.min + 300, 127);//brings lift up for next cone pickup
 
-		//driveFor(2);
-		MogoLift.PID.isRunning = true;
-		MogoLift.goal = SensorValue[MogoLift.sensor[0]] + 200;
-		delay(250);
-		DownUntil(&FourBar, FourBar.min, 127);//ensures 4bar is down
-		UpUntil(&MogoLift, SensorValue[MogoLift.sensor[0]] + 200, 127);
-		DownUntil(&MogoLift, MogoLift.min, 127);//								(GRABBED CONE 2)
-		delay(300);
-		UpUntil(&MogoLift, MogoLift.min + 400, 127);
-		UpUntil(&FourBar, FourBar.max, 127);
-		DownUntil(&MogoLift, MogoLift.min + 200, 127);
-		FourBar.goal = FourBar.min; //														(RELEASED CONE 2)
-		/*
-		if(abs(initMRot - mRot) > 3){
-		rot(getSign(initMRot - mRot)*dir*127);//checking direction if skewed too far
-		delay(100);
-		}*/
+	//driveFor(2);
+	mainLift.PID.isRunning = true;
+	mainLift.goal = SensorValue[mainLift.sensor] + 200;
+	delay(250);
+	DownUntil(&FourBar, FourBar.min, 127);//ensures 4bar is down
+	UpUntil(&mainLift, SensorValue[mainLift.sensor] + 200, 127);
+	DownUntil(&mainLift, mainLift.min, 127);//								(GRABBED CONE 2)
+	delay(300);
+	UpUntil(&mainLift, mainLift.min + 400, 127);
+	UpUntil(&FourBar, FourBar.max, 127);
+	DownUntil(&mainLift, mainLift.min + 200, 127);
+	FourBar.goal = FourBar.min; //														(RELEASED CONE 2)
+	/*
+	if(abs(initMRot - mRot) > 3){
+	rot(getSign(initMRot - mRot)*dir*127);//checking direction if skewed too far
+	delay(100);
+	}*/
 
 
-		MogoLift.goal = MogoLift.max;
-		FourBar.goal = FourBar.max;//bring up fourbar and lift
+	mainLift.goal = mainLift.max;
+	FourBar.goal = FourBar.max;//bring up fourbar and lift
 
-		//simple placing
-		/*
-		driveFor(-5);
-		//////////////MoGo.goal = //////////////MoGo.min-300;
-		delay(1000);
-		driveFor(-3);
-		//////////////MoGo.PID.isRunning = false;*/
+	//simple placing
+	/*
+	driveFor(-5);
+	//////////////MoGo.goal = //////////////MoGo.min-300;
+	delay(1000);
+	driveFor(-3);
+	//////////////MoGo.PID.isRunning = false;*/
 
-		//scoring in zone
-		driveFor(-35);//-53
-		//delay(2000);
-		fivePointScore(dir);//twentyPointScore(dir);
-		autonRunning = false;
-		return;
-	}
-	void EZAuton(const bool left){
-		int dir = 1;//left auton
-		if(left) dir = -1;
-		autonRunning = true;
-		////////////////MoGo.PID.kP = 0.;
-		//////////////MoGo.goal = //////////////MoGo.min-300;//bring out mogo & drive
-		//////////////MoGo.PID.isRunning = true;
-		MogoLift.goal = 1400;//bring up lift
-		MogoLift.PID.isRunning = true;
-		FourBar.PID.kP = 0.05;//slow down four bar so cone doesn't fly out
-		FourBar.goal = FourBar.min;//four bar down
-		FourBar.PID.isRunning = true;
-		initMRot = mRot;
-		////////////////MoGo.PID.kP
-		delay(400);//wait for mogo to come out mostly
-		driveFor(49);//49
-		delay(300);
-		//PRELOAD (MOGO WITH CONE)
-		//////////////MoGo.goal = //////////////MoGo.max;
-		delay(550);
-		DownUntil(&MogoLift, MogoLift.min - 50, 127);//brings lift down
-		FourBar.goal = 0.5*(FourBar.max + FourBar.min);//brings halfway
-		delay(200);
-		MogoLift.goal = 0.5*(MogoLift.min + MogoLift.max);//brings halfway
-		rotFor(-5);
-		driveFor(-43);//-45
-		twentyPointScore(dir);
-		autonRunning = false;
-		return;
-	}
+	//scoring in zone
+	driveFor(-35);//-53
+	//delay(2000);
+	fivePointScore(dir);//twentyPointScore(dir);
+	autonRunning = false;
+	return;
+}
+void EZAuton(const bool left){
+	int dir = 1;//left auton
+	if(left) dir = -1;
+	autonRunning = true;
+	////////////////MoGo.PID.kP = 0.;
+	//////////////MoGo.goal = //////////////MoGo.min-300;//bring out mogo & drive
+	//////////////MoGo.PID.isRunning = true;
+	mainLift.goal = 1400;//bring up lift
+	mainLift.PID.isRunning = true;
+	FourBar.PID.kP = 0.05;//slow down four bar so cone doesn't fly out
+	FourBar.goal = FourBar.min;//four bar down
+	FourBar.PID.isRunning = true;
+	initMRot = mRot;
+	////////////////MoGo.PID.kP
+	delay(400);//wait for mogo to come out mostly
+	driveFor(49);//49
+	delay(300);
+	//PRELOAD (MOGO WITH CONE)
+	//////////////MoGo.goal = //////////////MoGo.max;
+	delay(550);
+	DownUntil(&mainLift, mainLift.min - 50, 127);//brings lift down
+	FourBar.goal = 0.5*(FourBar.max + FourBar.min);//brings halfway
+	delay(200);
+	mainLift.goal = 0.5*(mainLift.min + mainLift.max);//brings halfway
+	rotFor(-5);
+	driveFor(-43);//-45
+	twentyPointScore(dir);
+	autonRunning = false;
+	return;
+}
 
 #endif
