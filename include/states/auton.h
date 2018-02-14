@@ -15,22 +15,50 @@
 */
 const int INTAKE = 127;//for
 const int OUTTAKE = -127;
-const int heightValues[11] = {220, 220, 370, 500, 620, 740, 830, 900, 1100, 1250, 1400};//values for where the lift should go to when autoStacking
+const int heightValues[15] = {2270, 2280, 2390, 2530, 2670, 2750, 2840, 2970, 3050, 3200, 3330, 3420, 3540, 3750, 3900};//values for where the lift should go to when autoStacking
 const int coneHeight = 150;//how much the lift goes up DOWN after reaching height values
 const int delayValues[11] = {400, 0, 0, 0, 0, 0, 100, 150, 100, 0, 0};//values for individual delays when autostacking
 //const int delayValues[11] = {0, 0, 0, 0, 0, 0, 150, 150, 240, 200, 200};//values for individual delays when autstacking
+volatile int intakeSpeed = 0;
+task goliathHold(){
+	for(;;){
+		liftMove(&goliat, intakeSpeed);
+		delay(50);
+	}
+}
 task autoStack() {
+	currentCone = 0;
 	for (;;) {
 		if (U7 || U7_2) {
+			startTask(goliathHold);
 			autoStacking = true;
-			UpUntilSonar(&mainLift);//brings lift up until sonar detects no obstruction
-			UpUntil(&FourBar, FourBar.max);
-			liftMove(&goliat, OUTTAKE);
-			delay(500);//timed delay for goliath
-			UpUntil(&mainLift, SensorValue[mainLift.sensor] + 100);//brings lift up a tad
+			intakeSpeed = 100;
+			//if(currentCone <= 3) UpUntil(&mainLift, heightValues[currentCone]);
+			//else UpUntilSonar(&mainLift);//brings lift up until sonar detects no obstruction
+			UpUntil(&mainLift, heightValues[currentCone] - 50, 127);
+			UpUntil(&FourBar, FourBar.max, 127);
+			FourBar.goal = FourBar.max + 200;//keeps them there
+			DownUntil(&mainLift, SensorValue[mainLift.sensor] - 100, 80);
+			intakeSpeed = -127;
+			delay(300);
+			UpUntil(&mainLift, SensorValue[mainLift.sensor] + 50);//brings lift up a tad
 			DownUntil(&FourBar, FourBar.min);
-
+			delay(100);
+			DownUntil(&mainLift, mainLift.min + 500, 80);
 			autoStacking = false;
+			stopTask(goliathHold);
+			currentCone+=1;
+		}
+		if (D7 || D7_2) currentCone = 0;//reset
+		if ((R7 || R7_2) && time1[T2]>300 && currentCone > 0) {
+			currentCone -= 1; //subtract one cone if autostack missed
+			playSound(soundDownwardTones);
+			clearTimer(T2);
+		}
+		if ((L7 || L7_2) && time1[T2]>300 && currentCone < 11) {
+			currentCone += 1; //add one cone
+			playSound(soundUpwardTones);
+			clearTimer(T2);
 		}
 		delay(30);
 	}

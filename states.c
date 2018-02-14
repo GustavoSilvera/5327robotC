@@ -50,14 +50,14 @@ void initializeOpControl(const bool driver) {
 	velocity = 0.0;
 
 	//-LIFT---------&reference--TYPE------------sensor-1--------motor-1-----motor-2-----max------min----delay(opt)
-	initLiftType(	&mainLift,	NORMAL,			LiftPot,				LiftTop,	LiftBottom, 4020,	 2000	);
+	initLiftType(	&mainLift,	NORMAL,			LiftPot,				LiftTop,	LiftBottom, 4020,	 2150	);
 	initLiftType(	&mogo,		DIFFERENTIAL,	LiftPot,				LiftTop,	LiftBottom, 4050,	 0 );
-	initLiftType(	&FourBar,	NORMAL,	 		FourBarPot,			Bar,		NONE,		3700,	 1850,	10);
+	initLiftType(	&FourBar,	BINARY,	 		FourBarPot,			Bar,		NONE,		4050,	 1750,	10);
 	initLiftType(	&goliat,		NOPID,	 		NONE,					goliath,	NONE,		10000,	 -10000	);//(TUNE)
 
 	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)
 	initPID(	&mainLift.PID,	mainLift.sensor,	30,	    0.45,	0.0,	0.05, 	rev,	true);
-	initPID(	&FourBar.PID, 	FourBar.sensor,	    10, 	0.35, 	0.0,   	0.01,   rev, 	true);
+	initPID(	&FourBar.PID, 	FourBar.sensor,	    10, 	0.25, 	0.0,   	0.0,   rev, 	false);
 	//initPID ( 	&gyroBase, 		Gyro, 				0,  	0.525, 	0.0, 	0.5, 	reversed, 	false);
 
 	//-SIDE---------&reference----sensor------------motor-1------motor-2--------motor-3
@@ -124,14 +124,14 @@ task usercontrol() {//initializes everything
 	bLCDBacklight = true;// Turn on LCD Backlight
 	clearLCDLine(0); // Clear line 1 (0) of the LCD
 	clearLCDLine(1); // Clear line 2 (1) of the LCD
-	if(nImmediateBatteryLevel < 8500) playSound(soundException);
+	if(nImmediateBatteryLevel < 8000) playSound(soundException);
 	else playSound(soundUpwardTones);
 	if(SensorValue[ultraSound] < 1){//0 or error
 		playSound(soundLowBuzz);//sonar error (CRITICAL)
 	}
 	for (;;) {
 		//debug controls
-		if (L7 || L7_2 )threeConeAuton(LEFT);//rotFor(-10);
+		//if (L7 || L7_2 )threeConeAuton(LEFT);//rotFor(-10);
 		driveCtrlr();
 		delay(15);//~60hz
 	}
