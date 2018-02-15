@@ -26,14 +26,17 @@
 #pragma competitionControl(Competition)
 //Main competition background code...do not modify!5
 #include "Vex_Competition_Includes.c"
-#include "include/randomstuff.h"
-#include "include/dataStructures.h"
-#include "include/mech.h"
-#include "include/rotate.h"
-#include "include/physics.h"
-#include "include/lift.h"
-#include "include/init.h"
-#include "include/other.h"
+
+#include "include/skills/randomstuff.h"
+#include "include/skills/dataStructures.h"
+#include "include/skills/mech.h"
+#include "include/skills/PID.h"
+#include "include/skills/drive.h"
+#include "include/skills/rotate.h"
+#include "include/skills/physics.h"
+#include "include/skills/lift.h"
+#include "include/skills/init.h"
+#include "include/skills/other.h"
 
 void pre_auton() {//dont care
 	bStopTasksBetweenModes = true;

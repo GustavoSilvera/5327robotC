@@ -1,6 +1,3 @@
-#include "include/PID.h"
-#include "include/drive.h"
-
 //extern void settle();
 void rot(float power) {//rotates base
 	motor[RBaseFront] = power;
