@@ -17,7 +17,7 @@ const int INTAKE = 127;//for
 const int OUTTAKE = -127;
 const int heightValues[15] = {2270, 2280, 2390, 2530, 2670, 2750, 2840, 2970, 3050, 3200, 3330, 3420, 3540, 3750, 3900};//values for where the lift should go to when autoStacking
 const int coneHeight = 150;//how much the lift goes up DOWN after reaching height values
-const int delayValues[11] = {400, 0, 0, 0, 0, 0, 100, 150, 100, 0, 0};//values for individual delays when autostacking
+const int delayValues[15] = {0, 0, 0, 0, 0, 0, 0, 0, 200, 200, 200, 200, 200, 200, 200};//values for individual delays when autostacking
 //const int delayValues[11] = {0, 0, 0, 0, 0, 0, 150, 150, 240, 200, 200};//values for individual delays when autstacking
 volatile int intakeSpeed = 0;
 task goliathHold(){
@@ -35,14 +35,15 @@ task autoStack() {
 			intakeSpeed = 100;
 			//if(currentCone <= 3) UpUntil(&mainLift, heightValues[currentCone]);
 			//else UpUntilSonar(&mainLift);//brings lift up until sonar detects no obstruction
-			UpUntil(&mainLift, heightValues[currentCone] - 50, 127);
-			UpUntil(&FourBar, FourBar.max, 127);
+			UpUntilW4Bar(heightValues[currentCone] + 50, 0.95, 127, true);
+		//	UpUntil(&FourBar, FourBar.max, 127);
 			FourBar.goal = FourBar.max + 200;//keeps them there
-			DownUntil(&mainLift, SensorValue[mainLift.sensor] - 100, 80);
+			delay(delayValues[currentCone]);
+			DownUntil(&mainLift, SensorValue[mainLift.sensor] - 150, 127);
 			intakeSpeed = -127;
-			delay(300);
-			UpUntil(&mainLift, SensorValue[mainLift.sensor] + 50);//brings lift up a tad
-			DownUntil(&FourBar, FourBar.min);
+			liftMove(&mainLift, 0);
+			delay(200);
+			UpUntilW4Bar(SensorValue[mainLift.sensor] + 100, 0.7, 127, false);
 			delay(100);
 			DownUntil(&mainLift, mainLift.min + 500, 80);
 			autoStacking = false;
@@ -71,6 +72,7 @@ task killswitch(){
 		}
 		if((D7 || D7_2) && autoStacking ) {//autostack killswitch
 			stopTask(autoStack);
+			stopTask(goliathHold);
 			playSound(soundBeepBeep);//killed autostack
 			delay(100);
 			startTask(autoStack);
