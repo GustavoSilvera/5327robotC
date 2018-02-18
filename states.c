@@ -52,17 +52,17 @@ void initializeOpControl(const bool driver) {
 	//-LIFT---------&reference--TYPE------------sensor-1--------motor-1-----motor-2-----max------min----delay(opt)
 	initLiftType(	&mainLift,	NORMAL,			LiftPot,				LiftTop,	LiftBottom, 4020,	 2150	);
 	initLiftType(	&mogo,		DIFFERENTIAL,	LiftPot,				LiftTop,	LiftBottom, 4050,	 0 );
-	initLiftType(	&FourBar,	BINARY,	 		FourBarPot,			Bar,		NONE,		4050,	 1750,	10);
+	initLiftType(	&FourBar,	BINARY,	 		FourBarPot,			Bar,		NONE,		3900,	 2050,	10);
 	initLiftType(	&goliat,		NOPID,	 		NONE,					goliath,	NONE,		10000,	 -10000	);//(TUNE)
 
 	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)
-	initPID(	&mainLift.PID,	mainLift.sensor,	30,	    0.45,	0.0,	0.05, 	rev,	true);
-	initPID(	&FourBar.PID, 	FourBar.sensor,	    10, 	0.25, 	0.0,   	0.0,   rev, 	false);
-	//initPID ( 	&gyroBase, 		Gyro, 				0,  	0.525, 	0.0, 	0.5, 	reversed, 	false);
+	initPID(	&mainLift.PID,	mainLift.sensor,			30,	  0.45,	 0.0,	   0.0, 	rev,	true);
+	initPID(	&FourBar.PID, 	FourBar.sensor,	    	5, 	  0.95, 	 0.0,   	0.0,   rev, 	false);
+	//initPID ( 	&gyroBase, 		Gyro, 				0,  	  0.525,  0.0, 	0.5, 	reversed, 	false);
 
 	//-SIDE---------&reference----sensor------------motor-1------motor-2--------motor-3
 	initSideBase( 	&Left, 		  LeftEncoder, 		Base_L_F, 	 Base_L_M,		Base_L_B);
-	initSideBase( 	&Right, 	  RightEncoder,		Base_R_F, 	 Base_R_M,		Base_R_B);
+	initSideBase( 	&Right, 	 	  RightEncoder,		Base_R_F, 	 Base_R_M,		Base_R_B);
 	pastRot = mRot;
 }
 

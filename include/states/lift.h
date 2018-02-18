@@ -64,6 +64,20 @@ void UpUntil(const struct liftMech* lift, int goal, int speed = 127) {
 	enablePID(lift);
 	return;
 }
+void UpUntilW4Bar(int goal, float prop, int speed, bool FourBarToMax) {
+	mainLift.PID.isRunning = false;
+	while (SensorValue[mainLift.sensor] < goal){ //brings lift up to goal
+		liftMove(mainLift, abs(speed));
+		if(SensorValue[mainLift.sensor] > goal * prop){
+			if(FourBarToMax) FourBar.goal = FourBar.max;
+			else FourBar.goal = FourBar.min;
+			FourBar.PID.isRunning = true;
+		}
+	}
+	if(FourBarToMax)liftMove(mainLift, -abs(speed*0.5));
+	delay(10);
+	return;
+}
 int first = 0;
 int last = 0;
 int lastValue = 0;
@@ -115,11 +129,11 @@ void manualLiftControl(const struct liftMech* lift, int bUp, int bDown, int bUp2
 	else if (lift->type == BINARY) {
 		if(getSign(power) > 0) {
 			UpUntil(lift, lift->max);
-			lift->goal = lift->max + 450;
+			lift->goal = lift->max + 200;
 		}
 		else if(getSign(power) < 0){
 			DownUntil(lift, lift->min);
-			lift->goal = lift->min - 550;
+			lift->goal = lift->min - 200;
 		}
 		else liftMove(lift, 0);
 	}
@@ -145,12 +159,27 @@ void LiftLift(const struct liftMech* lift, int bUp, int bDown, int bUp2, int bDo
 	else if (lift->type == DIFFERENTIAL)return;//dont even touch motors
 	else return;
 }
+task fourBarPID(){
+	for(;;){
+		if(U5 || U5_2) {
+			FourBar.goal = FourBar.max;
+			FourBar.PID.isRunning = true;
+		}
+		else if(D5 || D5_2) {
+			FourBar.goal = FourBar.min;
+			FourBar.PID.isRunning = true;
+		}
+		delay(10)
+		PIDLift(&FourBar);//calls the pid function for the lifts
+	}
+}
 task LiftControlTask() {
+	startTask(fourBarPID);
 	for (;;) {//while true
 		if(!autonRunning){
 			if(U8 || D8 || U8_2 || D8_2)	LiftLift(&mogo, 	U8, D8, U8_2, D8_2, false,  180);
-			else LiftLift(&mainLift, U6, D6, U6_2, D6_2, false, 300);
-			LiftLift(&FourBar,	U5, D5, U5_2, D5_2, false, 50000);
+			else LiftLift(&mainLift, U6, D6, U6_2, D6_2, false, 350);
+			//LiftLift(&FourBar,	U5, D5, U5_2, D5_2, false, 50000);
 			LiftLift(&goliat,	L8, R8, L8_2, R8_2, false);
 			if(D7) {soundCompare();}
 		}
