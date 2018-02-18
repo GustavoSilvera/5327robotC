@@ -56,7 +56,7 @@ void driveCtrlr() {
 	TruSpeed(limitUpTo(127, primary*vexRT[Ch3] + partner*vexRT[Ch3Xmtr2]), 3)
 	);
 }
-void fwds(const int power, const float angle) {//drive base forwards
+void fwds(const int power, const float angle = mRot) {//drive base forwards
 	int speed = limitUpTo(127, power);
 	const float scalar = 15;//scalar for rotation
 	float dirSkew = limitUpTo(speed, scalar*(mRot - angle));
@@ -68,7 +68,7 @@ void rot(const float speed) {//rotates base
 void driveFor(float goal) {//drives for certain inches
 	//works best from 1 to 40 ish.
 	resetEncoders();
-	goal *= 2;//doubles "goal" not tuned very well as of rn
+//	goal *= 2;//doubles "goal" not tuned very well as of rn
 	const int thresh = 5;//10 ticks
 	int initDir = mRot;
 	//ClearTimer(T1);
@@ -78,26 +78,20 @@ void driveFor(float goal) {//drives for certain inches
 	while (abs(goal * circum - encoderAvg*encoderRatio) > thresh) {
 		fwds(limitDownTo(15, dP * ((goal*circum - encoderAvg*encoderRatio - 0.1*vel))), initDir);
 	}
-	fwds(0, initDir);
+	fwds(-getSign(goal)* 80);
+	delay(50);
+	fwds(0);
 	return;
 }
 void rotFor(float target){
 	gyroBase.isRunning = true;
 	SensorValue[Gyro] = 0;//resets gyros
 	SensorScale[Gyro] = 260;
-	while(abs(SensorValue[Gyro]*GyroK - target) > 0.5){//2 dF
-		rot(limitDownTo(15, pidCompute(&gyroBase, (target)/GyroK)));
+	while(abs(SensorValue[Gyro]*GyroK - target) > 0.5){
+		rot(limitDownTo(20, 1.2*(target - SensorValue[Gyro]*GyroK) ) );
 	}
-	rot(0);//gives settle time
-	gyroBase.isRunning = false;
-	resetPIDVals(&gyroBase);
-	delay(target * 2);
-	//check for overshoots
-	const int slowPower = 60;
-		while(SensorValue[Gyro]*GyroK > target + 0.5)
-			rot(-abs(slowPower));
-		while(SensorValue[Gyro]*GyroK < target - 0.5)
-			rot(+abs(slowPower));
+	rot(-getSign(target)*127);
+	delay(30);
 	rot(0);
 	return;
 }
