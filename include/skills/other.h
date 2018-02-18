@@ -12,13 +12,16 @@
 * '----------------'  '----------------'  '----------------'  '----------------' *
 \********************************************************************************/
 //for the cool ascii text go here: http://patorjk.com/software/taag/#p=display&f=Blocks
+
+
 task sensorsUpdate() {
 	//int rot=0;
 	for (;;) {
 		mRot = ((float)(GyroK*SensorValue[Gyro]));
-		//encoderAvg = avg(SensorValue[baseRight.m.sensor], SensorValue[baseLeft.m.sensor]);
+		encoderAvg = AVG(SensorValue[baseRight.m.sensor], SensorValue[baseLeft.m.sensor]);//REVIEW
 
 		delay(5);//really quick delay
+
 	}
 }
 bool stalling(const struct mechanism* mech) {
@@ -73,6 +76,7 @@ task killswitch() {
 		delay(50);
 	}
 }
+/*
 void clawControl(int close, int open){
 	if (open || L8_2) {
 		motor[ClawMotor] = 127;
@@ -89,7 +93,7 @@ task clawTask(){
 		clawControl(L8, R8);//allows manual claw control
 		delay(50);
 	}
-}
+}*/
 task liftPID(){
 	for(;;){
 		if(autonRunning){//turns on PID for the lifts during auton

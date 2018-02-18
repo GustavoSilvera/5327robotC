@@ -26,27 +26,33 @@
 	#define D8_2	    vexRT[Btn8DXmtr2]//8D2
 	#define L8_2    	vexRT[Btn8LXmtr2]//8L2
 	#define R8_2	    vexRT[Btn8RXmtr2]//8R2
+
+
 	//other stuff and #defines
-	#define PI 3.1415
+	#define PI 3.1415926535
 
 	#define LEFT true
 	#define RIGHT false
 
+	#define INT_MATH_SHIFT 16
 	#define SQUARE(x) (x * x)
 	#define AVG(x,y) ((x + y)/2)
+	#define AVGINT(x,y) ((x + y)>>1)
 	#define MIN(x,y) (x <= y ? x : y)
 	#define GETSIGN(x) (x < 0 ? -1 : 1)
-	//#define LimitUpTo(x,y) (y < x ? y : x)
-	//#define LIMITDOWN(x,y) (y > x ? x : y)
+	#define LIMITUP(max, val) (val < max ? val : max)
+	#define LIMITDOWN(min, val) (val > min ? val : min)
 
 	#define INTAKE 127
 	#define OUTTAKE -127
 	#define OPEN 1, 0
 	#define CLOSE 0, 1
 	#define RELEASE fourBar.min
-	#define PICKUP  fourBar.max
+	#define PICKUP 3 fourBar.max
 	#define UNLOCK 	UpUntil(&lock, lock.max, 127)
 	#define LOCK DownUntil(&lock, lock.min, 127)
 	const float circum = 4 * PI;//4 inch wheels
+
+
 
 #endif

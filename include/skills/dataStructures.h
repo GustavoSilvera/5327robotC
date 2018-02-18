@@ -1,3 +1,7 @@
+int goalTicks;
+int goalPower;
+int encoderAvg;
+
 struct PIDPar {
 	char sensor;
 	volatile int forceDirection;//changing with multiple threads
@@ -43,8 +47,9 @@ string mainBattery, powerExpander;
 //int startRot = 90;
 volatile float mRot = 0.0;//current rotation
 //volatile float encoderAvg;//used only for straight fwds and bkwds direction
-//MISC FUNCTIONS
 
+//MISC FUNCTIONS
+//use macros instead :)
 int getSign(int check) {
 	if (check < 0) return -1;
 	else if (check > 0) return 1;
@@ -63,4 +68,5 @@ float LimitDownTo(float min, float val) {
 //}
 float avg(float a, float b) {
 	return 0.5*(a + b);//avg between two things
+	// a + b >>2;
 }

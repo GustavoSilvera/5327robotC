@@ -1,3 +1,4 @@
+//#include "include/skills/other.h"
 //function for driving the robot
 
 void swingR(float power) {//swings right base
@@ -7,7 +8,7 @@ void swingL(float power) {//swings right base
 	analogMechControl(&baseLeft.m, power);
 }
 void fwdsLong(const int power, const float angle = mRot) {//drive base forwards
-	const float speed = LimitUpTo(127, power);
+	const float speed = LIMITUP(127, power);
 	motor[RBaseFront] = speed;
 	motor[RBaseBack] = speed;
 	motor[LBaseFront] = speed;//*0.625;
@@ -15,7 +16,7 @@ void fwdsLong(const int power, const float angle = mRot) {//drive base forwards
 }
 
 void fwds(const int power, const float angle = mRot) {//drive base forwards
-	const float speed = LimitUpTo(127, power);
+	const float speed = LIMITUP(127, power);
 	motor[RBaseFront] = speed;
 	motor[RBaseBack] = speed;
 	motor[LBaseFront] = speed;
@@ -35,13 +36,24 @@ void settle(){
 	}
 	return;
 }
-void driveFor(float goal) {//drives for certain inches
+void driveFor(int goal) {//drives for certain inches
 	SensorValue[LeftBaseEnc] = 0;
 	SensorValue[RightBaseEnc] = 0;
-	const int thresh = 5;//10 ticks
+	const int thresh = 50;//10 ticks
 	const int initDir = mRot;
 	//const float encoderScale = 1;//number of motor rotations = this() rotations
-	const float dP = 20;//25;//multiplier for velocity controller
+	const float dP = 5;//25;//multiplier for velocity controller
+	goalTicks = goal*114.5916 ;
+	while (abs(goalTicks - encoderAvg) > thresh) { //while error > threshold
+		//encoder geared down 4:1, circum = 4*pi
+		//goal / 4pi = number of revolutions
+		//360 ticks per revolution
+		//therefore conversion to ticks is goal / 4pi * 360
+		//fwds(LimitDownTo(15, dP * (goal * 114.5917 - encoder - 0.5*mainVelocity)), mRot);//initDir); //0.3 mainvelocity
+		goalPower = GETSIGN(goal) * LIMITDOWN(15, dP * abs(goalTicks - encoderAvg - 0.3*mainVelocity));
+		fwds(goalPower, mRot);
+	}
+	/*
 	if(goal < 40){
 		while (abs(goal * circum - SensorValue[LeftBaseEnc]*0.75) > thresh)
 			fwds(LimitDownTo(15, dP * ((goal*circum - SensorValue[LeftBaseEnc]*0.75 - 0.3*mainVelocity))), mRot);//initDir);
@@ -49,8 +61,10 @@ void driveFor(float goal) {//drives for certain inches
 	else{
 		while (abs(goal * circum - SensorValue[LeftBaseEnc]*0.75) > thresh)
 			fwdsLong(LimitDownTo(15, dP * ((goal*circum - SensorValue[LeftBaseEnc]*0.75 - 0.3*mainVelocity))), mRot);//initDir);
-	}
+	}*/
 
+	fwds(-100, initDir);
+	delay(300);
 	fwds(0, initDir);
 	settle();
 	return;
