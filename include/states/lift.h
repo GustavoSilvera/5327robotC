@@ -169,7 +169,7 @@ task fourBarPID(){
 			FourBar.goal = FourBar.min;
 			FourBar.PID.isRunning = true;
 		}
-		delay(10)
+		delay(10);
 		PIDLift(&FourBar);//calls the pid function for the lifts
 	}
 }
@@ -178,9 +178,9 @@ task LiftControlTask() {
 	for (;;) {//while true
 		if(!autonRunning){
 			if(U8 || D8 || U8_2 || D8_2)	LiftLift(&mogo, 	U8, D8, U8_2, D8_2, false,  180);
-			else LiftLift(&mainLift, U6, D6, U6_2, D6_2, false, 350);
+			else LiftLift(&mainLift, U6, D6, U6_2, D6_2, false, 400);
 			//LiftLift(&FourBar,	U5, D5, U5_2, D5_2, false, 50000);
-			LiftLift(&goliat,	L8, R8, L8_2, R8_2, false);
+			if(!autoStacking) LiftLift(&goliat,	L8, R8, L8_2, R8_2, false);
 			if(D7) {soundCompare();}
 		}
 		else {

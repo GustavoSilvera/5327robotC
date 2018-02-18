@@ -15,7 +15,7 @@
 */
 void scaleGyros(){
 	SensorScale[Gyro] = 260;
-	SensorBias[Gyro] = 1;
+	//SensorBias[Gyro] = 1;
 	SensorFullCount[Gyro] = 3600;
 }
 void gyroBias(){

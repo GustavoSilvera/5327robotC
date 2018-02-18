@@ -1,6 +1,6 @@
 #pragma config(Sensor, in1,    FourBarPot,     sensorPotentiometer)
 #pragma config(Sensor, in2,    LiftPot,        sensorPotentiometer)
-#pragma config(Sensor, in4,    Gyro,           sensorGyro)
+#pragma config(Sensor, in5,    Gyro,           sensorGyro)
 #pragma config(Sensor, in3,    MoGoPot,        sensorPotentiometer)
 #pragma config(Sensor, in6,    BATERY_2_PORT,  sensorAnalog)
 #pragma config(Sensor, dgtl1,  LeftEncoder,    sensorQuadEncoder)
@@ -51,14 +51,14 @@ void initializeOpControl(const bool driver) {
 
 	//-LIFT---------&reference--TYPE------------sensor-1--------motor-1-----motor-2-----max------min----delay(opt)
 	initLiftType(	&mainLift,	NORMAL,			LiftPot,				LiftTop,	LiftBottom, 4020,	 2150	);
-	initLiftType(	&mogo,		DIFFERENTIAL,	LiftPot,				LiftTop,	LiftBottom, 4050,	 0 );
-	initLiftType(	&FourBar,	BINARY,	 		FourBarPot,			Bar,		NONE,		3900,	 2050,	10);
+	initLiftType(	&mogo,		DIFFERENTIAL,	LiftPot,				LiftTop,	LiftBottom, 4000,	600 );
+	initLiftType(	&FourBar,	BINARY,	 		FourBarPot,			Bar,		NONE,		3830,	 2000,	10);
 	initLiftType(	&goliat,		NOPID,	 		NONE,					goliath,	NONE,		10000,	 -10000	);//(TUNE)
 
 	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)
-	initPID(	&mainLift.PID,	mainLift.sensor,			30,	  0.45,	 0.0,	   0.0, 	rev,	true);
-	initPID(	&FourBar.PID, 	FourBar.sensor,	    	5, 	  0.95, 	 0.0,   	0.0,   rev, 	false);
-	//initPID ( 	&gyroBase, 		Gyro, 				0,  	  0.525,  0.0, 	0.5, 	reversed, 	false);
+	initPID(	&mainLift.PID,	mainLift.sensor,			10,	  0.25,	 0.0,	   0.0, 	rev,	true);
+	initPID(	&FourBar.PID, 	FourBar.sensor,	    	30, 	  0.95, 	 0.0,   	0.0,   rev, 	false);
+	initPID (&gyroBase, 		Gyro, 						12,  	  0.525,  0.0, 	0.5, 	!rev, 	false);
 
 	//-SIDE---------&reference----sensor------------motor-1------motor-2--------motor-3
 	initSideBase( 	&Left, 		  LeftEncoder, 		Base_L_F, 	 Base_L_M,		Base_L_B);
@@ -89,19 +89,15 @@ task autonomous() {
 	case    0:
 		threeConeAuton(RIGHT);
 		break;
-
 	case    1:
 		threeConeAuton(LEFT);
 		break;
-
 	case    2:
 		EZAuton(RIGHT);
 		break;
-
 	case    3:
 		EZAuton(LEFT);
 		break;
-
 	case    4:
 		kamakaze();
 		break;
@@ -110,6 +106,37 @@ task autonomous() {
 		break;
 	}
 	return;
+}
+task mogoOut(){
+
+	UpUntil(&mainLift, SensorValue[mainLift.sensor] + 150);
+	clearTimer(T4);
+	while(SensorValue[mogo.sensor] > mogo.min && time1[T4] < 600){
+		liftDiff(&mogo, 127);
+	}
+	return;
+}
+void auton(bool right){
+	int dir  = 1;
+	if(!right) dir = -1;
+	startTask(goliathHold);
+	startTask(mogoOut);
+	FourBar.goal = FourBar.max;
+	FourBar.PID.isRunning = true;
+	intakeSpeed = INTAKE/2;
+	driveFor(55);
+	fwds(0);
+	clearTimer(T4);
+	while(time1[T4] < 600){
+		liftDiff(&mogo, -127);
+	}
+	intakeSpeed = OUTTAKE;
+	delay(400);
+
+	stopTask(goliathHold);
+	stopTask(mogoOut);
+
+
 }
 task usercontrol() {//initializes everything
 	initializeOpControl(true);//driver init
@@ -131,7 +158,9 @@ task usercontrol() {//initializes everything
 	}
 	for (;;) {
 		//debug controls
-		//if (L7 || L7_2 )threeConeAuton(LEFT);//rotFor(-10);
+		if (L7) rotFor(-90);//threeConeAuton(LEFT);//rotFor(-10);
+		if (R7) rotFor(90);
+		if(D7) auton(RIGHT);
 		driveCtrlr();
 		delay(15);//~60hz
 	}

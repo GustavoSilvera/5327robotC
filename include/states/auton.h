@@ -13,11 +13,19 @@
 | '--------------' || '--------------' || '--------------' || '--------------' || '--------------' |
 '----------------'  '----------------'  '----------------'  '----------------'  '----------------'
 */
-const int INTAKE = 127;//for
+const int INTAKE = 70;//for roller hold
 const int OUTTAKE = -127;
-const int heightValues[15] = {2270, 2280, 2390, 2530, 2670, 2750, 2840, 2970, 3050, 3200, 3330, 3420, 3540, 3750, 3900};//values for where the lift should go to when autoStacking
-const int coneHeight = 150;//how much the lift goes up DOWN after reaching height values
-const int delayValues[15] = {0, 0, 0, 0, 0, 0, 0, 0, 200, 200, 200, 200, 200, 200, 200};//values for individual delays when autostacking
+const int heightValues[15] = {
+	2270, 2280, 2390, 2530, 2670, 2750,
+	2840, 2970, 3050, 3200, 3330, 3420,
+	3540, 3750, 3900};//values for where the lift should go to when autoStacking
+const int heightFourBar[15] = {
+	FourBar.max, FourBar.max, FourBar.max, FourBar.max, FourBar.max,
+	FourBar.max, FourBar.max, FourBar.max, FourBar.max, FourBar.max,
+	FourBar.max - 100, FourBar.max - 150, FourBar.max - 250,
+	FourBar.max - 350, FourBar.max - 400
+};//values for where the lift should go to when autoStacking
+const int delayValues[15] = {0, 0, 0, 0, 0, 0, 0, 0, 200, 200, 200, 200, 200, 200, 400};//values for individual delays when autostacking
 //const int delayValues[11] = {0, 0, 0, 0, 0, 0, 150, 150, 240, 200, 200};//values for individual delays when autstacking
 volatile int intakeSpeed = 0;
 task goliathHold(){
@@ -32,31 +40,34 @@ task autoStack() {
 		if (U7 || U7_2) {
 			startTask(goliathHold);
 			autoStacking = true;
-			intakeSpeed = 100;
+			intakeSpeed = INTAKE;
 			//if(currentCone <= 3) UpUntil(&mainLift, heightValues[currentCone]);
 			//else UpUntilSonar(&mainLift);//brings lift up until sonar detects no obstruction
-			UpUntilW4Bar(heightValues[currentCone] + 50, 0.95, 127, true);
-		//	UpUntil(&FourBar, FourBar.max, 127);
+			if(currentCone < 9) UpUntilW4Bar(heightValues[currentCone], 0.95, 127, true);
+			else{
+				UpUntil(&mainLift, heightValues[currentCone], 127);
+				UpUntil(&FourBar, heightFourBar[currentCone], 100);
+			}
 			FourBar.goal = FourBar.max + 200;//keeps them there
 			delay(delayValues[currentCone]);
 			DownUntil(&mainLift, SensorValue[mainLift.sensor] - 150, 127);
-			intakeSpeed = -127;
+			intakeSpeed = OUTTAKE;
 			liftMove(&mainLift, 0);
 			delay(200);
-			UpUntilW4Bar(SensorValue[mainLift.sensor] + 100, 0.7, 127, false);
+			UpUntilW4Bar(SensorValue[mainLift.sensor] + 120, 0.75, 127, false);
 			delay(100);
 			DownUntil(&mainLift, mainLift.min + 500, 80);
 			autoStacking = false;
 			stopTask(goliathHold);
 			currentCone+=1;
 		}
-		if (D7 || D7_2) currentCone = 0;//reset
-		if ((R7 || R7_2) && time1[T2]>300 && currentCone > 0) {
+		if ((D7 || D7_2) && !autoStacking) currentCone = 0;//reset
+		if ((R7 || R7_2) && time1[T2]>100 && currentCone > 0) {
 			currentCone -= 1; //subtract one cone if autostack missed
 			playSound(soundDownwardTones);
 			clearTimer(T2);
 		}
-		if ((L7 || L7_2) && time1[T2]>300 && currentCone < 11) {
+		if ((L7 || L7_2) && time1[T2]>100 && currentCone < 15) {
 			currentCone += 1; //add one cone
 			playSound(soundUpwardTones);
 			clearTimer(T2);
@@ -74,8 +85,8 @@ task killswitch(){
 			stopTask(autoStack);
 			stopTask(goliathHold);
 			playSound(soundBeepBeep);//killed autostack
-			delay(100);
 			startTask(autoStack);
+			delay(300);
 		}
 		delay(50);
 	}
@@ -130,7 +141,7 @@ void threeConeAuton(const bool left){
 	DownUntil(&mainLift, mainLift.min + 50, 127);//brings lift down
 	FourBar.PID.kP = 0.15;//return to normal kP value
 	FourBar.goal = FourBar.min;
-	//DownUntil(&FourBar, FourBar.min, 127);//bring fourbar down
+	//DownUntil(&FourBar, FourBar.min, 127);//bring FourBar down
 	delay(200);
 	//CONE 2
 	mainLift.goal = mainLift.min + 400;
@@ -172,7 +183,7 @@ void threeConeAuton(const bool left){
 
 
 	mainLift.goal = mainLift.max;
-	FourBar.goal = FourBar.max;//bring up fourbar and lift
+	FourBar.goal = FourBar.max;//bring up FourBar and lift
 
 	//simple placing
 	/*
