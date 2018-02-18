@@ -3,8 +3,8 @@
 #pragma config(Sensor, in5,    Gyro,           sensorGyro)
 #pragma config(Sensor, in3,    MoGoPot,        sensorPotentiometer)
 #pragma config(Sensor, in6,    BATERY_2_PORT,  sensorAnalog)
-#pragma config(Sensor, dgtl1,  LeftEncoder,    sensorQuadEncoder)
-#pragma config(Sensor, dgtl3,  RightEncoder,   sensorQuadEncoder)
+#pragma config(Sensor, dgtl1,  RightEncoder,   sensorQuadEncoder)
+#pragma config(Sensor, dgtl3,  LeftEncoder,    sensorQuadEncoder)
 #pragma config(Sensor, dgtl5,  ultraSound,     sensorSONAR_cm)
 #pragma config(Sensor, dgtl11, OddLED,         sensorLEDtoVCC)
 #pragma config(Sensor, dgtl12, EvenLED,        sensorLEDtoVCC)
@@ -46,23 +46,23 @@ void initializeOpControl(const bool driver) {
 	clearLCDLine(0);
 	clearLCDLine(1);
 	if(driver) resetGyros();//wastes time on auton
-	resetEncoders();
+		resetEncoders();
 	velocity = 0.0;
 
-	//-LIFT---------&reference--TYPE------------sensor-1--------motor-1-----motor-2-----max------min----delay(opt)
-	initLiftType(	&mainLift,	NORMAL,			LiftPot,				LiftTop,	LiftBottom, 4020,	 2150	);
-	initLiftType(	&mogo,		DIFFERENTIAL,	LiftPot,				LiftTop,	LiftBottom, 4000,	600 );
-	initLiftType(	&FourBar,	BINARY,	 		FourBarPot,			Bar,		NONE,		3830,	 2000,	10);
-	initLiftType(	&goliat,		NOPID,	 		NONE,					goliath,	NONE,		10000,	 -10000	);//(TUNE)
+	//-LIFT---------&reference--TYPE----------sensor-1-----motor-1-----motor-2-------max------min----delay(opt)
+	initLiftType(   &mainLift,  NORMAL,       LiftPot,     LiftTop,    LiftBottom,   4020,    2150           );
+	initLiftType(   &mogo,      DIFFERENTIAL, LiftPot,     LiftTop,    LiftBottom,   4000,    600            );
+	initLiftType(   &FourBar,   BINARY,       FourBarPot,  Bar,        NONE,         3830,    2000,  10      );
+	initLiftType(   &goliat,    NOPID,        NONE,        goliath,    NONE,         10000,   -10000         );
 
-	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)
-	initPID(	&mainLift.PID,	mainLift.sensor,			10,	  0.25,	 0.0,	   0.0, 	rev,	true);
-	initPID(	&FourBar.PID, 	FourBar.sensor,	    	30, 	  0.95, 	 0.0,   	0.0,   rev, 	false);
-	initPID (&gyroBase, 		Gyro, 						12,  	  0.525,  0.0, 	0.5, 	!rev, 	false);
+	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)----
+	initPID(    &mainLift.PID,  mainLift.sensor,    10,     0.25,   0.0,    0.0,    rev,        true          );
+	initPID(    &FourBar.PID,   FourBar.sensor,     30,     0.95,   0.0,    0.0,    rev,        false         );
+	initPID(    &gyroBase,      Gyro,               3,      0.525,  0.0,    0.5,    !rev,       false         );
 
-	//-SIDE---------&reference----sensor------------motor-1------motor-2--------motor-3
-	initSideBase( 	&Left, 		  LeftEncoder, 		Base_L_F, 	 Base_L_M,		Base_L_B);
-	initSideBase( 	&Right, 	 	  RightEncoder,		Base_R_F, 	 Base_R_M,		Base_R_B);
+	//-SIDE---------&reference----sensor------------motor-1------motor-2--------motor-3------
+	initSideBase(   &Left,        LeftEncoder,      Base_L_F,    Base_L_M,      Base_L_B   );
+	initSideBase(   &Right,       RightEncoder,     Base_R_F,    Base_R_M,      Base_R_B   );
 	pastRot = mRot;
 }
 
@@ -108,7 +108,6 @@ task autonomous() {
 	return;
 }
 task mogoOut(){
-
 	UpUntil(&mainLift, SensorValue[mainLift.sensor] + 150);
 	clearTimer(T4);
 	while(SensorValue[mogo.sensor] > mogo.min && time1[T4] < 600){
@@ -158,9 +157,9 @@ task usercontrol() {//initializes everything
 	}
 	for (;;) {
 		//debug controls
-		if (L7) rotFor(-90);//threeConeAuton(LEFT);//rotFor(-10);
-		if (R7) rotFor(90);
-		if(D7) auton(RIGHT);
+		//	if (L7) rotFor(-90);//threeConeAuton(LEFT);//rotFor(-10);
+		//	if (R7) rotFor(90);
+		//	if(D7) auton(RIGHT);
 		driveCtrlr();
 		delay(15);//~60hz
 	}
