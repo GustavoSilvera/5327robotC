@@ -353,6 +353,9 @@ task progSkills(){
 	startTask(MechControlTask);
 	return;
 }
+task progSkills2() {
+
+}
 task usercontrol() {//initializes everything
 	initializeOpControl(true);//driver init
 	startTask(MechControlTask);//individual pid for lift type
@@ -370,8 +373,8 @@ task usercontrol() {//initializes everything
 	else playSound(soundUpwardTones);
 	for (;;) {
 		//debug controls
-		if(R7) driveFor(15); //startTask(intakeToLock);//(TUNED)
-		if(D7) driveFor(-15);
+		if(R7) rotAcc(90,5);//driveFor(30); //startTask(intakeToLock);//(TUNED)
+		if(D7) rotAcc(-90,5);//driveFor(-30);
 		if(U7) startTask(progSkills);
 		//accelerometer driving:
 		/*
