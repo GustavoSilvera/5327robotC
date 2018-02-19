@@ -48,9 +48,8 @@ void driveFor(int goal) {//drives for certain inches
 		//encoder geared down 4:1, circum = 4*pi
 		//goal / 4pi = number of revolutions
 		//360 ticks per revolution
-		//therefore conversion to ticks is goal / 4pi * 360
-		//fwds(LimitDownTo(15, dP * (goal * 114.5917 - encoder - 0.5*mainVelocity)), mRot);//initDir); //0.3 mainvelocity
-		goalPower = GETSIGN(goal) * LIMITDOWN(15, dP * abs(goalTicks - encoderAvg - 0.3*mainVelocity));
+		//therefore conversion to ticks is goal / 4pi * 360 * 4 => scalar of 114.5916
+		goalPower = GETSIGN(goal) * LIMITDOWN(15, dP * abs(goalTicks - encoderAvg);
 		fwds(goalPower, mRot);
 	}
 	/*
