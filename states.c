@@ -46,18 +46,18 @@ void initializeOpControl(const bool driver) {
 	clearLCDLine(0);
 	clearLCDLine(1);
 	if(driver) resetGyros();//wastes time on auton
-		resetEncoders();
+	resetEncoders();
 	velocity = 0.0;
 
 	//-LIFT---------&reference--TYPE----------sensor-1-----motor-1-----motor-2-------max------min----delay(opt)
 	initLiftType(   &mainLift,  NORMAL,       LiftPot,     LiftTop,    LiftBottom,   4020,    2150           );
 	initLiftType(   &mogo,      DIFFERENTIAL, LiftPot,     LiftTop,    LiftBottom,   4000,    600            );
-	initLiftType(   &FourBar,   BINARY,       FourBarPot,  Bar,        NONE,         3830,    2000,  10      );
+	initLiftType(   &FourBar,   BINARY,       FourBarPot,  Bar,        NONE,         3700,    2000,  10      );
 	initLiftType(   &goliat,    NOPID,        NONE,        goliath,    NONE,         10000,   -10000         );
 
 	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)----
 	initPID(    &mainLift.PID,  mainLift.sensor,    10,     0.25,   0.0,    0.0,    rev,        true          );
-	initPID(    &FourBar.PID,   FourBar.sensor,     30,     0.95,   0.0,    0.0,    rev,        false         );
+	initPID(    &FourBar.PID,   FourBar.sensor,     30,     0.9,   0.0,    0.0,    rev,        false         );
 	initPID(    &gyroBase,      Gyro,               3,      0.525,  0.0,    0.5,    !rev,       false         );
 
 	//-SIDE---------&reference----sensor------------motor-1------motor-2--------motor-3------
@@ -108,7 +108,12 @@ task autonomous() {
 	return;
 }
 task mogoOut(){
-	UpUntil(&mainLift, SensorValue[mainLift.sensor] + 150);
+	autonRunning = true;
+	startTask(goliathHold);
+	intakeSpeed = INTAKE;
+	FourBar.goal = FourBar.min;
+	UpUntil(&mainLift, SensorValue[mainLift.sensor] + 350);
+	FourBar.goal = FourBar.max;
 	clearTimer(T4);
 	while(SensorValue[mogo.sensor] > mogo.min && time1[T4] < 600){
 		liftDiff(&mogo, 127);
@@ -118,23 +123,51 @@ task mogoOut(){
 void auton(bool right){
 	int dir  = 1;
 	if(!right) dir = -1;
+	autonRunning = true;
 	startTask(goliathHold);
 	startTask(mogoOut);
-	FourBar.goal = FourBar.max;
 	FourBar.PID.isRunning = true;
 	intakeSpeed = INTAKE/2;
-	driveFor(55);
+	driveFor(48);
+	//FourBar.goal = FourBar.max;
 	fwds(0);
 	clearTimer(T4);
 	while(time1[T4] < 600){
+		FourBar.goal = FourBar.max;
 		liftDiff(&mogo, -127);
 	}
 	intakeSpeed = OUTTAKE;
-	delay(400);
-
+	delay(300);
+	intakeSpeed = 0;
+	FourBar.goal = FourBar.min;
+	DownUntil(&mainLift, mainLift.min, 127);
+	mainLift.goal = mainLift.min - 200;
+	mainLift.PID.isRunning = true;
+	intakeSpeed = INTAKE;
+	driveFor(3);
+	delay(500);
+	stack(2);
+	FourBar.goal = FourBar.min;
+	driveFor(4);
+	driveFor(-1);
+	DownUntil(&mainLift, mainLift.min, 80);
+	mainLift.goal = mainLift.min-400;
+	mainLift.PID.isRunning = true;
+	intakeSpeed = INTAKE;
+	delay(700);
+	stack(3);
+	FourBar.goal = FourBar.min;
+	driveFor(4);
+	driveFor(-1);
+	DownUntil(&mainLift, mainLift.min, 80);
+	mainLift.goal = mainLift.min-400;
+	mainLift.PID.isRunning = true;
+	intakeSpeed = INTAKE;
+	delay(700);
+	stack(4);
 	stopTask(goliathHold);
 	stopTask(mogoOut);
-
+	autonRunning = false;
 
 }
 task usercontrol() {//initializes everything
@@ -159,7 +192,7 @@ task usercontrol() {//initializes everything
 		//debug controls
 		//	if (L7) rotFor(-90);//threeConeAuton(LEFT);//rotFor(-10);
 		//	if (R7) rotFor(90);
-		//	if(D7) auton(RIGHT);
+			if(D7) auton(RIGHT);
 		driveCtrlr();
 		delay(15);//~60hz
 	}

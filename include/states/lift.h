@@ -129,9 +129,13 @@ void manualLiftControl(const struct liftMech* lift, int bUp, int bDown, int bUp2
 	else if (lift->type == BINARY) {
 		if(getSign(power) > 0) {
 			UpUntil(lift, lift->max);
-			lift->goal = lift->max + 200;
+			lift->PID.kP = 0.5;
+			lift->PID.thresh = 50;
+			lift->goal = lift->max + 50;
 		}
 		else if(getSign(power) < 0){
+			lift->PID.kP = 0.9;
+			lift->PID.thresh = 30;
 			DownUntil(lift, lift->min);
 			lift->goal = lift->min - 200;
 		}
@@ -162,10 +166,14 @@ void LiftLift(const struct liftMech* lift, int bUp, int bDown, int bUp2, int bDo
 task fourBarPID(){
 	for(;;){
 		if(U5 || U5_2) {
+			FourBar.PID.kP = 0.5;
+			FourBar.PID.thresh = 50;
 			FourBar.goal = FourBar.max;
 			FourBar.PID.isRunning = true;
 		}
 		else if(D5 || D5_2) {
+			FourBar.PID.kP = 0.9;
+			FourBar.PID.thresh = 30;
 			FourBar.goal = FourBar.min;
 			FourBar.PID.isRunning = true;
 		}
@@ -179,8 +187,7 @@ task LiftControlTask() {
 		if(!autonRunning){
 			if(U8 || D8 || U8_2 || D8_2)	LiftLift(&mogo, 	U8, D8, U8_2, D8_2, false,  180);
 			else LiftLift(&mainLift, U6, D6, U6_2, D6_2, false, 400);
-			//LiftLift(&FourBar,	U5, D5, U5_2, D5_2, false, 50000);
-			if(!autoStacking) LiftLift(&goliat,	L8, R8, L8_2, R8_2, false);
+			if(!autoStacking || !autonRunning) LiftLift(&goliat,	L8, R8, L8_2, R8_2, false);
 			if(D7) {soundCompare();}
 		}
 		else {
