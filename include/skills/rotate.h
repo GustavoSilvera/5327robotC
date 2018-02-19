@@ -120,3 +120,8 @@ void rotAccFast(int target){
 	while(SensorValue[Gyro]*GyroK > target) rot(-60);
 	settle();
 }
+void rotEnc(int target){
+	SensorValue[RightBaseEnc] = 0;
+	SensorValue[LeftBaseEnc] = 0;
+
+}

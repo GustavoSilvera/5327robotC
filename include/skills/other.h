@@ -18,7 +18,7 @@ task sensorsUpdate() {
 	//int rot=0;
 	for (;;) {
 		mRot = ((float)(GyroK*SensorValue[Gyro]));
-		encoderAvg = AVG(SensorValue[baseRight.m.sensor], SensorValue[baseLeft.m.sensor]);//REVIEW
+		encoderAvg = AVG(SensorValue[RightBaseEnc], SensorValue[LeftBaseEnc]);
 
 		delay(5);//really quick delay
 
