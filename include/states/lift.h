@@ -14,12 +14,12 @@
 * '----------------'  '----------------'  '----------------'  '----------------' *
 \*******************************************************************************/
 void liftMove(const struct liftMech* lift, const float speed) {
-	float power = limitUpTo(127, speed);
+	float power = LIMITUP(127, speed);
 	motor[lift->motors[0]] = power;//full speed
 	motor[lift->motors[1]] = power;//full speed
 }
 void liftDiff(const struct liftMech* lift, const float speed) {
-	float power = limitUpTo(127, speed);
+	float power = LIMITUP(127, speed);
 	motor[lift->motors[0]] = power;//full speed
 	motor[lift->motors[1]] = -power;//reversed for differential
 }
@@ -127,13 +127,13 @@ void manualLiftControl(const struct liftMech* lift, int bUp, int bDown, int bUp2
 		else return;
 	}
 	else if (lift->type == BINARY) {
-		if(getSign(power) > 0) {
+		if(GETSIGN(power) > 0) {
 			UpUntil(lift, lift->max);
 			lift->PID.kP = 0.5;
 			lift->PID.thresh = 50;
 			lift->goal = lift->max + 50;
 		}
-		else if(getSign(power) < 0){
+		else if(GETSIGN(power) < 0){
 			lift->PID.kP = 0.9;
 			lift->PID.thresh = 30;
 			DownUntil(lift, lift->min);

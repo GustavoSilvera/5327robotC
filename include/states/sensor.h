@@ -54,7 +54,7 @@ task sensorsUpdate() {
 	//int rot=0;
 	for (;;) {
 		mRot = (float)(GyroK*SensorValue[Gyro]);
-		encoderAvg = avg2(SensorValue[Right.sensor], SensorValue[Left.sensor]);
+		encoderAvg = AVG(SensorValue[Right.sensor], SensorValue[Left.sensor]);
 		//encoderAvg = SensorValue[LeftEncoder];
 		delay(5);//really quick delay
 		//SensorValue[RightEncoder] = 0;
@@ -109,7 +109,7 @@ float calcVel(const struct liftMech* lift, const float dist, const float delayAm
 	return (velocity);//1000 ms in 1s;
 }
 float calcVel(const struct sideBase* side, const float dist, const float delayAmount) {
-	float velocity = limitDownTo(1, ((SensorValue(side->sensor) - side->past) / dist) / ((float)(delayAmount / 1000)));//1000 ms in 1s;
+	float velocity = LIMITDOWN(1, ((SensorValue(side->sensor) - side->past) / dist) / ((float)(delayAmount / 1000)));//1000 ms in 1s;
 	side->past = SensorValue[side->sensor];
 	return(velocity);//1000 ms in 1s;
 }
@@ -126,7 +126,7 @@ task MeasureSpeed() {
 		//base velocity
 		Right.velocity = calcVel(&Right, circum, delayAmount);
 		Left.velocity = calcVel(&Left, circum, delayAmount);
-		velocity = avg2(Right.velocity, Left.velocity);//overall velocity (avdg between the two)
+		velocity = AVG(Right.velocity, Left.velocity);//overall velocity (avdg between the two)
 		rotVelocity = calcRotVel();//calculates rotational velocity
 		//lift velocities
 		mainLift.velocity = calcVel(&mainLift, dist, delayAmount);

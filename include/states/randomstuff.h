@@ -46,9 +46,17 @@ const float circum = 4 * PI;//4 inch wheels
 #define LEFT true
 #define RIGHT false
 
+#define SQR(x) (x*x)
+#define CUB(x) (x*x*x)
+#define QUAR(x) (x*x*x*x)
+#define CINQ(x) (x*x*x*x*x)
 #define AVG(x,y) ((x+y)/2)
 #define AVGINT(x,y) ((x+y)>1)
 #define GETSIGN(x) (x < 0 ? -1 : 1)
+//#define LIMITUP(max, val) (val < max ? val : max)
+#define LIMITUP(max, val) ((abs(val)) < abs(max) ? val : (max * GETSIGN(val)))
+//#define LIMITDOWN(min, val) (val > min ? val : min)
+#define LIMITDOWN(min, val) ((abs(val)) > abs(min) ? val : (min * GETSIGN(val)))
 
 //other
 static volatile float velocity = 0;
@@ -65,6 +73,7 @@ string mainBattery, powerExpander;
 volatile float mRot;//current rotation
 volatile float encoderAvg;//used only for straight fwds and bkwds direction
 //MISC FUNCTIONS
+//use macros!!! :)
 int getSign(const int check) {
 	if (check < 0) return -1;
 	else if (check > 0) return 1;

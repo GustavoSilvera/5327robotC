@@ -113,7 +113,7 @@ task mogoOut(){
 	startTask(goliathHold);
 	intakeSpeed = INTAKE;
 	FourBar.goal = FourBar.min;
-	UpUntil(&mainLift, SensorValue[mainLift.sensor] + 350);
+	UpUntil(&mainLift, SensorValue[mainLift.sensor] + 450);
 	FourBar.goal = FourBar.max;
 	clearTimer(T4);
 	while(SensorValue[mogo.sensor] > mogo.min && time1[T4] < 600){
@@ -142,7 +142,7 @@ void auton(bool right){
 	intakeSpeed = OUTTAKE; //release preload
 	delay(300);
 	intakeSpeed = 0;
-	driveFor(4);
+	//driveFor(4);
 	FourBar.goal = FourBar.min;
 	DownUntil(&mainLift, mainLift.min, 127); //go for next cone
 	mainLift.goal = mainLift.min - 200;
@@ -169,23 +169,25 @@ void auton(bool right){
 	intakeSpeed = INTAKE;
 	delay(700);
 	stack(4);
+	intakeSpeed = 0;
 	stopTask(goliathHold);//finished stacking
 
 	//score in 10pt
 	driveFor(-68);//drive back
-	mainLift.goal = mainLift.max; //lift lift
+	mainLift.goal = 3100; //lift lift
 	mainLift.PID.isRunning = true;
-	//rotFor(dir * -180,2);
-	if(right) RSwingFor(-135); //rotate perp to 10pt pole
-	else LSwingFor(135);
+	RSwingFor(-45);//swing out
+	rotFor(dir * -90, 2); //rotate perp to 10pt pole
+	//if(right) RSwingFor(-135); //rotate perp to 10pt pole
+	//else LSwingFor(135);
 	delay(200);
-	driveFor(6); //drive to 10pt
+	driveFor(3); //drive to 10pt
 	while(SensorValue[mogo.sensor] > mogo.min){ //mogo out
 		liftDiff(&mogo, 127);
 	}
+	fwds(127);
+	delay(200);
 	driveFor(-10);// release & get out of the way
-
-
 	autonRunning = false;
 
 }
@@ -210,8 +212,8 @@ task usercontrol() {//initializes everything
 	for (;;) {
 
 		//debug controls
-			if (L7) RSwingFor(-45);//threeConeAuton(LEFT);//rotFor(-10);
-			if (R7) RSwingFor(45);
+			if (L7) RSwingFor(-135);//threeConeAuton(LEFT);//rotFor(-10);
+			if (R7) rotFor(-135);
 			if(D7) auton(RIGHT);
 		driveCtrlr();
 		delay(15);//~60hz
