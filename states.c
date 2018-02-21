@@ -51,8 +51,8 @@ void initializeOpControl(const bool driver) {
 	velocity = 0.0;
 
 	//-LIFT---------&reference--TYPE----------sensor-1-----motor-1-----motor-2-------max------min----delay(opt)
-	initLiftType(   &mainLift,  NORMAL,       LiftPot,     LiftTop,    LiftBottom,   4020,    2150           );
-	initLiftType(   &mogo,      DIFFERENTIAL, LiftPot,     LiftTop,    LiftBottom,   4000,    600            );
+	initLiftType(   &mainLift,  NORMAL,       LiftPot,     LiftTop,    LiftBottom,   4060,    2150           );
+	initLiftType(   &mogo,      DIFFERENTIAL, LiftPot,     LiftTop,    LiftBottom,   2500,    725            );//is this max (4000) supposed to be that off?
 	initLiftType(   &FourBar,   BINARY,       FourBarPot,  Bar,        NONE,         3700,    2000,  10      );
 	initLiftType(   &goliat,    NOPID,        NONE,        goliath,    NONE,         10000,   -10000         );
 
@@ -139,6 +139,7 @@ void auton(bool right){
 		FourBar.goal = FourBar.max;
 		liftDiff(&mogo, -127);
 	}
+	liftMove(&mogo, 0);
 	intakeSpeed = OUTTAKE; //release preload
 	delay(300);
 	intakeSpeed = 0;
@@ -148,20 +149,20 @@ void auton(bool right){
 	mainLift.goal = mainLift.min - 200;
 	mainLift.PID.isRunning = true;
 	intakeSpeed = INTAKE; //intake first cone
-	driveFor(4);
+	driveFor(3);
 	delay(500);
 	stack(2); //stack first cone
 	FourBar.goal = FourBar.min;
-	driveFor(5);
+	driveFor(3);
 	//driveFor(-1);
 	DownUntil(&mainLift, mainLift.min, 80);
 	mainLift.goal = mainLift.min-400;
 	mainLift.PID.isRunning = true;
 	intakeSpeed = INTAKE;
 	delay(700);
-	stack(3);
+	stack(3);//stack second cone
 	FourBar.goal = FourBar.min;
-	driveFor(5);
+	driveFor(3);
 	//driveFor(-1);
 	DownUntil(&mainLift, mainLift.min, 80);
 	mainLift.goal = mainLift.min-400;
@@ -170,24 +171,29 @@ void auton(bool right){
 	delay(700);
 	stack(4);
 	intakeSpeed = 0;
-	stopTask(goliathHold);//finished stacking
 
 	//score in 10pt
 	driveFor(-68);//drive back
-	mainLift.goal = 3100; //lift lift
+	mainLift.goal = mainLift.max; //lift lift
 	mainLift.PID.isRunning = true;
-	RSwingFor(-45);//swing out
-	rotFor(dir * -90, 2); //rotate perp to 10pt pole
+	if (right) RSwingFor(-45);//swing out
+	else LSwingFor(45);
+	rotFor(dir * -90, 2.5); //rotate perp to 10pt pole
 	//if(right) RSwingFor(-135); //rotate perp to 10pt pole
 	//else LSwingFor(135);
 	delay(200);
 	driveFor(3); //drive to 10pt
-	while(SensorValue[mogo.sensor] > mogo.min){ //mogo out
+	mainLift.PID.isRunning = false;
+	clearTimer(T4);
+	while(SensorValue[mogo.sensor] > mogo.min && time1[T4] < 600){ //mogo out
 		liftDiff(&mogo, 127);
 	}
-	fwds(127);
-	delay(200);
+	mainLift.PID.isRunning = true;
+	//fwds(127);
+	//delay(200);
 	driveFor(-10);// release & get out of the way
+
+	stopTask(goliathHold);//finished stacking
 	autonRunning = false;
 
 }

@@ -43,8 +43,8 @@ const float circum = 4 * PI;//4 inch wheels
 #define L8_2    	vexRT[Btn8LXmtr2]//8L2
 #define R8_2	    vexRT[Btn8RXmtr2]//8R2
 
-#define LEFT true
-#define RIGHT false
+#define LEFT false
+#define RIGHT true
 
 #define SQR(x) (x*x)
 #define CUB(x) (x*x*x)
