@@ -191,7 +191,7 @@ void auton(bool right){
 	mainLift.PID.isRunning = true;
 	//fwds(127);
 	//delay(200);
-	driveFor(-10);// release & get out of the way
+	driveFor(-20);// release & get out of the way
 
 	stopTask(goliathHold);//finished stacking
 	autonRunning = false;
