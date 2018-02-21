@@ -40,6 +40,7 @@ struct PIDs;
 struct liftMech;
 struct sideBase;
 
+
 void initializeOpControl(const bool driver) {
 	SensorValue[EvenLED] = 0;
 	SensorValue[OddLED] = 0;
@@ -124,32 +125,35 @@ void auton(bool right){
 	int dir  = 1;
 	if(!right) dir = -1;
 	autonRunning = true;
+	mainLift.PID.kP = 0.15;
 	startTask(goliathHold);
 	startTask(mogoOut);
 	FourBar.PID.isRunning = true;
 	intakeSpeed = INTAKE/2;
-	driveFor(48);
+	driveFor(50);//48
 	//FourBar.goal = FourBar.max;
+	stopTask(mogoOut);
 	fwds(0);
 	clearTimer(T4);
 	while(time1[T4] < 600){
 		FourBar.goal = FourBar.max;
 		liftDiff(&mogo, -127);
 	}
-	intakeSpeed = OUTTAKE;
+	intakeSpeed = OUTTAKE; //release preload
 	delay(300);
 	intakeSpeed = 0;
+	driveFor(4);
 	FourBar.goal = FourBar.min;
-	DownUntil(&mainLift, mainLift.min, 127);
+	DownUntil(&mainLift, mainLift.min, 127); //go for next cone
 	mainLift.goal = mainLift.min - 200;
 	mainLift.PID.isRunning = true;
-	intakeSpeed = INTAKE;
-	driveFor(3);
-	delay(500);
-	stack(2);
-	FourBar.goal = FourBar.min;
+	intakeSpeed = INTAKE; //intake first cone
 	driveFor(4);
-	driveFor(-1);
+	delay(500);
+	stack(2); //stack first cone
+	FourBar.goal = FourBar.min;
+	driveFor(5);
+	//driveFor(-1);
 	DownUntil(&mainLift, mainLift.min, 80);
 	mainLift.goal = mainLift.min-400;
 	mainLift.PID.isRunning = true;
@@ -157,16 +161,31 @@ void auton(bool right){
 	delay(700);
 	stack(3);
 	FourBar.goal = FourBar.min;
-	driveFor(4);
-	driveFor(-1);
+	driveFor(5);
+	//driveFor(-1);
 	DownUntil(&mainLift, mainLift.min, 80);
 	mainLift.goal = mainLift.min-400;
 	mainLift.PID.isRunning = true;
 	intakeSpeed = INTAKE;
 	delay(700);
 	stack(4);
-	stopTask(goliathHold);
-	stopTask(mogoOut);
+	stopTask(goliathHold);//finished stacking
+
+	//score in 10pt
+	driveFor(-68);//drive back
+	mainLift.goal = mainLift.max; //lift lift
+	mainLift.PID.isRunning = true;
+	//rotFor(dir * -180,2);
+	if(right) RSwingFor(-135); //rotate perp to 10pt pole
+	else LSwingFor(135);
+	delay(200);
+	driveFor(6); //drive to 10pt
+	while(SensorValue[mogo.sensor] > mogo.min){ //mogo out
+		liftDiff(&mogo, 127);
+	}
+	driveFor(-10);// release & get out of the way
+
+
 	autonRunning = false;
 
 }
@@ -175,7 +194,7 @@ task usercontrol() {//initializes everything
 	startTask(LiftControlTask);//individual pid for lift type
 	startTask(MeasureSpeed);//velocity measurer for base
 	startTask(sensorsUpdate);
-	startTask(autoStack);
+	//startTask(autoStack);
 	startTask(antiStall);
 	startTask(killswitch);
 	startTask(displayLCD);
@@ -189,9 +208,10 @@ task usercontrol() {//initializes everything
 		playSound(soundLowBuzz);//sonar error (CRITICAL)
 	}
 	for (;;) {
+
 		//debug controls
-		//	if (L7) rotFor(-90);//threeConeAuton(LEFT);//rotFor(-10);
-		//	if (R7) rotFor(90);
+			if (L7) RSwingFor(-45);//threeConeAuton(LEFT);//rotFor(-10);
+			if (R7) RSwingFor(45);
 			if(D7) auton(RIGHT);
 		driveCtrlr();
 		delay(15);//~60hz

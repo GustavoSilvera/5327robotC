@@ -30,7 +30,7 @@ task MeasureSpeed() {
 		baseRight.m.velocity = calcVel(&baseRight.m, circum, delayAmount);
 		baseLeft.m.velocity = calcVel(&baseLeft.m, circum, delayAmount);
 		//overall bot velocities
-		mainVelocity = avg(baseRight.m.velocity, baseLeft.m.velocity);
+		mainVelocity = AVG(baseRight.m.velocity, baseLeft.m.velocity);
 		rotVelocity = calcRotVel();
 		//lift velocity
 		lock.m.velocity = calcVel(&lock.m, dist, delayAmount);

@@ -83,14 +83,39 @@ void driveFor(float goal) {//drives for certain inches
 	fwds(0);
 	return;
 }
-void rotFor(float target){
+void rotFor(float target, float dP = 1.2){
 	gyroBase.isRunning = true;
 	SensorValue[Gyro] = 0;//resets gyros
 	SensorScale[Gyro] = 260;
 	while(abs(SensorValue[Gyro]*GyroK - target) > 0.5){
-		rot(limitDownTo(20, 1.2*(target - SensorValue[Gyro]*GyroK) ) );
+		rot(limitDownTo(20, dP*(target - SensorValue[Gyro]*GyroK) ) );
 	}
 	rot(-getSign(target)*127);
+	delay(30);
+	rot(0);
+	return;
+}
+void RSwingFor(int target){
+	gyroBase.isRunning = true;
+	SensorValue[Gyro] = 0;//resets gyros
+	SensorScale[Gyro] = 260;
+	while(abs(SensorValue[Gyro]*GyroK - target) > 0.5){
+		baseMove(&Right,limitDownTo(20, 3*(target - SensorValue[Gyro]*GyroK) ) );
+	}
+	baseMove(&Right,-getSign(target)*127);
+	delay(30);
+	rot(0);
+	return;
+}
+void LSwingFor(int target){
+	gyroBase.isRunning = true;
+	SensorValue[Gyro] = 0;//resets gyros
+	SensorScale[Gyro] = 260;
+	while(abs(SensorValue[Gyro]*GyroK - target) > 0.5){
+		if (target>0) baseMove(&Right, 25); //keep right side still moving back
+		baseMove(&Left,limitDownTo(20, 3*(SensorValue[Gyro]*GyroK- target) ) );
+	}
+	baseMove(&Left,-getSign(target)*127);
 	delay(30);
 	rot(0);
 	return;

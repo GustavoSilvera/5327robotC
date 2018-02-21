@@ -35,7 +35,7 @@ task goliathHold(){
 	}
 }
 void stack(int cone){
-	startTask(goliathHold);
+	//startTask(goliathHold); //don't start the task again?
 	autoStacking = true;
 	intakeSpeed = INTAKE;
 	//if(currentCone <= 3) UpUntil(&mainLift, heightValues[currentCone]);
@@ -55,7 +55,7 @@ void stack(int cone){
 	delay(100);
 	DownUntil(&mainLift, mainLift.min + 500, 80);
 	autoStacking = false;
-	stopTask(goliathHold);
+	//stopTask(goliathHold); //probably stops the first task
 	currentCone+=1;
 }
 task autoStack() {

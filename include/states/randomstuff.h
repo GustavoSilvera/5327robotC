@@ -46,6 +46,10 @@ const float circum = 4 * PI;//4 inch wheels
 #define LEFT true
 #define RIGHT false
 
+#define AVG(x,y) ((x+y)/2)
+#define AVGINT(x,y) ((x+y)>1)
+#define GETSIGN(x) (x < 0 ? -1 : 1)
+
 //other
 static volatile float velocity = 0;
 float rotVelocity = 0;
