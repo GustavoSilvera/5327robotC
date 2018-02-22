@@ -44,7 +44,7 @@ float pidCompute(const struct PIDs* PIDtype, const int goal) {
 	int dir = 1;
 	if (PIDtype->reversed) dir = -1;
 	return dir * PIDtype->kP * error + PIDtype->kI * PIDtype->Integral + PIDtype->kD * PIDtype->Derivative;
-	//return(dir * getSign(error) * abs((PIDtype->kP * error) + (PIDtype->kI * PIDtype->Integral) + (PIDtype->kD * PIDtype->Derivative)));
+	//return(dir * sgn(error) * abs((PIDtype->kP * error) + (PIDtype->kI * PIDtype->Integral) + (PIDtype->kD * PIDtype->Derivative)));
 }
 void enablePID(struct liftMech* lift){
 	lift->goal = SensorValue[lift->sensor];//keeps lift in last position
@@ -129,13 +129,13 @@ void manualLiftControl(const struct liftMech* lift, int bUp, int bDown, int bUp2
 		else return;
 	}
 	else if (lift->type == BINARY) {
-		if(GETSIGN(power) > 0) {
+		if(sgn(power) > 0) {
 			UpUntil(lift, lift->max);
 			lift->PID.kP = 0.5;
 			lift->PID.thresh = 50;
 			lift->goal = lift->max + 50;
 		}
-		else if(GETSIGN(power) < 0){
+		else if(sgn(power) < 0){
 			lift->PID.kP = 0.9;
 			lift->PID.thresh = 30;
 			DownUntil(lift, lift->min);

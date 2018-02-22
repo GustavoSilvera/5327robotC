@@ -48,7 +48,7 @@ void initializeOpControl(const bool driver) {
 	clearLCDLine(0);
 	clearLCDLine(1);
 	if(driver) resetGyros();//wastes time on auton
-	resetEncoders();
+		resetEncoders();
 	velocity = 0.0;
 
 	//-LIFT---------&reference--TYPE----------sensor-1-----motor-1-----motor-2-------max------min----delay(opt)
@@ -78,36 +78,6 @@ void pre_auton() {//dont care
 		autonSelect(nLCDButtons);
 		delay(50);
 	}
-}
-
-task autonomous() {
-	autonRunning = true;
-	initializeOpControl(false);//auton init
-	startTask(LiftControlTask);//individual pid for lift type
-	startTask(MeasureSpeed);//velocity measurer for base
-	startTask(sensorsUpdate);
-	startTask(antiStall);
-	switch( currentAutonomous ) {
-	case    0:
-		//fourConeAuton(RIGHT, TWENTY);
-		break;
-	case    1:
-		//fourConeAuton(LEFT, TWENTY);
-		break;
-	case    2:
-		EZAuton(RIGHT);
-		break;
-	case    3:
-		EZAuton(LEFT);
-		break;
-	case    4:
-		kamakaze();
-		break;
-
-	case    5://no auton
-		break;
-	}
-	return;
 }
 task mogoOut(){
 	autonRunning = true;
@@ -227,9 +197,35 @@ void matchLoadAuton (bool right, bool twenty){
 	intakeSpeed = 0;
 	rotFor(45);
 
-	}
-void stagoAuton (bool right){
+}
+task autonomous() {
+	autonRunning = true;
+	initializeOpControl(false);//auton init
+	startTask(LiftControlTask);//individual pid for lift type
+	startTask(MeasureSpeed);//velocity measurer for base
+	startTask(sensorsUpdate);
+	startTask(antiStall);
+	switch( currentAutonomous ) {
+	case    0:
+		fourConeAuton(RIGHT, TWENTY);
+		break;
+	case    1:
+		fourConeAuton(LEFT, TWENTY);
+		break;
+	case    2:
+		fourConeAuton(RIGHT, TEN);
+		break;
+	case    3:
+		fourConeAuton(LEFT, TEN);
+		break;
+	case    4:
 
+		break;
+
+	case    5://no auton
+		break;
+	}
+	return;
 }
 task usercontrol() {//initializes everything
 	initializeOpControl(true);//driver init
@@ -246,16 +242,13 @@ task usercontrol() {//initializes everything
 	clearLCDLine(1); // Clear line 2 (1) of the LCD
 	if(nImmediateBatteryLevel < 8000) playSound(soundException);
 	else playSound(soundUpwardTones);
-	/*if(SensorValue[ultraSound] < 1){//0 or error
-		playSound(soundLowBuzz);//sonar error (CRITICAL)
-	}*/
 	for (;;) {
 		//debug controls
-			if (U7) fourConeAuton(RIGHT, TEN);//matchLoadAuton(RIGHT, TEN);//threeConeAuton(LEFT);//rotFor(-10);
+		if (U7) fourConeAuton(RIGHT, TEN);//matchLoadAuton(RIGHT, TEN);//threeConeAuton(LEFT);//rotFor(-10);
 			if (R7) driveFor2(-20);//fourConeAuton(RIGHT, TWENTY);
 			if (L7) driveFor2(20);//fourConeAuton(RIGHT, TWENTY);
 			//if (D7) //fourConeAuton(RIGHT, TEN);
-			driveCtrlr();
-			delay(15);//~60hz
+		driveCtrlr();
+		delay(15);//~60hz
 	}
 }//function for operator control

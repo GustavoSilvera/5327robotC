@@ -48,6 +48,7 @@ const float circum = 4 * PI;//4 inch wheels
 #define TEN false
 #define TWENTY true
 
+/* YOU SHALL NOT PASS!!!! BEGONE!
 #define SQR(x) (x*x)
 #define CUB(x) (x*x*x)
 #define QUAR(x) (x*x*x*x)
@@ -59,7 +60,7 @@ const float circum = 4 * PI;//4 inch wheels
 #define LIMITUP(max, val) ((abs(val)) < abs(max) ? val : (max * GETSIGN(val)))
 //#define LIMITDOWN(min, val) (val > min ? val : min)
 #define LIMITDOWN(min, val) ((abs(val)) > abs(min) ? val : (min * GETSIGN(val)))
-
+*/
 //other
 static volatile float velocity = 0;
 float rotVelocity = 0;
@@ -75,30 +76,13 @@ volatile float mRot;//current rotation
 volatile float encoderAvg;//used only for straight fwds and bkwds direction
 //MISC FUNCTIONS
 //use macros!!! :)...ew gross
-int getSign(const int check) {
-	if (check < 0) return -1;
-	else if (check > 0) return 1;
-	return 0;
-}
 float limitUpTo(const float max, float val) {
 	if (abs(val) < abs(max)) return val;
-	else return getSign(val) * max;
+	else return sgn(val) * max;
 }
 float limitDownTo(const float min, const float val) {
 	if (abs(val) > abs(min)) return val;
-	else return getSign(val) * min;
-}
-float sqr(const float val){
-	return val*val;
-}
-float cube(const float x){
-	return x*x*x;
-}
-float quar(const float x){
-	return x*x*x*x;
-}
-float cinq(const float x){
-	return x*x*x*x*x;
+	else return sgn(val) * min;
 }
 float avg2(const float a, const float b){
 	return 0.5*(a+b);//avg between two things

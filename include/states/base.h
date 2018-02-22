@@ -15,12 +15,8 @@
 * '----------------'  '----------------'  '----------------'  '----------------' *
 \*******************************************************************************/
 float TruSpeed(const float value, const int power) {//for all other polynomials; visit: goo.gl/mhvbx4
-	int final;//only for powers of 2-5
-	if (power == 2) final = getSign(value) * ( sqr(value) / 127 );				//squaring
-	else if (power == 3) final = ( cube(value) / sqr(127) );					//cubing
-	else if (power == 4) final = getSign(value) * ( quar(value) / cube(127) );	//4th degree
-	else if (power == 5) final = ( cinq(value) / quar(127) );					//cubing
-	else final = value;//nothing fanci
+	float final = pow(value, power) / (pow(127, power - 1));
+	if(value % 2 == 0) return sgn(value)*final;
 	return final;
 }//function for calculating the truSpeed function based off a polynomial
 void baseMove(const struct sideBase* side, int speed) {
@@ -78,7 +74,7 @@ void driveFor(float goal) {//drives for certain distance (arbitrary units)
 	while (abs(goal * circum - encoderAvg*encoderRatio) > thresh) {
 		fwds(limitDownTo(15, dP * ((goal*circum - encoderAvg*encoderRatio - 0.1*vel))), initDir);
 	}
-	//fwds(-GETSIGN(goal)* 80);
+	//fwds(-sgn(goal)* 80);
 	//delay(50);
 	fwds(0);
 	return;
@@ -98,7 +94,7 @@ void driveFor2(int goal) {//drives for certain distance in inches
 		//360 ticks per revolution
 		//therefore conversion to ticks is goal / 4pi * 360 => scalar of 28.6479
 		fwds(limitDownTo(15, dP * (goalTicks - encoderAvg)));
-		//fwds(LIMITDOWN(15, dP * ((goal*circum - encoderAvg*encoderRatio - 0.1*vel))), initDir);
+		//fwds(limitDownTo(15, dP * ((goal*circum - encoderAvg*encoderRatio - 0.1*vel))), initDir);
 	}
 	//fwds(-50, initDir);
 	//delay(20);
@@ -111,9 +107,9 @@ void rotFor(float target, float dP = 1.2){
 	SensorValue[Gyro] = 0;//resets gyros
 	SensorScale[Gyro] = 260;
 	while(abs(SensorValue[Gyro]*GyroK - target) > 0.5){
-		rot(LIMITDOWN(20, dP*(target - SensorValue[Gyro]*GyroK) ) );
+		rot(limitDownTo(20, dP*(target - SensorValue[Gyro]*GyroK) ) );
 	}
-	rot(-GETSIGN(target)*60);
+	rot(-sgn(target)*60);
 	delay(30);
 	rot(0);
 	return;
@@ -123,9 +119,9 @@ void RSwingFor(int target){
 	SensorValue[Gyro] = 0;//resets gyros
 	SensorScale[Gyro] = 260;
 	while(abs(SensorValue[Gyro]*GyroK - target) > 0.5){
-		baseMove(&Right, LIMITDOWN(20, 3*(target - SensorValue[Gyro]*GyroK) ) );
+		baseMove(&Right, limitDownTo(20, 3*(target - SensorValue[Gyro]*GyroK) ) );
 	}
-	baseMove(&Right,-GETSIGN(target)*60);
+	baseMove(&Right,-sgn(target)*60);
 	delay(30);
 	rot(0);
 	return;
@@ -136,9 +132,9 @@ void LSwingFor(int target){
 	SensorScale[Gyro] = 260;
 	while(abs(SensorValue[Gyro]*GyroK - target) > 0.5){
 		if (target>0) baseMove(&Right, 25); //keep right side still moving back
-		baseMove(&Left, LIMITDOWN(20, 3*(SensorValue[Gyro]*GyroK- target) ) );
+		baseMove(&Left, limitDownTo(20, 3*(SensorValue[Gyro]*GyroK- target) ) );
 	}
-	baseMove(&Left,-GETSIGN(target) *60);
+	baseMove(&Left,-sgn(target) *60);
 	delay(30);
 	rot(0);
 	return;
