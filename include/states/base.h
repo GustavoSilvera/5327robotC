@@ -14,13 +14,13 @@
 *| '--------------' || '--------------' || '--------------' || '--------------' |*
 * '----------------'  '----------------'  '----------------'  '----------------' *
 \*******************************************************************************/
-float TruSpeed(const float value, const float power) {//for all other polynomials; visit: goo.gl/mhvbx4
+float TruSpeed(const float value, const int power) {//for all other polynomials; visit: goo.gl/mhvbx4
 	int final;//only for powers of 2-5
-	if (power == 2) final = GETSIGN(value) * ( SQR(value) / 127 );				//squaring
-	else if (power == 3) final = ( CUB(value) / SQR(127) );					//cubing
-	else if (power == 4) final = GETSIGN(value) * ( QUAR(value) / CUB(127) );	//4th degree
-	else if (power == 5) final = ( CINQ(value) / QUAR(127) );					//cubing
-	else final = power;//nothing fanci
+	if (power == 2) final = getSign(value) * ( sqr(value) / 127 );				//squaring
+	else if (power == 3) final = ( cube(value) / sqr(127) );					//cubing
+	else if (power == 4) final = getSign(value) * ( quar(value) / cube(127) );	//4th degree
+	else if (power == 5) final = ( cinq(value) / quar(127) );					//cubing
+	else final = value;//nothing fanci
 	return final;
 }//function for calculating the truSpeed function based off a polynomial
 void baseMove(const struct sideBase* side, int speed) {
@@ -52,8 +52,8 @@ void driveCtrlr() {
 	const float partner = 1;//0.8;
 	const float primary = 1;
 	driveLR(//truspeed taking both controllers
-	TruSpeed(LIMITUP(127, primary*vexRT[Ch2] + partner*vexRT[Ch2Xmtr2]), 3),
-	TruSpeed(LIMITUP(127, primary*vexRT[Ch3] + partner*vexRT[Ch3Xmtr2]), 3)
+	TruSpeed(limitUpTo(127, primary*vexRT[Ch2] + partner*vexRT[Ch2Xmtr2]), 3),
+	TruSpeed(limitUpTo(127, primary*vexRT[Ch3] + partner*vexRT[Ch3Xmtr2]), 3)
 	);
 }
 void fwds(const int power, const float angle = mRot) {//drive base forwards
@@ -83,28 +83,29 @@ void driveFor(float goal) {//drives for certain distance (arbitrary units)
 	fwds(0);
 	return;
 }
-/*
 void driveFor2(int goal) {//drives for certain distance in inches
-	SensorValue[LeftBaseEnc] = 0;
-	SensorValue[RightBaseEnc] = 0;
+	//SensorValue[LeftBaseEnc] = 0;
+	//SensorValue[RightBaseEnc] = 0;
+	resetEncoders();
 	const int thresh = 360;
 	const int initDir = mRot;
 	//const float encoderScale = 1;//number of motor rotations = this() rotations
 	const float dP = 0.06;//25;//multiplier for velocity controller
-	float goalTicks = goal*114.5916 ;
+	float goalTicks = goal*28.6479 ;
 	while (abs(goalTicks - encoderAvg) > thresh) { //while error > threshold
-		//encoder geared down 4:1, circum = 4*pi
+		//encoder geared 1:1, circum = 4*pi
 		//goal / 4pi = number of revolutions
 		//360 ticks per revolution
-		//therefore conversion to ticks is goal / 4pi * 360 * 4 => scalar of 114.5916
-		fwds(LIMITDOWN(15, dP * abs(goalTicks - encoderAvg)));
+		//therefore conversion to ticks is goal / 4pi * 360 => scalar of 28.6479
+		fwds(limitDownTo(15, dP * abs(goalTicks - encoderAvg)));
+		//fwds(LIMITDOWN(15, dP * ((goal*circum - encoderAvg*encoderRatio - 0.1*vel))), initDir);
 	}
-	fwds(GETSIGN(goal)*-60, initDir);
-	delay(200);
+	fwds(GETSIGN(goal)*-127, initDir);
+	delay(50);
 	fwds(0, initDir);
 	//settle();
 	return;
-}*/
+}
 void rotFor(float target, float dP = 1.2){
 	gyroBase.isRunning = true;
 	SensorValue[Gyro] = 0;//resets gyros

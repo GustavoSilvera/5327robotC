@@ -45,6 +45,8 @@ const float circum = 4 * PI;//4 inch wheels
 
 #define LEFT false
 #define RIGHT true
+#define TEN false
+#define TWENTY true
 
 #define SQR(x) (x*x)
 #define CUB(x) (x*x*x)

@@ -1,11 +1,12 @@
 #pragma config(Sensor, in1,    FourBarPot,     sensorPotentiometer)
 #pragma config(Sensor, in2,    LiftPot,        sensorPotentiometer)
-#pragma config(Sensor, in5,    Gyro,           sensorGyro)
 #pragma config(Sensor, in3,    MoGoPot,        sensorPotentiometer)
+#pragma config(Sensor, in5,    Gyro,           sensorGyro)
 #pragma config(Sensor, in6,    BATERY_2_PORT,  sensorAnalog)
 #pragma config(Sensor, dgtl1,  RightEncoder,   sensorQuadEncoder)
 #pragma config(Sensor, dgtl3,  LeftEncoder,    sensorQuadEncoder)
-#pragma config(Sensor, dgtl5,  ultraSound,     sensorSONAR_cm)
+#pragma config(Sensor, dgtl5,  GoliathEncoder, sensorRotation)
+#pragma config(Sensor, dgtl7,  ultraSound,     sensorSONAR_cm)
 #pragma config(Sensor, dgtl11, OddLED,         sensorLEDtoVCC)
 #pragma config(Sensor, dgtl12, EvenLED,        sensorLEDtoVCC)
 #pragma config(Motor,  port1,           goliath,       tmotorVex393_HBridge, openLoop)
@@ -51,14 +52,14 @@ void initializeOpControl(const bool driver) {
 	velocity = 0.0;
 
 	//-LIFT---------&reference--TYPE----------sensor-1-----motor-1-----motor-2-------max------min----delay(opt)
-	initLiftType(   &mainLift,  NORMAL,       LiftPot,     LiftTop,    LiftBottom,   4060,    2150           );
+	initLiftType(   &mainLift,  NORMAL,       LiftPot,     LiftTop,    LiftBottom,   4400,    2150           );
 	initLiftType(   &mogo,      DIFFERENTIAL, LiftPot,     LiftTop,    LiftBottom,   2500,    725            );//is this max (4000) supposed to be that off?
 	initLiftType(   &FourBar,   BINARY,       FourBarPot,  Bar,        NONE,         3700,    2000,  10      );
 	initLiftType(   &goliat,    NOPID,        NONE,        goliath,    NONE,         10000,   -10000         );
 
 	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)----
 	initPID(    &mainLift.PID,  mainLift.sensor,    10,     0.25,   0.0,    0.0,    rev,        true          );
-	initPID(    &FourBar.PID,   FourBar.sensor,     30,     0.9,   0.0,    0.0,    rev,        false         );
+	initPID(    &FourBar.PID,   FourBar.sensor,     30,     0.9,    0.0,    0.0,    rev,        false         );
 	initPID(    &gyroBase,      Gyro,               3,      0.525,  0.0,    0.5,    !rev,       false         );
 
 	//-SIDE---------&reference----sensor------------motor-1------motor-2--------motor-3------
@@ -88,10 +89,10 @@ task autonomous() {
 	startTask(antiStall);
 	switch( currentAutonomous ) {
 	case    0:
-		threeConeAuton(RIGHT);
+		//fourConeAuton(RIGHT, TWENTY);
 		break;
 	case    1:
-		threeConeAuton(LEFT);
+		//fourConeAuton(LEFT, TWENTY);
 		break;
 	case    2:
 		EZAuton(RIGHT);
@@ -121,7 +122,7 @@ task mogoOut(){
 	}
 	return;
 }
-void auton(bool right){
+void fourConeAuton(bool right, bool twenty){
 	int dir  = 1;
 	if(!right) dir = -1;
 	autonRunning = true;
@@ -176,25 +177,58 @@ void auton(bool right){
 	driveFor(-68);//drive back
 	mainLift.goal = mainLift.max; //lift lift
 	mainLift.PID.isRunning = true;
-	if (right) RSwingFor(-45);//swing out
-	else LSwingFor(45);
-	rotFor(dir * -90, 2.5); //rotate perp to 10pt pole
-	//if(right) RSwingFor(-135); //rotate perp to 10pt pole
-	//else LSwingFor(135);
-	delay(200);
-	driveFor(3); //drive to 10pt
-	mainLift.PID.isRunning = false;
-	clearTimer(T4);
-	while(SensorValue[mogo.sensor] > mogo.min && time1[T4] < 600){ //mogo out
-		liftDiff(&mogo, 127);
+	if(!twenty){ //score in 10pt
+		if (right) RSwingFor(-45);//swing out
+		else LSwingFor(45);
+		rotFor(dir * -90, 2.5); //rotate perp to 10pt pole
+		delay(200);
+		driveFor(3); //drive to 10pt
+		//mainLift.PID.isRunning = false;
+		clearTimer(T4);
+		while(SensorValue[mogo.sensor] > mogo.min && time1[T4] < 600){ //mogo out
+			liftDiff(&mogo, 127);
+		}
+		//mainLift.PID.isRunning = true;
+		driveFor(-20);// release & get out of the way
 	}
-	mainLift.PID.isRunning = true;
-	//fwds(127);
-	//delay(200);
-	driveFor(-20);// release & get out of the way
-
+	else { //score in 20 pt
+		if(right) RSwingFor(-135);
+		else LSwingFor(135);
+		driveFor(10); //drive to 20pt pole
+		clearTimer(T4);
+		while(SensorValue[mogo.sensor] > mogo.min && time1[T4] < 600){ //mogo out
+			liftDiff(&mogo, 127);
+		}
+		driveFor(-10);
+	}
 	stopTask(goliathHold);//finished stacking
 	autonRunning = false;
+}
+void matchLoadAuton (bool right, bool twenty){
+	int dir  = 1;
+	if(!right) dir = -1;
+	autonRunning = true;
+	mainLift.PID.kP = 0.15;
+	startTask(goliathHold);
+	startTask(mogoOut);
+	FourBar.PID.isRunning = true;
+	intakeSpeed = INTAKE/2;
+	driveFor(50);//48
+	//FourBar.goal = FourBar.max;
+	stopTask(mogoOut);
+	fwds(0);
+	clearTimer(T4);
+	while(time1[T4] < 600){
+		FourBar.goal = FourBar.max;
+		liftDiff(&mogo, -127);
+	}
+	intakeSpeed = OUTTAKE; //release preload
+	driveFor(-45);
+	intakeSpeed = 0;
+	rotFor(45);
+
+	}
+void stagoAuton (bool right){
 
 }
 task usercontrol() {//initializes everything
@@ -216,12 +250,11 @@ task usercontrol() {//initializes everything
 		playSound(soundLowBuzz);//sonar error (CRITICAL)
 	}
 	for (;;) {
-
 		//debug controls
-			if (L7) RSwingFor(-135);//threeConeAuton(LEFT);//rotFor(-10);
-			if (R7) rotFor(-135);
-			if(D7) auton(RIGHT);
-		driveCtrlr();
-		delay(15);//~60hz
+			if (L7) driveFor2(51);//matchLoadAuton(RIGHT, TEN);//threeConeAuton(LEFT);//rotFor(-10);
+			if (R7) driveFor2(-51);//fourConeAuton(RIGHT, TWENTY);
+			//if (D7) //fourConeAuton(RIGHT, TEN);
+			driveCtrlr();
+			delay(15);//~60hz
 	}
 }//function for operator control

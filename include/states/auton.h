@@ -35,7 +35,7 @@ task goliathHold(){
 	}
 }
 void stack(int cone){
-	//startTask(goliathHold); //don't start the task again?
+	if (!autonRunning)startTask(goliathHold);
 	autoStacking = true;
 	intakeSpeed = INTAKE;
 	//if(currentCone <= 3) UpUntil(&mainLift, heightValues[currentCone]);
@@ -55,7 +55,7 @@ void stack(int cone){
 	delay(100);
 	DownUntil(&mainLift, mainLift.min + 500, 80);
 	autoStacking = false;
-	//stopTask(goliathHold); //probably stops the first task
+	if(!autonRunning) stopTask(goliathHold);
 	currentCone+=1;
 }
 task autoStack() {
@@ -76,6 +76,18 @@ task autoStack() {
 			clearTimer(T2);
 		}
 		delay(30);
+	}
+}
+task autoAutoStack() {//uses encoder to stack
+	currentCone = 0;
+	if(!autonRunning) startTask(goliathHold);
+	for (;;) {
+
+		if (U7 || U7_2) {
+
+			stack(currentCone);
+		}
+		if ((D7 || D7_2) && !autoStacking) currentCone = 0;//reset
 	}
 }
 int initMRot;

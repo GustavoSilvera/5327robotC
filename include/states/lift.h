@@ -81,7 +81,7 @@ void UpUntilW4Bar(int goal, float prop, int speed, bool FourBarToMax) {
 int first = 0;
 int last = 0;
 int lastValue = 0;
-void UpUntilSonar(const struct liftMech* lift, int speed = 127) {
+/*void UpUntilSonar(const struct liftMech* lift, int speed = 127) {
 	last = first;
 	lift->PID.isRunning = false;
 	const int threshold = 20;//10cm from cone max
@@ -94,7 +94,7 @@ void UpUntilSonar(const struct liftMech* lift, int speed = 127) {
 	delay(10);
 	enablePID(lift);
 	return;
-}
+}*/
 void soundCompare(){
 	if(abs(first - last) > 100) playSound(soundException);
 	else playSound(soundUpwardTones);
@@ -109,16 +109,18 @@ void DownUntil(struct liftMech* lift, int goal, int speed = 127) {
 void manualLiftControl(const struct liftMech* lift, int bUp, int bDown, int bUp2, int bDown2, bool reversed, int maxSpeed) {
 	int dir = 1;
 	int power;
+	int sensorVal = SensorValue[lift->sensor];
+	if(lift->type == DIFFERENTIAL) sensorval = (4095 - SensorValue[lift->sensor]);
 	if (reversed) 			(dir = -1);
 	bool upButton 		=	(bUp == 1 || bUp2 == 1);//defining what is up button
 	bool downButton 	=	(bDown == 1 || bDown2 == 1);//defining what is down button
-	bool withinUpper 	=	(SensorValue[lift->sensor] <= lift->max);//within upper bound
-	bool withinLower 	=	(SensorValue[lift->sensor] >= lift->min);//within lower bound
+	bool withinUpper 	=	(sensorVal <= lift->max);//within upper bound
+	bool withinLower 	=	(sensorVal >= lift->min);//within lower bound
 	if (!upButton && !downButton) power = 0;//not pressed any buttons
 	else if ( (!withinUpper && upButton) || (!withinLower && downButton)) power = 0;//pressing buttons but !within bounds
 	else if (upButton) 	 power =  dir * maxSpeed;//up max speed
 	else if (downButton)  power = -dir * maxSpeed;//down max speed
-	else 				 power = 0;//anything else? just kill it
+	else 	power = 0;//anything else? just kill it
 	if(lift->type == DIFFERENTIAL){
 		if(abs(power) > 0) {
 			mainLift.PID.isRunning = false;
