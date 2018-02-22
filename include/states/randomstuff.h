@@ -69,13 +69,12 @@ static const float GyroK = 15.0/80.0;//scales to normal +-360 degrees
 static int currentAutonomous = 0;
 volatile bool autonRunning = false;
 volatile bool autoStacking = false;
-const float GyroK = 15.0/80.0;
 string mainBattery, powerExpander;
 //int startRot = 90;
 volatile float mRot;//current rotation
 volatile float encoderAvg;//used only for straight fwds and bkwds direction
 //MISC FUNCTIONS
-//use macros!!! :)
+//use macros!!! :)...ew gross
 int getSign(const int check) {
 	if (check < 0) return -1;
 	else if (check > 0) return 1;

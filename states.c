@@ -144,7 +144,7 @@ void fourConeAuton(bool right, bool twenty){
 	intakeSpeed = OUTTAKE; //release preload
 	delay(300);
 	intakeSpeed = 0;
-	//driveFor(4);
+	driveFor2(2);
 	FourBar.goal = FourBar.min;
 	DownUntil(&mainLift, mainLift.min, 127); //go for next cone
 	mainLift.goal = mainLift.min - 200;
@@ -154,7 +154,7 @@ void fourConeAuton(bool right, bool twenty){
 	delay(500);
 	stack(2); //stack first cone
 	FourBar.goal = FourBar.min;
-	driveFor(3);
+	driveFor2(3);
 	//driveFor(-1);
 	DownUntil(&mainLift, mainLift.min, 80);
 	mainLift.goal = mainLift.min-400;
@@ -163,7 +163,7 @@ void fourConeAuton(bool right, bool twenty){
 	delay(700);
 	stack(3);//stack second cone
 	FourBar.goal = FourBar.min;
-	driveFor(3);
+	driveFor2(3);
 	//driveFor(-1);
 	DownUntil(&mainLift, mainLift.min, 80);
 	mainLift.goal = mainLift.min-400;
@@ -246,13 +246,14 @@ task usercontrol() {//initializes everything
 	clearLCDLine(1); // Clear line 2 (1) of the LCD
 	if(nImmediateBatteryLevel < 8000) playSound(soundException);
 	else playSound(soundUpwardTones);
-	if(SensorValue[ultraSound] < 1){//0 or error
+	/*if(SensorValue[ultraSound] < 1){//0 or error
 		playSound(soundLowBuzz);//sonar error (CRITICAL)
-	}
+	}*/
 	for (;;) {
 		//debug controls
-			if (L7) driveFor2(51);//matchLoadAuton(RIGHT, TEN);//threeConeAuton(LEFT);//rotFor(-10);
-			if (R7) driveFor2(-51);//fourConeAuton(RIGHT, TWENTY);
+			if (U7) fourConeAuton(RIGHT, TEN);//matchLoadAuton(RIGHT, TEN);//threeConeAuton(LEFT);//rotFor(-10);
+			if (R7) driveFor2(-20);//fourConeAuton(RIGHT, TWENTY);
+			if (L7) driveFor2(20);//fourConeAuton(RIGHT, TWENTY);
 			//if (D7) //fourConeAuton(RIGHT, TEN);
 			driveCtrlr();
 			delay(15);//~60hz

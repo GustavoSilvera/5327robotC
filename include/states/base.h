@@ -57,9 +57,9 @@ void driveCtrlr() {
 	);
 }
 void fwds(const int power, const float angle = mRot) {//drive base forwards
-	int speed = LIMITUP(127, power);
+	int speed = limitUpTo(127, power);
 	const float scalar = 15;//scalar for rotation
-	float dirSkew = LIMITUP(speed, scalar*(mRot - angle));
+	float dirSkew = limitUpTo(speed, scalar*(mRot - angle));
 	driveLR(speed - dirSkew, speed + dirSkew);
 }
 void rot(const float speed) {//rotates base
@@ -76,7 +76,7 @@ void driveFor(float goal) {//drives for certain distance (arbitrary units)
 	float vel = velocity;
 	const float encoderRatio = 0.5;
 	while (abs(goal * circum - encoderAvg*encoderRatio) > thresh) {
-		fwds(LIMITDOWN(15, dP * ((goal*circum - encoderAvg*encoderRatio - 0.1*vel))), initDir);
+		fwds(limitDownTo(15, dP * ((goal*circum - encoderAvg*encoderRatio - 0.1*vel))), initDir);
 	}
 	//fwds(-GETSIGN(goal)* 80);
 	//delay(50);
@@ -87,21 +87,21 @@ void driveFor2(int goal) {//drives for certain distance in inches
 	//SensorValue[LeftBaseEnc] = 0;
 	//SensorValue[RightBaseEnc] = 0;
 	resetEncoders();
-	const int thresh = 360;
+	const int thresh = 15;
 	const int initDir = mRot;
 	//const float encoderScale = 1;//number of motor rotations = this() rotations
-	const float dP = 0.06;//25;//multiplier for velocity controller
+	const float dP = 0.15;//25;//multiplier for velocity controller
 	float goalTicks = goal*28.6479 ;
 	while (abs(goalTicks - encoderAvg) > thresh) { //while error > threshold
 		//encoder geared 1:1, circum = 4*pi
 		//goal / 4pi = number of revolutions
 		//360 ticks per revolution
 		//therefore conversion to ticks is goal / 4pi * 360 => scalar of 28.6479
-		fwds(limitDownTo(15, dP * abs(goalTicks - encoderAvg)));
+		fwds(limitDownTo(15, dP * (goalTicks - encoderAvg)));
 		//fwds(LIMITDOWN(15, dP * ((goal*circum - encoderAvg*encoderRatio - 0.1*vel))), initDir);
 	}
-	fwds(GETSIGN(goal)*-127, initDir);
-	delay(50);
+	//fwds(-50, initDir);
+	//delay(20);
 	fwds(0, initDir);
 	//settle();
 	return;

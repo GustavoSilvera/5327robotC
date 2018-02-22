@@ -14,12 +14,12 @@
 * '----------------'  '----------------'  '----------------'  '----------------' *
 \*******************************************************************************/
 void liftMove(const struct liftMech* lift, const float speed) {
-	float power = LIMITUP(127, speed);
+	float power = limitUpTo(127, speed);
 	motor[lift->motors[0]] = power;//full speed
 	motor[lift->motors[1]] = power;//full speed
 }
 void liftDiff(const struct liftMech* lift, const float speed) {
-	float power = LIMITUP(127, speed);
+	float power = limitUpTo(127, speed);
 	motor[lift->motors[0]] = power;//full speed
 	motor[lift->motors[1]] = -power;//reversed for differential
 }
@@ -109,13 +109,13 @@ void DownUntil(struct liftMech* lift, int goal, int speed = 127) {
 void manualLiftControl(const struct liftMech* lift, int bUp, int bDown, int bUp2, int bDown2, bool reversed, int maxSpeed) {
 	int dir = 1;
 	int power;
-	int sensorVal = SensorValue[lift->sensor];
-	if(lift->type == DIFFERENTIAL) sensorval = (4095 - SensorValue[lift->sensor]);
+	//int sensorVal = SensorValue[lift->sensor];
+//	if(lift->type == DIFFERENTIAL) sensorVal = (4095 - SensorValue[lift->sensor]);
 	if (reversed) 			(dir = -1);
 	bool upButton 		=	(bUp == 1 || bUp2 == 1);//defining what is up button
 	bool downButton 	=	(bDown == 1 || bDown2 == 1);//defining what is down button
-	bool withinUpper 	=	(sensorVal <= lift->max);//within upper bound
-	bool withinLower 	=	(sensorVal >= lift->min);//within lower bound
+	bool withinUpper 	=	(SensorValue[lift->sensor] <= lift->max);//within upper bound
+	bool withinLower 	=	(SensorValue[lift->sensor] >= lift->min);//within lower bound
 	if (!upButton && !downButton) power = 0;//not pressed any buttons
 	else if ( (!withinUpper && upButton) || (!withinLower && downButton)) power = 0;//pressing buttons but !within bounds
 	else if (upButton) 	 power =  dir * maxSpeed;//up max speed
@@ -187,10 +187,12 @@ task LiftControlTask() {
 	startTask(fourBarPID);
 	for (;;) {//while true
 		if(!autonRunning){
-			if(U8 || D8 || U8_2 || D8_2)	LiftLift(&mogo, 	U8, D8, U8_2, D8_2, false,  180);
+			if(U8 || D8 || U8_2 || D8_2){
+				mainLift.PID.isRunning = false;
+				LiftLift(&mogo, U8, D8, U8_2, D8_2, false,  180);
+			}
 			else LiftLift(&mainLift, U6, D6, U6_2, D6_2, false, 400);
 			if(!autoStacking || !autonRunning) LiftLift(&goliat,	L8, R8, L8_2, R8_2, false);
-			if(D7) {soundCompare();}
 		}
 		else {
 			PIDLift(&mainLift);//calls the pid function for the lifts
