@@ -14,9 +14,9 @@
 * '----------------'  '----------------'  '----------------'  '----------------' *
 \*******************************************************************************/
 void liftMove(const struct liftMech* lift, const float speed) {
-	float power = limitUpTo(127, speed);
-	motor[lift->motors[0]] = power;//full speed
-	motor[lift->motors[1]] = power;//full speed
+	//float power = limitUpTo(127, speed);
+	motor[lift->motors[0]] = speed;//full speed
+	motor[lift->motors[1]] = speed;//full speed
 }
 void liftDiff(const struct liftMech* lift, const float speed) {
 	float power = limitUpTo(127, speed);
@@ -44,7 +44,7 @@ float pidCompute(const struct PIDs* PIDtype, const int goal) {
 	int dir = 1;
 	if (PIDtype->reversed) dir = -1;
 	return dir * PIDtype->kP * error + PIDtype->kI * PIDtype->Integral + PIDtype->kD * PIDtype->Derivative;
-	//return(dir * sgn(error) * abs((PIDtype->kP * error) + (PIDtype->kI * PIDtype->Integral) + (PIDtype->kD * PIDtype->Derivative)));
+	//return(dir * getSign(error) * abs((PIDtype->kP * error) + (PIDtype->kI * PIDtype->Integral) + (PIDtype->kD * PIDtype->Derivative)));
 }
 void enablePID(struct liftMech* lift){
 	lift->goal = SensorValue[lift->sensor];//keeps lift in last position
@@ -129,13 +129,13 @@ void manualLiftControl(const struct liftMech* lift, int bUp, int bDown, int bUp2
 		else return;
 	}
 	else if (lift->type == BINARY) {
-		if(sgn(power) > 0) {
+		if(getSign(power) > 0) {
 			UpUntil(lift, lift->max);
 			lift->PID.kP = 0.5;
 			lift->PID.thresh = 50;
 			lift->goal = lift->max + 50;
 		}
-		else if(sgn(power) < 0){
+		else if(getSign(power) < 0){
 			lift->PID.kP = 0.9;
 			lift->PID.thresh = 30;
 			DownUntil(lift, lift->min);
@@ -168,14 +168,14 @@ void LiftLift(const struct liftMech* lift, int bUp, int bDown, int bUp2, int bDo
 task fourBarPID(){
 	for(;;){
 		if(U5 || U5_2) {
-			FourBar.PID.kP = 0.5;
-			FourBar.PID.thresh = 50;
+			FourBar.PID.kP = 0.2;
+			FourBar.PID.thresh = 60;
 			FourBar.goal = FourBar.max;
 			FourBar.PID.isRunning = true;
 		}
 		else if(D5 || D5_2) {
-			FourBar.PID.kP = 0.9;
-			FourBar.PID.thresh = 30;
+			FourBar.PID.kP = 0.8;
+			FourBar.PID.thresh = 40;
 			FourBar.goal = FourBar.min;
 			FourBar.PID.isRunning = true;
 		}
@@ -192,7 +192,7 @@ task LiftControlTask() {
 				LiftLift(&mogo, U8, D8, U8_2, D8_2, false,  180);
 			}
 			else LiftLift(&mainLift, U6, D6, U6_2, D6_2, false, 400);
-			if(!autoStacking || !autonRunning) LiftLift(&goliat,	L8, R8, L8_2, R8_2, false);
+			//	if(!autoStacking || !autonRunning) LiftLift(&goliat,	L8, R8, L8_2, R8_2, false);
 		}
 		else {
 			PIDLift(&mainLift);//calls the pid function for the lifts

@@ -63,8 +63,8 @@ task sensorsUpdate() {
 /*ANTI-STALLING STUFF*/
 bool stalling(const struct sideBase* side){
 	return (
-	abs(motor[side->motors[0]]) > 100 &&//high ish power
-	abs(motor[side->motors[1]]) > 100 &&//high ish power
+	abs(motor[side->motors[0]]) > 80 &&//high ish power
+	abs(motor[side->motors[0]]) > 80 &&//high ish power
 	abs(side->velocity) < 50//low ish velocity yet high speed (for like 500 ms)
 	);
 }
@@ -72,7 +72,7 @@ void checkStalling(struct sideBase* side){
 	if(stalling(side)){
 		clearTimer(T1);
 		bool currentlyStalling = true;
-		while(time1[T1] < 400){//checkingn for continuous stalling (else instantanious refresh)
+		while(time1[T1] < 70){//checkingn for continuous stalling (else instantanious refresh)
 			currentlyStalling = stalling(side);//still stalling
 			if(currentlyStalling) continue;//keep going until time limit
 			else break;
@@ -81,12 +81,13 @@ void checkStalling(struct sideBase* side){
 			side->stalling = true;//if so, consider it stalling
 	}
 	else side->stalling = false;
-	if(side->stalling) playSound(soundBlip);
+	if(side->stalling) playSound(soundShortBlip);
 }
 task antiStall(){
 	for(;;){
-		checkStalling(&Right);
-		checkStalling(&Left);
+		//checkStalling(&Right);
+		//checkStalling(&Left);
+		checkStalling(&goliat);
 		delay(50);
 	}
 }
@@ -131,6 +132,7 @@ task MeasureSpeed() {
 		//lift velocities
 		mainLift.velocity = calcVel(&mainLift, dist, delayAmount);
 		FourBar.velocity = calcVel(&FourBar, dist, delayAmount);
+		goliat.velocity = calcVel(&goliat, dist, delayAmount);
 		//does the waitings
 		delay(delayAmount);
 	}

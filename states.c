@@ -5,8 +5,7 @@
 #pragma config(Sensor, in6,    BATERY_2_PORT,  sensorAnalog)
 #pragma config(Sensor, dgtl1,  RightEncoder,   sensorQuadEncoder)
 #pragma config(Sensor, dgtl3,  LeftEncoder,    sensorQuadEncoder)
-#pragma config(Sensor, dgtl5,  GoliathEncoder, sensorRotation)
-#pragma config(Sensor, dgtl7,  ultraSound,     sensorSONAR_cm)
+#pragma config(Sensor, dgtl6,  GoliathEnc,     sensorRotation)
 #pragma config(Sensor, dgtl11, OddLED,         sensorLEDtoVCC)
 #pragma config(Sensor, dgtl12, EvenLED,        sensorLEDtoVCC)
 #pragma config(Motor,  port1,           goliath,       tmotorVex393_HBridge, openLoop)
@@ -53,9 +52,8 @@ void initializeOpControl(const bool driver) {
 
 	//-LIFT---------&reference--TYPE----------sensor-1-----motor-1-----motor-2-------max------min----delay(opt)
 	initLiftType(   &mainLift,  NORMAL,       LiftPot,     LiftTop,    LiftBottom,   4400,    2150           );
-	initLiftType(   &mogo,      DIFFERENTIAL, LiftPot,     LiftTop,    LiftBottom,   2500,    725            );//is this max (4000) supposed to be that off?
+	initLiftType(   &mogo,      DIFFERENTIAL, LiftPot,     LiftTop,    LiftBottom,   4000,    725            );//is this max (4000) supposed to be that off?
 	initLiftType(   &FourBar,   BINARY,       FourBarPot,  Bar,        NONE,         3700,    2000,  10      );
-	initLiftType(   &goliat,    NOPID,        NONE,        goliath,    NONE,         10000,   -10000         );
 
 	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)----
 	initPID(    &mainLift.PID,  mainLift.sensor,    10,     0.25,   0.0,    0.0,    rev,        true          );
@@ -65,6 +63,7 @@ void initializeOpControl(const bool driver) {
 	//-SIDE---------&reference----sensor------------motor-1------motor-2--------motor-3------
 	initSideBase(   &Left,        LeftEncoder,      Base_L_F,    Base_L_M,      Base_L_B   );
 	initSideBase(   &Right,       RightEncoder,     Base_R_F,    Base_R_M,      Base_R_B   );
+	initSideBase(   &goliat,      GoliathEnc,  		goliath,     NONE,          NONE       );
 	pastRot = mRot;
 }
 
@@ -232,9 +231,10 @@ task usercontrol() {//initializes everything
 	startTask(LiftControlTask);//individual pid for lift type
 	startTask(MeasureSpeed);//velocity measurer for base
 	startTask(sensorsUpdate);
-	//startTask(autoStack);
+	startTask(autoStack);
 	startTask(antiStall);
 	startTask(killswitch);
+	startTask(MotorSlewRateTask);
 	startTask(displayLCD);
 	autonRunning = false;
 	bLCDBacklight = true;// Turn on LCD Backlight
@@ -244,11 +244,13 @@ task usercontrol() {//initializes everything
 	else playSound(soundUpwardTones);
 	for (;;) {
 		//debug controls
-		if (U7) fourConeAuton(RIGHT, TEN);//matchLoadAuton(RIGHT, TEN);//threeConeAuton(LEFT);//rotFor(-10);
-			if (R7) driveFor2(-20);//fourConeAuton(RIGHT, TWENTY);
-			if (L7) driveFor2(20);//fourConeAuton(RIGHT, TWENTY);
-			//if (D7) //fourConeAuton(RIGHT, TEN);
+		//if (U7) fourConeAuton(RIGHT, TEN);//matchLoadAuton(RIGHT, TEN);//threeConeAuton(LEFT);//rotFor(-10);
+		//	if (R7) driveFor2(-20);//fourConeAuton(RIGHT, TWENTY);
+		//	if (L7) driveFor2(20);//fourConeAuton(RIGHT, TWENTY);
+		//if (D7) //fourConeAuton(RIGHT, TEN);
 		driveCtrlr();
+		if(L8) startTask(autoAutoStack);
+		else if (R8) motor[goliath] = -80;
 		delay(15);//~60hz
 	}
 }//function for operator control

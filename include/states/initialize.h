@@ -40,17 +40,17 @@ struct liftMech {
 struct liftMech mainLift;
 struct liftMech mogo;
 struct liftMech FourBar;
-struct liftMech goliat;
 
 struct sideBase{
 	int motors[3];
 	char sensor;
 	float velocity;
-	bool stalling;
+	volatile bool stalling;
 	float past;
 };
 struct sideBase Left;
 struct sideBase Right;
+struct sideBase goliat;
 
 void initLiftType(const struct liftMech* lift, enum liftType type, char sensor, int m1, int m2, int max, int min, int delayAmnt = 20) {
 	lift->type = type;

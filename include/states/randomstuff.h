@@ -68,7 +68,7 @@ float pastRot;
 int currentCone = 0;
 static const float GyroK = 15.0/80.0;//scales to normal +-360 degrees
 static int currentAutonomous = 0;
-volatile bool autonRunning = false;
+bool autonRunning = false;
 volatile bool autoStacking = false;
 string mainBattery, powerExpander;
 //int startRot = 90;
@@ -76,13 +76,18 @@ volatile float mRot;//current rotation
 volatile float encoderAvg;//used only for straight fwds and bkwds direction
 //MISC FUNCTIONS
 //use macros!!! :)...ew gross
+int getSign(const float val){
+	if(val < 0) return -1;
+	else if(val > 0) return 1;
+	else return 0;
+}
 float limitUpTo(const float max, float val) {
 	if (abs(val) < abs(max)) return val;
-	else return sgn(val) * max;
+	else return getSign(val) * max;
 }
 float limitDownTo(const float min, const float val) {
 	if (abs(val) > abs(min)) return val;
-	else return sgn(val) * min;
+	else return getSign(val) * min;
 }
 float avg2(const float a, const float b){
 	return 0.5*(a+b);//avg between two things

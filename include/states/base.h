@@ -14,16 +14,49 @@
 *| '--------------' || '--------------' || '--------------' || '--------------' |*
 * '----------------'  '----------------'  '----------------'  '----------------' *
 \*******************************************************************************/
-float TruSpeed(const float value, const int power) {//for all other polynomials; visit: goo.gl/mhvbx4
+float TruSpeed(const float value, const float power) {//for all other polynomials; visit: goo.gl/mhvbx4
 	float final = pow(value, power) / (pow(127, power - 1));
-	if(value % 2 == 0) return sgn(value)*final;
+	//if(value % 2 == 0) return (int)sgn(value) * final;
 	return final;
 }//function for calculating the truSpeed function based off a polynomial
+int motorSlew[8];//for each motor
+int SlewAmount[8];//for each motor
+
+task MotorSlewRateTask(){//slew rate task
+	int motorI;//which motor are we talking about? INDEX
+	for(int i = 0; i < 8; i++){
+		SlewAmount[i] = 30;
+	}
+	for(;;){// run loop for every motor
+		for( motorI = 0; motorI < 8; motorI++){
+			//motorCurrent = motor[ motorIndex ];
+			if( abs(motor[motorI] - motorSlew[motorI]) > 10){//current motor value not equal to goal
+				if( motor[motorI] < motorSlew[motorI] && motor[motorI] < 127){//if less than goal || less than max
+					motor[motorI] =  motor[motorI] + SlewAmount[motorI];//decrease by specific amount
+					if( motor[motorI] >= motorSlew[motorI]){//if equal to or surpassed goal
+						motor[motorI]  = motorSlew[motorI];//sets change to goal
+					}
+				}
+				if( motor[motorI] > motorSlew[motorI] && motor[motorI] > -127){//if currently more than requested
+					motor[motorI] = motor[motorI] - SlewAmount[motorI];//decrease by specific amount
+					if(motor[motorI] <= motorSlew[motorI]){//once reaches or passes goal
+						motor[motorI] = motorSlew[motorI];//sets change to goal
+					}
+				}
+				//motor[motorI] = motor[motorI]);
+			}
+			delay(5);//delay 25ms
+		}
+	}
+}//task for "slew"-ing the motres by adding to their power via loops
 void baseMove(const struct sideBase* side, int speed) {
 	int power = limitUpTo(127, speed);
-	motor[side->motors[0]] = power;//up is fast
-	motor[side->motors[1]] = power;//up is fast
-	motor[side->motors[2]] = power;//up is fast
+	//motor[side->motors[0]] = power;//up is fast
+	//motor[side->motors[1]] = power;//up is fast
+	//motor[side->motors[2]] = power;//up is fast
+	motorSlew[side->motors[0]] = power;
+	motorSlew[side->motors[1]] = power;
+	motorSlew[side->motors[2]] = power;
 }
 void driveLR(const int powerR, const int powerL) {
 	if(autonRunning){//only do antistall during auton
@@ -47,9 +80,13 @@ void driveCtrlr() {
 	//scale for joystick
 	const float partner = 1;//0.8;
 	const float primary = 1;
+	//driveLR(//truspeed taking both controllers
+	//TruSpeed(limitUpTo(127, primary*vexRT[Ch2] + partner*vexRT[Ch2Xmtr2]), 3),
+	//TruSpeed(limitUpTo(127, primary*vexRT[Ch3] + partner*vexRT[Ch3Xmtr2]), 3)
+	//	);
 	driveLR(//truspeed taking both controllers
-	TruSpeed(limitUpTo(127, primary*vexRT[Ch2] + partner*vexRT[Ch2Xmtr2]), 3),
-	TruSpeed(limitUpTo(127, primary*vexRT[Ch3] + partner*vexRT[Ch3Xmtr2]), 3)
+	primary*vexRT[Ch2] + partner*vexRT[Ch2Xmtr2],
+	primary*vexRT[Ch3] + partner*vexRT[Ch3Xmtr2]
 	);
 }
 void fwds(const int power, const float angle = mRot) {//drive base forwards
@@ -64,7 +101,7 @@ void rot(const float speed) {//rotates base
 void driveFor(float goal) {//drives for certain distance (arbitrary units)
 	//works best from 1 to 40 ish.
 	resetEncoders();
-//	goal *= 2;//doubles "goal" not tuned very well as of rn
+	//	goal *= 2;//doubles "goal" not tuned very well as of rn
 	const int thresh = 5;//10 ticks
 	int initDir = mRot;
 	//ClearTimer(T1);
@@ -132,7 +169,7 @@ void LSwingFor(int target){
 	SensorScale[Gyro] = 260;
 	while(abs(SensorValue[Gyro]*GyroK - target) > 0.5){
 		if (target>0) baseMove(&Right, 25); //keep right side still moving back
-		baseMove(&Left, limitDownTo(20, 3*(SensorValue[Gyro]*GyroK- target) ) );
+			baseMove(&Left, limitDownTo(20, 3*(SensorValue[Gyro]*GyroK- target) ) );
 	}
 	baseMove(&Left,-sgn(target) *60);
 	delay(30);

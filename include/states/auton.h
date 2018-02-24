@@ -13,34 +13,33 @@
 | '--------------' || '--------------' || '--------------' || '--------------' || '--------------' |
 '----------------'  '----------------'  '----------------'  '----------------'  '----------------'
 */
-const int INTAKE = 70;//for roller hold
+const int INTAKE = 100;//for roller hold
 const int OUTTAKE = -127;
 const int heightValues[15] = {
-	2270, 2320, 2390, 2530, 2670, 2750,
+	2270, 2340, 2450, 2530, 2670, 2780,
 	2840, 2970, 3050, 3200, 3330, 3420,
 	3540, 3750, 3900};//values for where the lift should go to when autoStacking
 const int heightFourBar[15] = {
 	FourBar.max, FourBar.max, FourBar.max, FourBar.max, FourBar.max,
 	FourBar.max, FourBar.max, FourBar.max, FourBar.max, FourBar.max,
-	FourBar.max - 100, FourBar.max - 150, FourBar.max - 250,
+	FourBar.max - 150, FourBar.max - 150, FourBar.max - 250,
 	FourBar.max - 350, FourBar.max - 500
 };//values for where the lift should go to when autoStacking
-const int delayValues[15] = {0, 0, 0, 0, 0, 0, 0, 0, 200, 200, 200, 200, 200, 200, 400};//values for individual delays when autostacking
+const int delayValues[15] = {0, 0, 0, 0, 0, 0, 0, 0, 200, 250, 300, 350, 400, 450, 500};//values for individual delays when autostacking
 //const int delayValues[11] = {0, 0, 0, 0, 0, 0, 150, 150, 240, 200, 200};//values for individual delays when autstacking
 volatile int intakeSpeed = 0;
 task goliathHold(){
 	for(;;){
-		liftMove(&goliat, intakeSpeed);
+		motor[goliath] = intakeSpeed;
 		delay(50);
 	}
 }
 void stack(int cone){
-	if (!autonRunning)startTask(goliathHold);
+	if (!autonRunning)
+		startTask(goliathHold);
 	autoStacking = true;
 	intakeSpeed = INTAKE;
-	//if(currentCone <= 3) UpUntil(&mainLift, heightValues[currentCone]);
-	//else UpUntilSonar(&mainLift);//brings lift up until sonar detects no obstruction
-	if(currentCone < 9) UpUntilW4Bar(heightValues[cone], 0.95, 127, true);
+	if(currentCone < 9) UpUntilW4Bar(heightValues[cone] + 80, 0.95, 127, true);
 	else{
 		UpUntil(&mainLift, heightValues[cone], 127);
 		UpUntil(&FourBar, heightFourBar[cone], 100);
@@ -56,7 +55,7 @@ void stack(int cone){
 	DownUntil(&mainLift, mainLift.min + 500, 80);
 	autoStacking = false;
 	if(!autonRunning) stopTask(goliathHold);
-	currentCone+=1;
+	if(currentCone < 14) currentCone+=1;
 }
 task autoStack() {
 	currentCone = 0;
@@ -65,30 +64,25 @@ task autoStack() {
 			stack(currentCone);
 		}
 		if ((D7 || D7_2) && !autoStacking) currentCone = 0;//reset
-		if ((R7 || R7_2) && time1[T2]>100 && currentCone > 0) {
+		if ((R7 || R7_2) && time1[T2]>200 && currentCone > 0) {
 			currentCone -= 1; //subtract one cone if autostack missed
 			playSound(soundDownwardTones);
 			clearTimer(T2);
 		}
-		if ((L7 || L7_2) && time1[T2]>100 && currentCone < 15) {
+		if ((L7 || L7_2) && time1[T2]>200 && currentCone < 15) {
 			currentCone += 1; //add one cone
-			playSound(soundUpwardTones);
+			playSound(soundFastUpwardTones);
 			clearTimer(T2);
 		}
 		delay(30);
 	}
 }
-task autoAutoStack() {//uses encoder to stack
-	currentCone = 0;
-	if(!autonRunning) startTask(goliathHold);
-	for (;;) {
-
-		if (U7 || U7_2) {
-
-			stack(currentCone);
-		}
-		if ((D7 || D7_2) && !autoStacking) currentCone = 0;//reset
+task autoAutoStack(){
+	while(!goliat.stalling)	{
+		motor[goliath] = 127;
 	}
+	stack(currentCone);
+	return;
 }
 task killswitch(){
 	for(;;){
