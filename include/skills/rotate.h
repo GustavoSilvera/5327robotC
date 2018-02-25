@@ -5,8 +5,16 @@ void rot(float power) {//rotates base
 	motor[LBaseFront] = -power;
 	motor[LBaseBack] = -power;
 }
+void swingL(int power){
+	motor[LBaseFront] = -power;
+	motor[LBaseBack] = -power;
+}
+void swingR(int power){
+	motor[RBaseFront] = power;
+	motor[RBaseBack] = power;
+}
 void timeTurn(int target, int numMogos){//(TUNE)
-	rot(getSign(target)*127);
+	rot(sgn(target)*127);
 	if(numMogos == 2){
 		switch(abs(target)){
 		case 45:
@@ -31,7 +39,7 @@ void timeTurn(int target, int numMogos){//(TUNE)
 	return;
 }
 void turn(int deg, int df){
-	int speed = GETSIGN(deg) * 127;
+	int speed = sgn(deg) * 127;
 	float initialRot = mRot*GyroK;
 
 	rot(speed);
@@ -50,7 +58,7 @@ void turn(int deg, int df){
 
 	float error = (mRot - initialRot);
 	while (abs(error - deg) < df) {
-		speed = GETSIGN(error) * 75;
+		speed = sgn(error) * 75;
 		motor[RBaseFront] = speed;
 		motor[RBaseBack] = speed;
 		motor[LBaseFront] = -speed;
@@ -58,6 +66,8 @@ void turn(int deg, int df){
 	}
 }
 void rotFor(float target){
+	SensorValue[RightBaseEnc]= 0;
+	SensorValue[LeftBaseEnc]= 0;
 	gyroBase.isRunning = true;
 	SensorValue[Gyro] = 0;//resets gyros
 	SensorScale[Gyro] = 260;
@@ -68,7 +78,7 @@ void rotFor(float target){
 	int power;
 	if(target < 0) power = 127;
 	else power = 127;
-	rot(getSign(mainVelocity) * power);//gives settle time
+	rot(sgn(mainVelocity) * power);//gives settle time
 	delay(100);
 	rot(0);
 	gyroBase.isRunning = false;
@@ -77,19 +87,20 @@ void rotFor(float target){
 	return;
 }
 void rotFast(int target){
+	SensorValue[RightBaseEnc]= 0;
 	SensorValue[LeftBaseEnc] = 0;///reset
 	SensorValue[Gyro] = 0;//resets gyros
 	if(abs(target) == 90){
 		while(abs(SensorValue[LeftBaseEnc]) < 230){
-			rot(getSign(target)*127);
+			rot(sgn(target)*127);
 		}
 	}
 	else if (abs(target) == 45){
 		while(abs(SensorValue[LeftBaseEnc]) < 120){
-			rot(getSign(target)*127);
+			rot(sgn(target)*127);
 		}
 	}
-	rot(-getSign(target)*127);
+	rot(-sgn(target)*127);
 	delay(10);
 	clearTimer(T2);
 	while(abs(SensorValue[Gyro] - target) > 1 && time1[T2] < 500){
@@ -99,6 +110,8 @@ void rotFast(int target){
 	}
 }
 void rotAcc(int target, float kP, int delayTime = 1200){
+	SensorValue[RightBaseEnc]= 0;
+	SensorValue[LeftBaseEnc]= 0;
 	SensorValue[Gyro] = 0;//resets gyros
 	SensorScale[Gyro] = 260;
 	clearTimer(T2);
@@ -108,20 +121,64 @@ void rotAcc(int target, float kP, int delayTime = 1200){
 	settle();
 }
 void rotAccFast(int target){
+	SensorValue[RightBaseEnc]= 0;
+	SensorValue[LeftBaseEnc]= 0;
 	SensorValue[Gyro] = 0;//resets gyros
 	SensorScale[Gyro] = 260;
 	clearTimer(T2);
 	while(abs(SensorValue[Gyro] - target) > 0){
 		rot(target - SensorValue[Gyro]*GyroK );
 	}
-	rot(-getSign(target - SensorValue[Gyro]*GyroK )*127);//hard break
+	rot(-sgn(target - SensorValue[Gyro]*GyroK )*127);//hard break
 	delay(10);
 	while(SensorValue[Gyro]*GyroK < target) rot(60);
 	while(SensorValue[Gyro]*GyroK > target) rot(-60);
 	settle();
 }
-void rotEnc(int target){
-	SensorValue[RightBaseEnc] = 0;
-	SensorValue[LeftBaseEnc] = 0;
-
+void rotEnc(int angle){
+	SensorValue[Gyro]= 0;
+	SensorScale[Gyro]= 260;
+	SensorValue[RightBaseEnc]= 0;
+	SensorValue[LeftBaseEnc]= 0;
+	int delayTime = 700;
+	//rightEnc degreesToTicks = 10.9956/
+	//distance = (angle/360)*2*pi*7 //2*pi*r (arc length)
+	//to ticks -> *114.5916
+	//constant is 4.4563
+	int goalTicks = 10.5 * angle;
+	int thresh = 16;
+	clearTimer(T2);
+	while(abs(SensorValue[RightBaseEnc] - goalTicks) > thresh){
+		rot(getSign(angle)*127);
+	}
+	clearTimer(T2);
+	while(time1[T2] < delayTime){
+		rot(LimitDownTo(30, -2.5*(SensorValue[Gyro]*GyroK - angle)));
+	}
+	delay(200);
+}
+void RSwingFor(int target){
+	gyroBase.isRunning = true;
+	SensorValue[Gyro] = 0;//resets gyros
+	SensorScale[Gyro] = 260;
+	while(abs(SensorValue[Gyro]*GyroK - target) > 0.5){
+		swingR(LimitDownTo(20, 5*(target - SensorValue[Gyro]*GyroK) ) );
+	}
+	swingR(-GETSIGN(target)*60);
+	delay(30);
+	rot(0);
+	return;
+}
+void LSwingFor(int target){
+	gyroBase.isRunning = true;
+	SensorValue[Gyro] = 0;//resets gyros
+	SensorScale[Gyro] = 260;
+	while(abs(SensorValue[Gyro]*GyroK - target) > 0.5){
+		//if (target>0) baseMove(&Right, 25); //keep right side still moving back
+		swingL(limitDownTo(20, 3*(SensorValue[Gyro]*GyroK- target) ) );
+	}
+	swingL(-GETSIGN(target) *60);
+	delay(30);
+	rot(0);
+	return;
 }
