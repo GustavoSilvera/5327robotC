@@ -89,13 +89,25 @@ void autonSelect(int delayTime = 5000){
 }
 void displayBatteryLevels(){
 	//Display the Primary Robot battery voltage
-	displayLCDString(0, 0, "Primary: ");
+	displayLCDString(0, 0, "B:");
 	sprintf(mainBattery, "%1.2f%c", nImmediateBatteryLevel/1000.0,'V'); //Build the value to be displayed
 	displayNextLCDString(mainBattery);
+	displayNextLCDString(" ");
 	//Display the Power Expander voltage
-	displayLCDString(1, 0, "PwrExpndr: ");
+	displayNextLCDString("Ex:");
 	sprintf(powerExpander, "%1.2f%c", ((float)SensorValue[ BATERY_2_PORT ] * 5.48/1000), 'V');//Build the value to be displayed
 	displayNextLCDString(powerExpander);
+	//Display the CurrentCone
+	displayLCDString(1, 0, "Cc:");
+	sprintf(currCone, "%d", (int)currentCone, 'c');//Build the value to be displayed
+	displayNextLCDString(currCone);
+	displayNextLCDString(" ");
+	//Display the Power Expander voltage
+	displayNextLCDString("Gy:");
+	sprintf(gyroRead, "%1.2f%c", SensorValue[Gyro], "°");//Build the value to be displayed
+	displayNextLCDString(gyroRead);
+
+
 }
 task displayLCD(){
 	for(;;){

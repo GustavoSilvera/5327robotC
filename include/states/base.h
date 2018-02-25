@@ -111,19 +111,15 @@ void driveFor(float goal) {//drives for certain distance (arbitrary units)
 	while (abs(goal * circum - encoderAvg*encoderRatio) > thresh) {
 		fwds(limitDownTo(15, dP * ((goal*circum - encoderAvg*encoderRatio - 0.1*vel))), initDir);
 	}
-	//fwds(-sgn(goal)* 80);
-	//delay(50);
 	fwds(0);
 	return;
 }
 void driveFor2(int goal) {//drives for certain distance in inches
-	//SensorValue[LeftBaseEnc] = 0;
-	//SensorValue[RightBaseEnc] = 0;
 	resetEncoders();
-	const int thresh = 15;
+	const int thresh = 120;
 	const int initDir = mRot;
 	//const float encoderScale = 1;//number of motor rotations = this() rotations
-	const float dP = 0.15;//25;//multiplier for velocity controller
+	const float dP = 0.3;//25;//multiplier for velocity controller
 	float goalTicks = goal*28.6479 ;
 	while (abs(goalTicks - encoderAvg) > thresh) { //while error > threshold
 		//encoder geared 1:1, circum = 4*pi
@@ -131,10 +127,9 @@ void driveFor2(int goal) {//drives for certain distance in inches
 		//360 ticks per revolution
 		//therefore conversion to ticks is goal / 4pi * 360 => scalar of 28.6479
 		fwds(limitDownTo(15, dP * (goalTicks - encoderAvg)));
-		//fwds(limitDownTo(15, dP * ((goal*circum - encoderAvg*encoderRatio - 0.1*vel))), initDir);
 	}
-	//fwds(-50, initDir);
-	//delay(20);
+	fwds(sgn(goal) * -40, initDir);
+	delay(30);
 	fwds(0, initDir);
 	//settle();
 	return;
@@ -156,7 +151,7 @@ void RSwingFor(int target){
 	SensorValue[Gyro] = 0;//resets gyros
 	SensorScale[Gyro] = 260;
 	while(abs(SensorValue[Gyro]*GyroK - target) > 0.5){
-		baseMove(&Right, limitDownTo(20, 3*(target - SensorValue[Gyro]*GyroK) ) );
+		baseMove(&Right, limitDownTo(20, 4*(target - SensorValue[Gyro]*GyroK) ) );
 	}
 	baseMove(&Right,-sgn(target)*60);
 	delay(30);

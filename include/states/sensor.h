@@ -51,16 +51,24 @@ void resetEncoders(){
 	SensorValue[RightEncoder] = 0;
 }
 task sensorsUpdate() {
-	//int rot=0;
 	for (;;) {
 		mRot = (float)(GyroK*SensorValue[Gyro]);
 		encoderAvg = avg2(SensorValue[Right.sensor], SensorValue[Left.sensor]);
-		//encoderAvg = SensorValue[LeftEncoder];
 		delay(5);//really quick delay
-		//SensorValue[RightEncoder] = 0;
 	}
 }
 /*ANTI-STALLING STUFF*/
+bool doubleTap(){
+	if(vexRT[Btn8L] == 1){
+		clearTimer(T3);
+		delay(100);
+		while(time1[T3] < 400){
+			if(vexRT[Btn8L] == 1) return true;
+		}
+		return false;
+	}
+	return false;
+}
 bool stalling(const struct sideBase* side){
 	return (
 	abs(motor[side->motors[0]]) > 80 &&//high ish power
@@ -72,7 +80,7 @@ void checkStalling(struct sideBase* side){
 	if(stalling(side)){
 		clearTimer(T1);
 		bool currentlyStalling = true;
-		while(time1[T1] < 70){//checkingn for continuous stalling (else instantanious refresh)
+		while(time1[T1] < 80){//checkingn for continuous stalling (else instantanious refresh)
 			currentlyStalling = stalling(side);//still stalling
 			if(currentlyStalling) continue;//keep going until time limit
 			else break;

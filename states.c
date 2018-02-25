@@ -52,12 +52,12 @@ void initializeOpControl(const bool driver) {
 
 	//-LIFT---------&reference--TYPE----------sensor-1-----motor-1-----motor-2-------max------min----delay(opt)
 	initLiftType(   &mainLift,  NORMAL,       LiftPot,     LiftTop,    LiftBottom,   4400,    2150           );
-	initLiftType(   &mogo,      DIFFERENTIAL, LiftPot,     LiftTop,    LiftBottom,   4000,    725            );//is this max (4000) supposed to be that off?
-	initLiftType(   &FourBar,   BINARY,       FourBarPot,  Bar,        NONE,         3700,    2000,  10      );
+	initLiftType(   &mogo,      DIFFERENTIAL, LiftPot,     LiftTop,    LiftBottom,   2600,    800            );//is this max (4000) supposed to be that off?
+	initLiftType(   &FourBar,   BINARY,       FourBarPot,  Bar,        NONE,         3640,    1900,  10      );
 
 	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)----
 	initPID(    &mainLift.PID,  mainLift.sensor,    10,     0.25,   0.0,    0.0,    rev,        true          );
-	initPID(    &FourBar.PID,   FourBar.sensor,     30,     0.9,    0.0,    0.0,    rev,        false         );
+	initPID(    &FourBar.PID,   FourBar.sensor,     250,    0.2,    0.0,    0.0,    rev,        false         );
 	initPID(    &gyroBase,      Gyro,               3,      0.525,  0.0,    0.5,    !rev,       false         );
 
 	//-SIDE---------&reference----sensor------------motor-1------motor-2--------motor-3------
@@ -73,6 +73,7 @@ void pre_auton() {//dont care
 	wait1Msec(1224);
 	//Adjust SensorScale to correct the scaling for your gyro
 	scaleGyros();
+	startTask(displayLCD);
 	while( bIfiRobotDisabled ){//in preauton...bIfiRobotDisabled ||
 		autonSelect(nLCDButtons);
 		delay(50);
@@ -100,7 +101,7 @@ void fourConeAuton(bool right, bool twenty){
 	startTask(mogoOut);
 	FourBar.PID.isRunning = true;
 	intakeSpeed = INTAKE/2;
-	driveFor(50);//48
+	driveFor2(48);//48
 	//FourBar.goal = FourBar.max;
 	stopTask(mogoOut);
 	fwds(0);
@@ -111,64 +112,83 @@ void fourConeAuton(bool right, bool twenty){
 	}
 	liftMove(&mogo, 0);
 	intakeSpeed = OUTTAKE; //release preload
-	delay(300);
+	delay(400);
 	intakeSpeed = 0;
-	driveFor2(2);
+	driveFor(1);
 	FourBar.goal = FourBar.min;
 	DownUntil(&mainLift, mainLift.min, 127); //go for next cone
 	mainLift.goal = mainLift.min - 200;
 	mainLift.PID.isRunning = true;
 	intakeSpeed = INTAKE; //intake first cone
-	driveFor(3);
-	delay(500);
+	//driveFor(2);
+	delay(350);
 	stack(2); //stack first cone
 	FourBar.goal = FourBar.min;
-	driveFor2(3);
+	mainLift.goal = mainLift.min + 600;
+	driveFor(1);
 	//driveFor(-1);
 	DownUntil(&mainLift, mainLift.min, 80);
 	mainLift.goal = mainLift.min-400;
 	mainLift.PID.isRunning = true;
 	intakeSpeed = INTAKE;
-	delay(700);
+	delay(400);
 	stack(3);//stack second cone
-	FourBar.goal = FourBar.min;
-	driveFor2(3);
+	FourBar.goal = FourBar.min - 200;
+	intakeSpeed = INTAKE;
+	DownUntil(&mainLift, mainLift.min, 80);
+	mainLift.goal = mainLift.min-400;
+	mainLift.PID.isRunning = true;
+	driveFor(1);
+	delay(700);
+
+	/*driveFor(2);
 	//driveFor(-1);
 	DownUntil(&mainLift, mainLift.min, 80);
 	mainLift.goal = mainLift.min-400;
 	mainLift.PID.isRunning = true;
 	intakeSpeed = INTAKE;
-	delay(700);
+	delay(300);*/
 	stack(4);
 	intakeSpeed = 0;
 
 	//score in 10pt
-	driveFor(-68);//drive back
-	mainLift.goal = mainLift.max; //lift lift
-	mainLift.PID.isRunning = true;
+
 	if(!twenty){ //score in 10pt
+		driveFor2(-62);//drive back
+		mainLift.goal = mainLift.max; //lift lift
+		mainLift.PID.isRunning = true;
 		if (right) RSwingFor(-45);//swing out
 		else LSwingFor(45);
-		rotFor(dir * -90, 2.5); //rotate perp to 10pt pole
+		rotFor(dir * -90, 2); //rotate perp to 10pt pole
 		delay(200);
-		driveFor(3); //drive to 10pt
+		driveFor(4); //drive to 10pt
 		//mainLift.PID.isRunning = false;
 		clearTimer(T4);
 		while(SensorValue[mogo.sensor] > mogo.min && time1[T4] < 600){ //mogo out
 			liftDiff(&mogo, 127);
 		}
 		//mainLift.PID.isRunning = true;
-		driveFor(-20);// release & get out of the way
+		driveFor(-25);// release & get out of the way
 	}
 	else { //score in 20 pt
-		if(right) RSwingFor(-135);
-		else LSwingFor(135);
-		driveFor(10); //drive to 20pt pole
+		driveFor2(-62);//drive back
+		mainLift.goal = mainLift.max; //lift lift
+		mainLift.PID.isRunning = true;
+		if(right) RSwingFor(-45);
+		else LSwingFor(45);
+		driveFor(-6); //drive to center of zone
+		rotFor(dir * -90,2);
+		driveFor(-5);//reverse to gain momentum
+		delay(100);
+		fwds(127);
+		delay(1500);
+		fwds(0);
+		//driveFor(16); //enter 20pt zone
 		clearTimer(T4);
-		while(SensorValue[mogo.sensor] > mogo.min && time1[T4] < 600){ //mogo out
+		while(SensorValue[mogo.sensor] > mogo.min + 100 && time1[T4] < 600){ //mogo out
 			liftDiff(&mogo, 127);
 		}
-		driveFor(-10);
+		driveFor(-17);//exit zones
 	}
 	stopTask(goliathHold);//finished stacking
 	autonRunning = false;
@@ -196,6 +216,9 @@ void matchLoadAuton (bool right, bool twenty){
 	intakeSpeed = 0;
 	rotFor(45);
 
+	}
+void stagoAuton (bool right){
+
 }
 task autonomous() {
 	autonRunning = true;
@@ -203,10 +226,16 @@ task autonomous() {
 	startTask(LiftControlTask);//individual pid for lift type
 	startTask(MeasureSpeed);//velocity measurer for base
 	startTask(sensorsUpdate);
+	startTask(autoStack);
 	startTask(antiStall);
+	startTask(killswitch);
+	startTask(MotorSlewRateTask);
+	startTask(displayLCD);
+	FourBar.PID.kP = 0.9;
+	FourBar.PID.thresh = 30;
 	switch( currentAutonomous ) {
 	case    0:
-		fourConeAuton(RIGHT, TWENTY);
+		fourConeAuton(RIGHT, TEN);
 		break;
 	case    1:
 		fourConeAuton(LEFT, TWENTY);
@@ -224,6 +253,7 @@ task autonomous() {
 	case    5://no auton
 		break;
 	}
+	autonRunning = false;
 	return;
 }
 task usercontrol() {//initializes everything
@@ -249,8 +279,8 @@ task usercontrol() {//initializes everything
 		//	if (L7) driveFor2(20);//fourConeAuton(RIGHT, TWENTY);
 		//if (D7) //fourConeAuton(RIGHT, TEN);
 		driveCtrlr();
-		if(L8) startTask(autoAutoStack);
-		else if (R8) motor[goliath] = -80;
+		if(L8 || L8_2)		 motor[goliath] = 127;
+		else if (R8 || R8_2) motor[goliath] = -80;
 		delay(15);//~60hz
 	}
 }//function for operator control

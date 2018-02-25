@@ -43,7 +43,7 @@ float pidCompute(const struct PIDs* PIDtype, const int goal) {
 	// calculate drive (in this case, just for the lifts)
 	int dir = 1;
 	if (PIDtype->reversed) dir = -1;
-	return dir * PIDtype->kP * error + PIDtype->kI * PIDtype->Integral + PIDtype->kD * PIDtype->Derivative;
+	return dir * (PIDtype->kP * error + PIDtype->kI * PIDtype->Integral + PIDtype->kD * PIDtype->Derivative);
 	//return(dir * getSign(error) * abs((PIDtype->kP * error) + (PIDtype->kI * PIDtype->Integral) + (PIDtype->kD * PIDtype->Derivative)));
 }
 void enablePID(struct liftMech* lift){
@@ -51,7 +51,14 @@ void enablePID(struct liftMech* lift){
 	lift->PID.isRunning = true;//re-enables pid
 }
 void PIDLift(const struct liftMech* lift) {
-	if (lift->PID.isRunning) liftMove(lift, pidCompute(lift->PID, lift->goal));//power the lift with its PID
+	if (lift->PID.isRunning) {
+		if(lift->type == BINARY){
+			int sen = SensorValue[lift->Sensor];
+			if(sen < lift->max && sen > lift->min)
+				liftMove(lift, pidCompute(lift->PID, lift->goal));//power the lift with its PID
+		}
+		liftMove(lift, pidCompute(lift->PID, lift->goal));//power the lift with its PID
+	}
 	else resetPIDVals(lift->PID);//turn off the PID and reset values
 	delay(lift->liftPIDelay);//delay a lil bit
 }
@@ -78,27 +85,6 @@ void UpUntilW4Bar(int goal, float prop, int speed, bool FourBarToMax) {
 	delay(10);
 	return;
 }
-int first = 0;
-int last = 0;
-int lastValue = 0;
-/*void UpUntilSonar(const struct liftMech* lift, int speed = 127) {
-	last = first;
-	lift->PID.isRunning = false;
-	const int threshold = 20;//10cm from cone max
-	while (SensorValue[LiftPot] > 2400 && SensorValue[ultraSound] < threshold &&SensorValue[ultraSound] != -1 &&SensorValue[LiftPot] > lastValue) //brings lift up to goal
-		liftMove(lift, abs(speed));
-	lastValue = SensorValue[LiftPot];
-	first = SensorValue[mainLift.sensor];
-	playSound(soundBlip);
-	liftMove(lift, -abs(speed));//quick hard stop
-	delay(10);
-	enablePID(lift);
-	return;
-}*/
-void soundCompare(){
-	if(abs(first - last) > 100) playSound(soundException);
-	else playSound(soundUpwardTones);
-}
 void DownUntil(struct liftMech* lift, int goal, int speed = 127) {
 	lift->PID.isRunning = false;
 	while (SensorValue[lift->sensor] > goal )//brings lift down to goal
@@ -109,13 +95,13 @@ void DownUntil(struct liftMech* lift, int goal, int speed = 127) {
 void manualLiftControl(const struct liftMech* lift, int bUp, int bDown, int bUp2, int bDown2, bool reversed, int maxSpeed) {
 	int dir = 1;
 	int power;
-	//int sensorVal = SensorValue[lift->sensor];
-//	if(lift->type == DIFFERENTIAL) sensorVal = (4095 - SensorValue[lift->sensor]);
+	int sensorVal = SensorValue[lift->sensor];
+	if(lift->type == DIFFERENTIAL) sensorVal = (4095 - SensorValue[lift->sensor]);
 	if (reversed) 			(dir = -1);
 	bool upButton 		=	(bUp == 1 || bUp2 == 1);//defining what is up button
 	bool downButton 	=	(bDown == 1 || bDown2 == 1);//defining what is down button
-	bool withinUpper 	=	(SensorValue[lift->sensor] <= lift->max);//within upper bound
-	bool withinLower 	=	(SensorValue[lift->sensor] >= lift->min);//within lower bound
+	bool withinUpper 	=	(sensorVal <= lift->max);//within upper bound
+	bool withinLower 	=	(sensorVal >= lift->min);//within lower bound
 	if (!upButton && !downButton) power = 0;//not pressed any buttons
 	else if ( (!withinUpper && upButton) || (!withinLower && downButton)) power = 0;//pressing buttons but !within bounds
 	else if (upButton) 	 power =  dir * maxSpeed;//up max speed
@@ -127,21 +113,6 @@ void manualLiftControl(const struct liftMech* lift, int bUp, int bDown, int bUp2
 			liftDiff(lift, power);//main lift and 4bar are normal-er
 		}
 		else return;
-	}
-	else if (lift->type == BINARY) {
-		if(getSign(power) > 0) {
-			UpUntil(lift, lift->max);
-			lift->PID.kP = 0.5;
-			lift->PID.thresh = 50;
-			lift->goal = lift->max + 50;
-		}
-		else if(getSign(power) < 0){
-			lift->PID.kP = 0.9;
-			lift->PID.thresh = 30;
-			DownUntil(lift, lift->min);
-			lift->goal = lift->min - 200;
-		}
-		else liftMove(lift, 0);
 	}
 	else liftMove(lift, power);//mogo has motors going opposite speeds
 }
@@ -168,18 +139,14 @@ void LiftLift(const struct liftMech* lift, int bUp, int bDown, int bUp2, int bDo
 task fourBarPID(){
 	for(;;){
 		if(U5 || U5_2) {
-			FourBar.PID.kP = 0.2;
-			FourBar.PID.thresh = 60;
 			FourBar.goal = FourBar.max;
 			FourBar.PID.isRunning = true;
 		}
 		else if(D5 || D5_2) {
-			FourBar.PID.kP = 0.8;
-			FourBar.PID.thresh = 40;
 			FourBar.goal = FourBar.min;
 			FourBar.PID.isRunning = true;
 		}
-		delay(10);
+		delay(30);
 		PIDLift(&FourBar);//calls the pid function for the lifts
 	}
 }
@@ -189,7 +156,7 @@ task LiftControlTask() {
 		if(!autonRunning){
 			if(U8 || D8 || U8_2 || D8_2){
 				mainLift.PID.isRunning = false;
-				LiftLift(&mogo, U8, D8, U8_2, D8_2, false,  180);
+				LiftLift(&mogo, U8, D8, U8_2, D8_2, false, 180);
 			}
 			else LiftLift(&mainLift, U6, D6, U6_2, D6_2, false, 400);
 			//	if(!autoStacking || !autonRunning) LiftLift(&goliat,	L8, R8, L8_2, R8_2, false);
