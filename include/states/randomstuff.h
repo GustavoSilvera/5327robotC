@@ -70,6 +70,8 @@ int currentStag = 0;
 static const float GyroK = 15.0/80.0;//scales to normal +-360 degrees
 static int currentAutonomous = 0;
 bool autonRunning = false;
+bool slewRating = false;
+bool autoAutoStacking = false;
 volatile bool autoStacking = false;
 string mainBattery, powerExpander, currCone, gyroRead;
 //int startRot = 90;

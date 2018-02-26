@@ -53,7 +53,7 @@ void enablePID(struct liftMech* lift){
 void PIDLift(const struct liftMech* lift) {
 	if (lift->PID.isRunning) {
 		if(lift->type == BINARY){
-			int sen = SensorValue[lift->Sensor];
+			int sen = SensorValue[lift->sensor];
 			if(sen < lift->max && sen > lift->min)
 				liftMove(lift, pidCompute(lift->PID, lift->goal));//power the lift with its PID
 		}
