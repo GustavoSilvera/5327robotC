@@ -80,28 +80,27 @@ void standStack(int cone){
 	}
 	FourBar.goal = FourBar.max + 200;//keeps them there
 	delay(delayValues[cone]);
-	DownUntil(&mainLift, SensorValue[mainLift.sensor] - 50, 127);
+	DownUntil(&mainLift, SensorValue[mainLift.sensor] - 30, 127);
 	intakeSpeed = OUTTAKE;
 	liftMove(&mainLift, 0);
-	delay(200);
-	if(currentCone < 14){//keeps on stack when last cone
-		UpUntilW4Bar(limitUpTo(4090, SensorValue[mainLift.sensor] + 100), 0.875, 127, false);
-		//delay(100);
-		DownUntil(&mainLift, mainLift.min + 1000, 127);
-		autoStacking = false;
-		if(currentCone < 14) currentCone+=1;
-	}
+	delay(180);
+	UpUntilW4Bar(limitUpTo(4090, SensorValue[mainLift.sensor] + 100), 0.875, 127, false);
+	//delay(100);
+	DownUntil(&mainLift, mainLift.min + 1000, 127);
+	autoStacking = false;
+	if(currentCone < 14) currentCone+=1;
+
 }
 void quickStack(int cone){
 	autoStacking = true;
 	intakeSpeed = INTAKE;
-	if(currentCone < 9) UpUntilW4Bar(heightValues[cone] - 150, 0.9, 127, true);
+	if(currentCone < 9) UpUntilW4Bar(heightValues[cone] - 200, 0.9, 127, true);
 	else{
 		UpUntil(&mainLift, heightValues[cone], 127);
 		UpUntil(&FourBar, heightFourBar[cone], 100);
 	}
 	FourBar.goal = FourBar.max + 200;//keeps them there
-	while(SensorValue[FourBar.sensor] < FourBar.max - 100){continue;}
+	while(SensorValue[FourBar.sensor] < FourBar.max - 150){continue;}
 	///delay(delayValues[cone]);
 	//DownUntil(&mainLift, SensorValue[mainLift.sensor] - 150, 127);
 	intakeSpeed = OUTTAKE;
@@ -109,7 +108,7 @@ void quickStack(int cone){
 	delay(200);
 	UpUntilW4Bar(limitUpTo(4090, SensorValue[mainLift.sensor] + 70), 0.75, 127, false);
 	delay(100);
-	DownUntil(&mainLift, mainLift.min + 900, 127);
+	DownUntil(&mainLift, mainLift.min + 12200, 127);
 	autoStacking = false;
 	if(currentCone < 14) currentCone+=1;
 }
@@ -123,6 +122,7 @@ task autoStack() {
 	currentStag = 0;
 	for (;;) {
 		if (U7 ) stack(currentCone);
+		if(D8) quickStack(currentCone);
 		if (U7_2) chinaStrat(currentCone);
 		if ((D7) && !autoStacking && time1[T2]>200) {
 			currentCone = 0;//reset
