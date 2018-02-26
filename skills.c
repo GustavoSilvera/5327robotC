@@ -35,6 +35,7 @@
 #include "include/skills/physics.h"
 #include "include/skills/init.h"
 
+int startDir = 0;
 
 void pre_auton() {//dont care
 	bStopTasksBetweenModes = true;
@@ -63,60 +64,58 @@ void initializeOpControl(const bool driver) {
 	initPID ( &gyroBase, 		Gyro, 						1,  1, 0.0, 0, 		true, 		false);//kP = .35, kD = 0.6
 	pastRot = mRot;
 }
-/*
-task intakeToLock(){
-	while(SensorValue[MogoEnd] == 0){
-		mechMove(&conveyer.m, INTAKE);
-	}
-	//delay(250);
-	lock.goal = lock.min;//turns on PID
-	lock.PID.isRunning = true;
-	playSound(soundBeepBeep);
-	LOCK;//brings up levitator
-	lock.goal = SensorValue[lock.m.sensor];//turns on PID
-	lock.PID.isRunning = true;
-	//mechMove(&conveyer.m, 0);
-	return;
-}*/
 task intakeMogos(){
 	//pick up first mogo
 	while(SensorValue[MogoFront] == 0){
-		motor[conveyer] = INTAKE;
+		motor[LConveyorMotor] = INTAKE;
+		motor[RConveyorMotor] = INTAKE;
 	}
 	//clawControl(OPEN);
 	while(SensorValue[MogoFront] == 1){
-		motor[conveyer] = INTAKE;//slower speed once intook (button pressed)
+		motor[LConveyorMotor] = INTAKE;
+		motor[RConveyorMotor] = INTAKE;
 	}
 	//clawControl(OPEN);clawControl(OPEN);clawControl(OPEN);clawControl(OPEN);//spams claw open just to make sure
 	playSound(soundBlip);
-	motor[conveyer] = INTAKE;
+	motor[LConveyorMotor] = 0;
+	motor[RConveyorMotor] = 0;
 
 	delay(500);
 
 	//pick up second mogo
 	while(SensorValue[MLin] > 150){
-		motor[conveyer] = INTAKE;
+		motor[LConveyorMotor] = INTAKE;
+		motor[RConveyorMotor] = INTAKE;
 	}
 	while(SensorValue[MogoFront] == 0){
-		motor[conveyer] = INTAKE;
+		motor[LConveyorMotor] = INTAKE;
+		motor[RConveyorMotor] = INTAKE;
 	}
 	delay(150);
 	playSound(soundBlip);
-	motor[conveyer] = 0;
+	motor[LConveyorMotor] = 0;
+	motor[RConveyorMotor] = 0;
 	return;
 }
 task intakeMogo(){
 	//intake one mogo, all the way at the top
+
 	while(SensorValue[MogoEnd] == 0){
-		motor[conveyer] = INTAKE;
+		//keep running conveyer
+		//conveyer.speed=INTAKE;
+		motor[LConveyorMotor] = INTAKE;
+		motor[RConveyorMotor] = INTAKE;
 	}
-	//clawControl(OPEN);
 	while(SensorValue[MogoEnd] == 1){
-		motor[conveyer] = INTAKE;//slower speed once intook (button pressed)
+		//keep running conveyer
+		//conveyer.speed=INTAKE;
+		motor[LConveyorMotor] = INTAKE;
+		motor[RConveyorMotor] = INTAKE;
 	}
-	//clawControl(OPEN);clawControl(OPEN);clawControl(OPEN);clawControl(OPEN);//spams claw open just to make sure
 	playSound(soundBlip);
-	motor[conveyer] = 0;
+	//conveyer.speed=0;
+	motor[LConveyorMotor] = 0;
+	motor[RConveyorMotor] = 0;
 }
 task conveyerMove(){
 	stopTask(MechControlTask);
@@ -125,233 +124,6 @@ task conveyerMove(){
 			delay(50);
 	}
 }
-/*
-volatile int clawSpeed = 0;
-task clawHold(){
-for(;;){
-motor[ClawMotor] = clawSpeed;
-delay(30);
-}
-}
-void twentyScore(){
-	lock.PID.isRunning = true;
-	conveyer.speed = 0;
-	lock.goal = lock.max;//unlocks mogo
-	fwds(-127, mRot);
-	delay(1000);
-	conveyer.speed = INTAKE;
-	fwds(-127, mRot);
-	delay(400);
-	fwds(0, mRot);
-	delay(400);
-}
-void crossField(const int initialDistance, const int secondaryDistance, bool withCone) {
-	const int initialMRot = SensorValue[Gyro]*GyroK;
-	lock.goal = lock.max;
-	UNLOCK;
-	conveyer.speed = INTAKE;
-	//fourBar.goal = RELEASE + 500;
-	//fourBar.PID.isRunning = true;
-	//startTask(intakeToLock);//picks up first mogo
-	driveFor(initialDistance);
-	//fourBar.goal = RELEASE;
-	fwds(70, mRot);//slows down drive
-	clearTimer(T1);
-	if(withCone){
-		while(SensorValue[Gyro]*GyroK > initialMRot && time1[T1] < 500)
-			rot(-10*(SensorValue[Gyro]*GyroK - initialMRot));//corrects angle if off course
-	}
-	else{
-		while(SensorValue[Gyro]*GyroK > initialMRot && time1[T1] < 500)
-			rot(-10*(SensorValue[Gyro]*GyroK - initialMRot));//corrects angle if off course
-	}
-	delay(500);//waits for mogo pickup
-	//startTask(intakeSecond);
-	//if (withCone) startTask(dropCone);
-	driveFor(40);//drive initial distance to get to cone-free wall
-	if (withCone) alignSonar(40, 4);//aligns to the wall using the sonar... should be p consistent (TUNE)
-	else alignSonar(35, 4);
-	//driveFor(secondaryDistance);
-	fourBar.goal = AVGINT(fourBar.min, fourBar.max);
-	conveyer.speed = INTAKE / 6;
-	delay(300);
-	lock.goal = lock.min;
-	settle();
-}
-void Thoar(){
-	const int initialMRot = SensorValue[Gyro]*GyroK;
-	settle();
-	//startTask(intakeToLock);
-	driveFor(90);
-	clearTimer(T1);
-	//while(SensorValue[Gyro]*GyroK > initialMRot && time1[T1] < 700)
-	//	rot(-10*(SensorValue[Gyro]*GyroK - initialMRot));
-	settle();
-	driveFor(-10);
-	//fourBar.goal = PICKUP;
-	delay(200);
-	//clawSpeed = -127;
-	//startTask(clawHold);
-	delay(200);
-	while(SensorValue[Gyro] > -25) rot(-127);
-	settle();
-	driveFor(13);
-	//clawSpeed = 40;//pickup cone
-	delay(250);
-	//stopTask(clawHold);
-	delay(100);//settling
-	DownUntil(&fourBar, fourBar.min, 90);
-	while(SensorValue[Gyro] > -55) rot(-127);
-	//delay(000);
-	settle();
-	driveFor(23);
-	delay(100);
-	//startTask(intakeSecond);
-	delay(300);
-	//startTask(dropCone);
-	//startTask(clawHold);
-	fwds(127);
-	delay(800);
-	driveFor(-5);
-	settle();
-	delay(400);
-	//startTask(clawHold);
-	//clawSpeed = -127;
-	delay(500);
-	driveFor(-10);
-	//clawSpeed = 80;
-	//stopTask(clawHold);
-	delay(100);
-	//fourBar.goal = PICKUP;
-	conveyer.speed = 0;
-	delay(400);
-	rotAcc(-50, 15);
-}
-task progSkills(){
-	startTask(conveyerMove);
-	startTask(killswitch);
-	startTask(liftPID);
-	startTask(MechControlTask);//individual pid for lift type
-	startTask(MeasureSpeed);//velocity measurer for base
-	startTask(sensorsUpdate);
-	//startTask(conveyerMove);//allows for multitasking
-	//startTask(clawTask);
-	autonRunning = true;
-	//startTask(intakeToLock);
-	//startTask(dropCone);
-	/*driveFor(90);
-	delay(500);
-	driveFor(-80);
-	rotAcc(45, 6);
-	fourBar.goal = AVGINT(fourBar.min, fourBar.max);
-	int goal = 27;
-	while(SensorValue[sonar] < goal){
-	fwds(4.5*(SensorValue[sonar] - goal));
-	}
-	rotAcc(-90, 6);
-	UNLOCK;
-	conveyer.speed = INTAKE;
-	fwds(-80);
-	delay(350);
-	settle();
-	delay(200);
-	*/
-	/*
-	///////////////////////////////STAGE 1/////////////////////////////
-	crossField(80, 70, true);//second distance dosent do anything (TUNE) (using sonar for 2nd distance)
-	//conveyer.speed = 0;
-	//motor[ClawMotor] = -127;
-	delay(400);
-	settle();
-	delay(100);
-	rotAcc(-90, 10);
-	//timeTurn(90, 2);//time based turn with 2 mogos @ 90°
-	fourBar.goal = RELEASE;
-	delay(300);
-	alignSonar(68, 4);
-	settle();
-	delay(100);
-	rotAcc(-90, 10);
-	//timeTurn(90, 2);//time based turn with 2 mogos @ 90°
-	fourBar.goal = AVGINT(fourBar.min, fourBar.max);
-	delay(400);
-	twentyScore();//SCORES FIRST TWO IN ZONE
-	settle();
-	delay(100);
-	fwds(127);
-	delay(700);//time based drive to go over 10pt pole but not pass line (TUNE)
-	//for ^ could also use driveFor(25) ish, need to (TUNE) regardless
-	fourBar.goal = RELEASE;//brings to rear again
-	//'s' motion
-	alignToLine(1);//aligns to tape line
-	conveyer.speed = 0;//turn off conveyer
-	settle();
-	delay(200);
-	rotAcc(90, 6);//should be solid 90 every time
-	settle();
-	alignSonar(42, 5.5);
-	settle();
-	delay(300);
-	rotAcc(-90, 6);
-	settle();
-	///////////////////////////////STAGE 2/////////////////////////////
-	crossField(80, 62, false);
-	fourBar.goal = RELEASE;
-	conveyer.speed = 0;
-	rotAcc(-90, 10);
-	//timeTurn(90, 2);//time based turn with 2 mogos @ 90°
-	alignSonar(64, 4);
-	settle();
-	rotAcc(-90, 10);
-	//timeTurn(90, 2);//time based turn with 2 mogos @ 90°
-	twentyScore();
-	fwds(127);
-	delay(650);//time based drive to go over 10pt pole but not pass line (TUNE)
-
-	alignToLine(1);
-	rotAcc(-92, 5);
-	driveFor(27);
-	rotAcc(43, 5);
-	//startTask(intakeToLock);
-	driveFor(80);
-	delay(500);
-	settle();
-	driveFor(-70);
-	rotAcc(-45, 5);
-	driveFor(-5);
-	rotAcc(90, 5);
-	UNLOCK;
-	conveyer.speed = INTAKE;
-	delay(500);
-	driveFor(-10);
-	settle();
-	driveFor(10);
-	rotAcc(-45, 5);
-	driveFor(90);
-	///////////////////////////////STAGE 3/////////////////////////////
-	//alignToLine(1);
-	//rotAcc(90, 5);//should be accurate 90 every time
-	//alignSonar(25, 6);
-	//settle();
-	//rotAcc(-45, 2);
-	//	Thoar();//
-	//	driveFor(50);
-	//	alignToLine(1.5);
-	//	rotAcc(-90, 5);
-	//	alignSonar(90, 4);
-	//	rotFast(-90);
-	//	UNLOCK;
-	//	conveyer.speed = INTAKE;
-	////	driveFor(-15);
-	////	settle();
-	//	delay(400);
-	//	driveFor(15);
-	////	alignToLine(1);
-	//DONE
-	autonRunning = false;
-	startTask(MechControlTask);
-	return;
-}*/
 task crossField() {
 	//startTask(conveyerMove);
 	//startTask(killswitch);
@@ -361,16 +133,45 @@ task crossField() {
 	rotEnc(135);
 	return;
 }
-task cornerMogo() {
+task skillsTest1() {
 	startTask(conveyerMove);
 	startTask(killswitch);
-	int initRot = mRot;
+
+	//Corner Mogo
+	startDir = mRot;
+	motor[LConveyorMotor] = INTAKE;
+	motor[RConveyorMotor] = INTAKE;
 	startTask(intakeMogo);
-	driveFor(62);
-	rotEnc(initRot - mRot);
-	driveFor(-65);
-	RSwingFor(-45);
-	motor[conveyer] = INTAKE;
+	driveFor(60);//drive and grab mogo
+	if(abs(startDir-mRot)>2)rotTune(startDir-mRot+2);//angular correction
+	driveFor(-58);//come back to 10pt pole
+	RSwingFor(-40);//align with 10pt
+	motor[LConveyorMotor] = INTAKE;
+	motor[RConveyorMotor] = INTAKE;
+	delay(200);//release mogo in 10pt
+
+	//Cross Field
+	startTask(intakeMogos);
+	driveFor(110); //drive and intake 2 mogos
+	rotEnc(135);
+
+	//End
+	startTask(MechControlTask);
+}
+task skillsTest2(){
+	startTask(intakeMogos);
+	driveFor(110);
+	rotEnc(110);
+	driveFor(-20);
+	LSwingFor(-35);/*
+	fwds(127);//full power drive forward
+	delay(700);
+	motor[LConveyorMotor] = INTAKE;
+	motor[RConveyorMotor] = INTAKE;
+	delay(200);
+	fwds(-127);*/
+
+	startTask(MechControlTask);
 }
 task usercontrol() {//initializes everything
 	initializeOpControl(true);//driver init
@@ -387,15 +188,23 @@ task usercontrol() {//initializes everything
 	fourBar.goal = RELEASE;
 	if(nImmediateBatteryLevel < 8500) playSound(soundException);
 	else playSound(soundUpwardTones);
+	/*
+	//get initial angle
+	for(int i=0;i<8;i++){
+		startDir+=SensorValue[Gyro]*GyroK;
+		delay(5);
+	}
+	startDir = startDir>>3;
+	*/
 	for (;;) {
 		//debug controls
-		if(R7) rotEnc(-90);//driveFor(30); //startTask(intakeToLock);//(TUNED)
-		if(L7) rotEnc(90);//driveFor(-30);
-		if(R8) rotEnc(-45);
-		if(L8) rotEnc(45);
-		if(U8) rotEnc(-135);
-		if(D8) rotEnc(135);
-		if(U7) startTask(cornerMogo);
+		if(R7) rotEnc(startDir - mRot);//driveFor(30); //startTask(intakeToLock);//(TUNED)
+		if(L7) driveFor(50);//driveFor(-30);
+		if(R8) RSwingFor(-45);
+		if(L8) RSwingFor(45);
+		if(U8) rotEnc(-90);
+		if(D8) rotEnc(90);
+		if(U7) startTask(skillsTest2);
 		//accelerometer driving:
 		/*
 		float yaxis = 2*vexRT[AccelY];//drive

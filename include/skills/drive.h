@@ -11,16 +11,17 @@ void fwdsLong(const int power, const float angle = mRot) {//drive base forwards
 	const float speed = LIMITUP(127, power);
 	motor[RBaseFront] = speed;
 	motor[RBaseBack] = speed;
-	motor[LBaseFront] = speed;//*0.625;
-	motor[LBaseBack] = speed;//*0.625;
+	motor[LBaseFront] = speed;
+	motor[LBaseBack] = speed;
 }
 
 void fwds(const int power, const float angle = mRot) {//drive base forwards
-	const float speed = LIMITUP(127, power);
-	motor[RBaseFront] = speed;
-	motor[RBaseBack] = speed;
-	motor[LBaseFront] = speed;
-	motor[LBaseBack] = speed;
+	const int speed = LIMITUP(127, power);
+	//int dirSkew = limitUpTo(speed, 15*(mRot - angle));
+	motor[RBaseFront] = speed;//+dirSkew;
+	motor[RBaseBack] = speed;//+dirSkew;
+	motor[LBaseFront] = speed;//-dirSkew;
+	motor[LBaseBack] = speed;//-dirSkew;
 }
 bool nearStopped(int velThresh, int motorThresh){
 	return(abs(mainVelocity) < velThresh && //low base velocity
