@@ -50,13 +50,6 @@ void resetEncoders(){
 	SensorValue[LeftEncoder] = 0;
 	SensorValue[RightEncoder] = 0;
 }
-task sensorsUpdate() {
-	for (;;) {
-		mRot = (float)(GyroK*SensorValue[Gyro]);
-		encoderAvg = avg2(SensorValue[Right.sensor], SensorValue[Left.sensor]);
-		delay(5);//really quick delay
-	}
-}
 /*ANTI-STALLING STUFF*/
 bool doubleTap(){
 	if(vexRT[Btn8L] == 1){
@@ -80,7 +73,7 @@ void checkStalling(struct sideBase* side){
 	if(stalling(side)){
 		clearTimer(T1);
 		bool currentlyStalling = true;
-		while(time1[T1] < 80){//checkingn for continuous stalling (else instantanious refresh)
+		while(time1[T1] < 100){//checkingn for continuous stalling (else instantanious refresh)
 			currentlyStalling = stalling(side);//still stalling
 			if(currentlyStalling) continue;//keep going until time limit
 			else break;

@@ -28,35 +28,42 @@ task MotorSlewRateTask(){//slew rate task
 		SlewAmount[i] = 30;
 	}
 	for(;;){// run loop for every motor
-		for( motorI = 0; motorI < 8; motorI++){
-			//motorCurrent = motor[ motorIndex ];
-			if( abs(motor[motorI] - motorSlew[motorI]) > 10){//current motor value not equal to goal
-				if( motor[motorI] < motorSlew[motorI] && motor[motorI] < 127){//if less than goal || less than max
-					motor[motorI] =  motor[motorI] + SlewAmount[motorI];//decrease by specific amount
-					if( motor[motorI] >= motorSlew[motorI]){//if equal to or surpassed goal
-						motor[motorI]  = motorSlew[motorI];//sets change to goal
+		if(slewRating){
+			for( motorI = 0; motorI < 8; motorI++){
+				//motorCurrent = motor[ motorIndex ];
+				if( abs(motor[motorI] - motorSlew[motorI]) > 10){//current motor value not equal to goal
+					if( motor[motorI] < motorSlew[motorI] && motor[motorI] < 127){//if less than goal || less than max
+						motor[motorI] =  motor[motorI] + SlewAmount[motorI];//decrease by specific amount
+						if( motor[motorI] >= motorSlew[motorI]){//if equal to or surpassed goal
+							motor[motorI]  = motorSlew[motorI];//sets change to goal
+						}
 					}
-				}
-				if( motor[motorI] > motorSlew[motorI] && motor[motorI] > -127){//if currently more than requested
-					motor[motorI] = motor[motorI] - SlewAmount[motorI];//decrease by specific amount
-					if(motor[motorI] <= motorSlew[motorI]){//once reaches or passes goal
-						motor[motorI] = motorSlew[motorI];//sets change to goal
+					if( motor[motorI] > motorSlew[motorI] && motor[motorI] > -127){//if currently more than requested
+						motor[motorI] = motor[motorI] - SlewAmount[motorI];//decrease by specific amount
+						if(motor[motorI] <= motorSlew[motorI]){//once reaches or passes goal
+							motor[motorI] = motorSlew[motorI];//sets change to goal
+						}
 					}
+					//motor[motorI] = motor[motorI]);
 				}
-				//motor[motorI] = motor[motorI]);
+				delay(5);//delay 25ms
 			}
-			delay(5);//delay 25ms
 		}
+		else return;
 	}
 }//task for "slew"-ing the motres by adding to their power via loops
 void baseMove(const struct sideBase* side, int speed) {
 	int power = limitUpTo(127, speed);
-	//motor[side->motors[0]] = power;//up is fast
-	//motor[side->motors[1]] = power;//up is fast
-	//motor[side->motors[2]] = power;//up is fast
-	motorSlew[side->motors[0]] = power;
-	motorSlew[side->motors[1]] = power;
-	motorSlew[side->motors[2]] = power;
+	if(!slewRating){
+		motor[side->motors[0]] = power;//up is fast
+		motor[side->motors[1]] = power;//up is fast
+		motor[side->motors[2]] = power;//up is fast
+	}
+	else{
+		motorSlew[side->motors[0]] = power;
+		motorSlew[side->motors[1]] = power;
+		motorSlew[side->motors[2]] = power;
+	}
 }
 void driveLR(const int powerR, const int powerL) {
 	if(autonRunning){//only do antistall during auton

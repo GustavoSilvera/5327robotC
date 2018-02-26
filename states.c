@@ -52,11 +52,11 @@ void initializeOpControl(const bool driver) {
 
 	//-LIFT---------&reference--TYPE----------sensor-1-----motor-1-----motor-2-------max------min----delay(opt)
 	initLiftType(   &mainLift,  NORMAL,       LiftPot,     LiftTop,    LiftBottom,   4400,    2150           );
-	initLiftType(   &mogo,      DIFFERENTIAL, LiftPot,     LiftTop,    LiftBottom,   2600,    800            );//is this max (4000) supposed to be that off?
+	initLiftType(   &mogo,      DIFFERENTIAL, LiftPot,     LiftTop,    LiftBottom,   9000,    -9000          );//is this max (4000) supposed to be that off?
 	initLiftType(   &FourBar,   BINARY,       FourBarPot,  Bar,        NONE,         3640,    1900,  10      );
 
 	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)----
-	initPID(    &mainLift.PID,  mainLift.sensor,    10,     0.25,   0.0,    0.0,    rev,        true          );
+	initPID(    &mainLift.PID,  mainLift.sensor,    50,     0.15,   0.0,    0.0,    rev,        true          );
 	initPID(    &FourBar.PID,   FourBar.sensor,     250,    0.2,    0.0,    0.0,    rev,        false         );
 	initPID(    &gyroBase,      Gyro,               3,      0.525,  0.0,    0.5,    !rev,       false         );
 
@@ -81,7 +81,6 @@ void pre_auton() {//dont care
 }
 task mogoOut(){
 	autonRunning = true;
-	startTask(goliathHold);
 	intakeSpeed = INTAKE;
 	FourBar.goal = FourBar.min;
 	UpUntil(&mainLift, SensorValue[mainLift.sensor] + 450);
@@ -97,7 +96,6 @@ void fourConeAuton(bool right, bool twenty){
 	if(!right) dir = -1;
 	autonRunning = true;
 	mainLift.PID.kP = 0.15;
-	startTask(goliathHold);
 	startTask(mogoOut);
 	FourBar.PID.isRunning = true;
 	intakeSpeed = INTAKE/2;
@@ -190,7 +188,6 @@ void fourConeAuton(bool right, bool twenty){
 		}
 		driveFor(-17);//exit zones
 	}
-	stopTask(goliathHold);//finished stacking
 	autonRunning = false;
 }
 void matchLoadAuton (bool right, bool twenty){
@@ -198,7 +195,6 @@ void matchLoadAuton (bool right, bool twenty){
 	if(!right) dir = -1;
 	autonRunning = true;
 	mainLift.PID.kP = 0.15;
-	startTask(goliathHold);
 	startTask(mogoOut);
 	FourBar.PID.isRunning = true;
 	intakeSpeed = INTAKE/2;
@@ -225,12 +221,12 @@ task autonomous() {
 	initializeOpControl(false);//auton init
 	startTask(LiftControlTask);//individual pid for lift type
 	startTask(MeasureSpeed);//velocity measurer for base
-	startTask(sensorsUpdate);
 	startTask(autoStack);
 	startTask(antiStall);
 	startTask(killswitch);
 	startTask(MotorSlewRateTask);
 	startTask(displayLCD);
+	startTask(goliathControl);
 	FourBar.PID.kP = 0.9;
 	FourBar.PID.thresh = 30;
 	switch( currentAutonomous ) {
@@ -260,11 +256,11 @@ task usercontrol() {//initializes everything
 	initializeOpControl(true);//driver init
 	startTask(LiftControlTask);//individual pid for lift type
 	startTask(MeasureSpeed);//velocity measurer for base
-	startTask(sensorsUpdate);
 	startTask(autoStack);
 	startTask(antiStall);
 	startTask(killswitch);
-	startTask(MotorSlewRateTask);
+	if(slewRating)startTask(MotorSlewRateTask);
+	startTask(goliathControl);
 	startTask(displayLCD);
 	autonRunning = false;
 	bLCDBacklight = true;// Turn on LCD Backlight
@@ -279,8 +275,9 @@ task usercontrol() {//initializes everything
 		//	if (L7) driveFor2(20);//fourConeAuton(RIGHT, TWENTY);
 		//if (D7) //fourConeAuton(RIGHT, TEN);
 		driveCtrlr();
-		if(L8 || L8_2)		 motor[goliath] = 127;
-		else if (R8 || R8_2) motor[goliath] = -80;
+		mRot = (float)(GyroK*SensorValue[Gyro]);
+		encoderAvg = avg2(SensorValue[Right.sensor], SensorValue[Left.sensor]);
+
 		delay(15);//~60hz
 	}
 }//function for operator control
