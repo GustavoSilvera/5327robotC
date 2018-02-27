@@ -136,8 +136,9 @@ void rotAccFast(int target){
 	settle();
 }
 void rotEnc(int angle){
-	SensorValue[Gyro]= 0;
-	SensorScale[Gyro]= 260;
+	//SensorValue[Gyro]= 0;
+	//SensorScale[Gyro]= 260;
+	int initGyro = SensorValue[Gyro];
 	SensorValue[RightBaseEnc]= 0;
 	SensorValue[LeftBaseEnc]= 0;
 	int delayTime = 700;
@@ -153,32 +154,41 @@ void rotEnc(int angle){
 	}
 	clearTimer(T2);
 	while(time1[T2] < delayTime){
-		rot(LimitDownTo(30, -2.5*(SensorValue[Gyro]*GyroK - angle)));
+		rot(LimitDownTo(30, -2.5*((SensorValue[Gyro]-initGyro)*GyroK - angle)));
 	}
-	delay(200);
+	rot(0);
+}
+void rotTune(int angle){
+	int initGyro = SensorValue[Gyro];
+	int delayTime = 700;
+	clearTimer(T2);
+	while(time1[T2] < delayTime){
+		rot(LimitDownTo(30, -1*((SensorValue[Gyro]-initGyro)*GyroK - angle)));
+	}
 }
 void RSwingFor(int target){
 	gyroBase.isRunning = true;
 	SensorValue[Gyro] = 0;//resets gyros
 	SensorScale[Gyro] = 260;
-	while(abs(SensorValue[Gyro]*GyroK - target) > 0.5){
+	clearTimer(T2);
+	while(abs(SensorValue[Gyro]*GyroK - target) > 0.5 && time1[T2] < 500){
 		swingR(LimitDownTo(20, 5*(target - SensorValue[Gyro]*GyroK) ) );
 	}
-	swingR(-GETSIGN(target)*60);
-	delay(30);
-	rot(0);
+	//swingR(-GETSIGN(target)*60);
+	//delay(30);
+	swingR(0);
 	return;
 }
 void LSwingFor(int target){
 	gyroBase.isRunning = true;
 	SensorValue[Gyro] = 0;//resets gyros
 	SensorScale[Gyro] = 260;
-	while(abs(SensorValue[Gyro]*GyroK - target) > 0.5){
+	while(abs(SensorValue[Gyro]*GyroK - target) > 0.5 && time1[T2] < 500){
 		//if (target>0) baseMove(&Right, 25); //keep right side still moving back
-		swingL(limitDownTo(20, 3*(SensorValue[Gyro]*GyroK- target) ) );
+		swingL(LimitDownTo(20, 5*(SensorValue[Gyro]*GyroK- target) ) );
 	}
-	swingL(-GETSIGN(target) *60);
-	delay(30);
-	rot(0);
+	//swingL(-GETSIGN(target) *60);
+	//delay(30);
+	swingL(0);
 	return;
 }
