@@ -224,7 +224,7 @@ task autonomous() {
 	startTask(autoStack);
 	startTask(antiStall);
 	startTask(killswitch);
-	startTask(MotorSlewRateTask);
+	if(slewRating)startTask(MotorSlewRateTask);
 	startTask(displayLCD);
 	startTask(goliathControl);
 	FourBar.PID.kP = 0.9;
@@ -271,13 +271,10 @@ task usercontrol() {//initializes everything
 	for (;;) {
 		//debug controls
 		//if (U7) fourConeAuton(RIGHT, TEN);//matchLoadAuton(RIGHT, TEN);//threeConeAuton(LEFT);//rotFor(-10);
-		//	if (R7) driveFor2(-20);//fourConeAuton(RIGHT, TWENTY);
+		//	if (R7) driveFor2(20);//fourConeAuton(RIGHT, TWENTY);
 		//	if (L7) driveFor2(20);//fourConeAuton(RIGHT, TWENTY);
 		//if (D7) //fourConeAuton(RIGHT, TEN);
 		driveCtrlr();
-		mRot = (float)(GyroK*SensorValue[Gyro]);
-		encoderAvg = avg2(SensorValue[Right.sensor], SensorValue[Left.sensor]);
-
 		delay(15);//~60hz
 	}
 }//function for operator control

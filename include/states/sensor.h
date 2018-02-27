@@ -125,6 +125,8 @@ task MeasureSpeed() {
 	const float dist = 1.125*PI;
 	const float delayAmount = 50;
 	for (;;) {
+		mRot = (float)(GyroK*SensorValue[Gyro]);
+		encoderAvg = avg2(SensorValue[Right.sensor], SensorValue[Left.sensor]);
 		//base velocity
 		Right.velocity = calcVel(&Right, circum, delayAmount);
 		Left.velocity = calcVel(&Left, circum, delayAmount);

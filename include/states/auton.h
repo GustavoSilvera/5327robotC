@@ -84,17 +84,18 @@ void standStack(int cone){
 	intakeSpeed = OUTTAKE;
 	liftMove(&mainLift, 0);
 	delay(180);
-	UpUntilW4Bar(limitUpTo(4090, SensorValue[mainLift.sensor] + 100), 0.875, 127, false);
-	//delay(100);
-	DownUntil(&mainLift, mainLift.min + 1000, 127);
-	autoStacking = false;
-	if(currentCone < 14) currentCone+=1;
-
+	if(currentCone < 14){
+		UpUntilW4Bar(limitUpTo(4090, SensorValue[mainLift.sensor] + 100), 0.875, 127, false);
+		//delay(100);
+		DownUntil(&mainLift, mainLift.min + 1000, 127);
+		autoStacking = false;
+		currentCone+=1;
+	}
 }
 void quickStack(int cone){
 	autoStacking = true;
 	intakeSpeed = INTAKE;
-	if(currentCone < 9) UpUntilW4Bar(heightValues[cone] - 200, 0.9, 127, true);
+	if(currentCone < 9) UpUntilW4Bar(heightValues[cone] - 240, 0.9, 127, true);
 	else{
 		UpUntil(&mainLift, heightValues[cone], 127);
 		UpUntil(&FourBar, heightFourBar[cone], 100);
@@ -122,7 +123,7 @@ task autoStack() {
 	currentStag = 0;
 	for (;;) {
 		if (U7 ) stack(currentCone);
-		if(D8) quickStack(currentCone);
+		//if(D8) quickStack(currentCone);
 		if (U7_2) chinaStrat(currentCone);
 		if ((D7) && !autoStacking && time1[T2]>200) {
 			currentCone = 0;//reset
