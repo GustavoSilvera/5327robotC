@@ -257,7 +257,7 @@ void oneConeAuton(bool right, bool twenty){
 	autonRunning = true;
 	mogoAndPreload();
 	if(!twenty){ //score in 10pt
-		driveFor2(-62);//drive back
+		driveFor2(-60);//drive back
 		mainLift.goal = mainLift.max; //lift lift
 		mainLift.PID.isRunning = true;
 		if (right) RSwingFor(-45);//swing out
@@ -321,6 +321,60 @@ void matchLoadAuton (bool right, bool twenty){
 }
 void stagoAuton (bool right){
 
+}
+void unblockableAuton (bool right, bool twenty){
+	int dir  = 1;
+	if(!right) dir = -1;
+	autonRunning = true;
+	mainLift.PID.kP = 0.15;
+	startTask(mogoOut);
+	FourBar.PID.isRunning = true;
+	intakeSpeed = INTAKE/2;
+	driveFor2(48);//48
+	//FourBar.goal = FourBar.max;
+	stopTask(mogoOut);
+	fwds(0);
+	clearTimer(T4);
+	while(time1[T4] < 600){
+		FourBar.goal = FourBar.max;
+		liftDiff(&mogo, -127);
+	}
+	liftMove(&mogo, 0);
+	intakeSpeed = OUTTAKE; //release preload
+	driveFor2(-55);//drive back
+	intakeSpeed = 0;
+	mainLift.goal = 2600; //lift lift
+	mainLift.PID.isRunning = true;
+	if (right) RSwingFor(-45);//swing out
+	else LSwingFor(45);
+
+	if(!twenty){ //score in 10pt
+		rotFor(dir * -90, 2); //rotate perp to 10pt pole
+		delay(200);
+		driveFor(5); //drive to 10pt
+		//mainLift.PID.isRunning = false;
+		clearTimer(T4);
+		while(SensorValue[mogo.sensor] > mogo.min && time1[T4] < 600){ //mogo out
+			liftDiff(&mogo, 127);
+		}
+		//mainLift.PID.isRunning = true;
+		driveFor2(-25);// release & get out of the way
+	}
+	else { //score in 20 pt
+		driveFor(-6); //drive to center of zone
+		rotFor(dir * -90 , 2);
+		//driveFor(-5);//reverse to gain momentum
+		//delay(100);
+		fwds(127);//enter 20pt zone
+		delay(1500);
+		fwds(0);
+		//driveFor(16); //enter 20pt zone
+		clearTimer(T4);
+		while(SensorValue[mogo.sensor] > mogo.min + 100 && time1[T4] < 600){ //mogo out
+			liftDiff(&mogo, 127);
+		}
+		driveFor(-17);//exit zones
+	}
 }
 task autonomous() {
 	autonRunning = true;
@@ -396,7 +450,7 @@ task usercontrol() {//initializes everything
 	else playSound(soundUpwardTones);
 	for (;;) {
 		//debug controls
-		//if (U7) fourConeAuton(RIGHT, TEN);//matchLoadAuton(RIGHT, TEN);//threeConeAuton(LEFT);//rotFor(-10);
+		//if (U7) unblockableAuton(RIGHT, TWENTY);//matchLoadAuton(RIGHT, TEN);//threeConeAuton(LEFT);//rotFor(-10);
 		//	if (R7) driveFor2(20);//fourConeAuton(RIGHT, TWENTY);
 		//	if (L7) driveFor2(20);//fourConeAuton(RIGHT, TWENTY);
 		//if (D7) //fourConeAuton(RIGHT, TEN);
