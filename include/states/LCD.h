@@ -33,22 +33,40 @@ void displayAuton( int value, bool select = false  ){
 	// Simple selection display
 	switch(value){
 	case    0:
-		displayLCDString(0, 0, "3 Cone R");
+		displayLCDString(0, 0, "4C 10 R");
 		break;
 	case    1:
-		displayLCDString(0, 0, "3 Cone L");
+		displayLCDString(0, 0, "4C 20 R");
 		break;
 	case    2:
-		displayLCDString(0, 0, "1 Cone R");
+		displayLCDString(0, 0, "4C 10 L");
 		break;
 	case    3:
-		displayLCDString(0, 0, "1 Cone L");
+		displayLCDString(0, 0, "4C 20 L");
 		break;
 	case    4:
-		displayLCDString(0, 0, "RAM time");
+		displayLCDString(0, 0, "3C 10 R");
 		break;
 	case    5:
-		displayLCDString(0, 0, "no auton");
+		displayLCDString(0, 0, "3C 20 R");
+		break;
+	case    6:
+		displayLCDString(0, 0, "3C 10 L");
+		break;
+	case    7:
+		displayLCDString(0, 0, "3C 20 L");
+		break;
+	case    8:
+		displayLCDString(0, 0, "1C 10 R");
+		break;
+	case    9:
+		displayLCDString(0, 0, "1C 20 R");
+		break;
+	case    10:
+		displayLCDString(0, 0, "1C 10 L");
+		break;
+	case    11:
+		displayLCDString(0, 0, "1C 20 L");
 		break;
 	default:
 		displayLCDString(0, 0, "Unknown");
@@ -87,7 +105,7 @@ void autonSelect(int delayTime = 5000){
 		delay(200);
 	}
 }
-void displayBatteryLevels(){
+void displayStuff(){
 	//Display the Primary Robot battery voltage
 	displayLCDString(0, 0, "B:");
 	sprintf(mainBattery, "%1.2f%c", nImmediateBatteryLevel/1000.0,'V'); //Build the value to be displayed
@@ -114,7 +132,7 @@ task displayLCD(){
 		if(nLCDButtons != 0) { //not sure if works (displays for 5 sec)
 			autonSelect();
 		}//displays auton for 5 seconds
-		else displayBatteryLevels();
+		else displayStuff();
 		delay(30);
 	}
 }

@@ -17,7 +17,7 @@ const int INTAKE = 100;//for roller hold
 const int OUTTAKE = -127;
 const int heightValues[15] = {
 	2350, 2400, 2530, 2590, 2670, 2780,
-	2840, 2970, 3050, 3200, 3330, 3420,
+	2840, 2970, 3050, 3200, 3350, 3475,
 	3540, 3750, 3900 };//values for where the lift should go to when autoStacking
 const int heightFourBar[15] = {
 	FourBar.max, FourBar.max, FourBar.max, FourBar.max, FourBar.max,
@@ -35,7 +35,8 @@ const int delayValues[15] = {0, 0, 0, 0, 0, 0, 0, 0, 200, 330, 300, 350, 400, 45
 volatile int intakeSpeed = 0;
 task goliathControl(){
 	for(;;){
-		if(autoStacking || autonRunning){
+		if(autoStacking ||
+			autonRunning){
 			motor[goliath] = intakeSpeed;
 		}
 		else{
@@ -84,13 +85,16 @@ void standStack(int cone){
 	intakeSpeed = OUTTAKE;
 	liftMove(&mainLift, 0);
 	delay(180);
-	if(currentCone < 14){
+	if(currentCone < 13){
 		UpUntilW4Bar(limitUpTo(4090, SensorValue[mainLift.sensor] + 100), 0.875, 127, false);
 		//delay(100);
-		DownUntil(&mainLift, mainLift.min + 1000, 127);
-		autoStacking = false;
+		mainLift.goal = mainLift.min + 100 * currentCone;
+		//DownUntil(&mainLift, mainLift.min + 1000, 127);
+		delay(100*currentCone);
 		currentCone+=1;
 	}
+	else intakeSpeed = 0;
+	autoStacking = false;
 }
 void quickStack(int cone){
 	autoStacking = true;
@@ -123,7 +127,6 @@ task autoStack() {
 	currentStag = 0;
 	for (;;) {
 		if (U7 ) stack(currentCone);
-		//if(D8) quickStack(currentCone);
 		if (U7_2) chinaStrat(currentCone);
 		if ((D7) && !autoStacking && time1[T2]>200) {
 			currentCone = 0;//reset
@@ -144,10 +147,18 @@ task autoStack() {
 	}
 }
 task autoAutoStack(){
+	autoAutoStacking = true;
+	stopTask(goliathControl);
 	while(!goliat.stalling)	{
-		if(R8 || U7) return;//cancel or manual autostack
+		if(R8 || U7) {
+			startTask(goliathControl);
+			autoAutoStacking = false;
+			return;//cancel or manual autostack
+		}
 		motor[goliath] = 127;
 	}
+	autoAutoStacking = false;
+	startTask(goliathControl);
 	stack(currentCone);
 	return;
 }
