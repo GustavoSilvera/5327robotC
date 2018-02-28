@@ -168,4 +168,24 @@ task LiftControlTask() {
 		delay(10);
 	}
 }
+task stupidLiftControlTask(){
+	//startTask(fourBarPID);
+	for (;;) {
+		if(!autonRunning){
+			if(U8 || D8 || U8_2 || D8_2){
+				mainLift.PID.isRunning = false;
+				LiftLift(&mogo, U8, D8, U8_2, D8_2, false, 180);
+			}
+			else {
+				liftMove(&mainLift, limitUpTo(127, vexRT[Ch2]));
+				liftMove(&FourBar, limitUpTo(127, vexRT[Ch3]));
+			}
+		}
+		else {
+			PIDLift(&mainLift);//calls the pid function for the lifts
+			PIDLift(&FourBar);//calls the pid function for the lifts
+		}
+		delay(10);
+	}
+}
 #endif

@@ -442,6 +442,11 @@ task usercontrol() {//initializes everything
 	if(slewRating)startTask(MotorSlewRateTask);
 	startTask(goliathControl);
 	startTask(displayLCD);
+
+	//comment tasks below
+	//startTask(stupidGoliathControl);
+	//startTask(stupidLiftControlTask);
+
 	autonRunning = false;
 	bLCDBacklight = true;// Turn on LCD Backlight
 	clearLCDLine(0); // Clear line 1 (0) of the LCD
