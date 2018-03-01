@@ -86,6 +86,7 @@ void checkStalling(struct sideBase* side){
 }
 task antiStall(){
 	for(;;){
+		return;
 		//checkStalling(&Right);
 		//checkStalling(&Left);
 		checkStalling(&goliat);

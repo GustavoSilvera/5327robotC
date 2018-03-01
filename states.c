@@ -53,7 +53,7 @@ void initializeOpControl(const bool driver) {
 	//-LIFT---------&reference--TYPE----------sensor-1-----motor-1-----motor-2-------max------min----delay(opt)
 	initLiftType(   &mainLift,  NORMAL,       LiftPot,     LiftTop,    LiftBottom,   4400,    2150           );
 	initLiftType(   &mogo,      DIFFERENTIAL, LiftPot,     LiftTop,    LiftBottom,   9000,    -9000          );//is this max (4000) supposed to be that off?
-	initLiftType(   &FourBar,   BINARY,       FourBarPot,  Bar,        NONE,         3730,    1720,  5    );
+	initLiftType(   &FourBar,   BINARY,       FourBarPot,  Bar,        NONE,         4030,    1600,  5    );
 
 	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)----
 	initPID(    &mainLift.PID,  mainLift.sensor,    50,     0.15,   0.0,    0.0,    rev,        true          );
@@ -443,7 +443,7 @@ task usercontrol() {//initializes everything
 	initializeOpControl(true);//driver init
 	startTask(LiftControlTask);//individual pid for lift type
 	startTask(MeasureSpeed);//velocity measurer for base
-	//startTask(autoStack);
+	startTask(autoStack);
 	startTask(antiStall);
 	startTask(killswitch);
 	if(slewRating)startTask(MotorSlewRateTask);
@@ -462,10 +462,10 @@ task usercontrol() {//initializes everything
 	else playSound(soundUpwardTones);
 	for (;;) {
 		//debug controls
-		if (U7) matchLoadAuton(LEFT);//matchLoadAuton(RIGHT, TEN);//threeConeAuton(LEFT);//rotFor(-10);
-		if (R7) fourConeAuton(LEFT, TEN);
-		if (L7) fourConeAuton(LEFT, TWENTY);
-		if (D7) unblockableAuton(LEFT, TWENTY);
+	//	if (U7) matchLoadAuton(LEFT);//matchLoadAuton(RIGHT, TEN);//threeConeAuton(LEFT);//rotFor(-10);
+	//	if (R7) fourConeAuton(LEFT, TEN);
+	//	if (L7) fourConeAuton(LEFT, TWENTY);
+	//	if (D7) unblockableAuton(LEFT, TWENTY);
 		driveCtrlr();
 		delay(15);//~60hz
 	}
