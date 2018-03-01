@@ -41,7 +41,7 @@ task goliathControl(){
 		}
 		else{
 			if(L8 || L8_2)		 motor[goliath] = 127;
-			else if (R8 || R8_2) motor[goliath] = -80;
+			else if (R8 || R8_2) motor[goliath] = -127;
 			else motor[goliath] = 0;
 			}
 		delay(50);
@@ -62,6 +62,16 @@ task stupidGoliathControl() {
 			else if(R8) motor[goliath] = 0;
 		}
 		delay(50);
+	}
+}
+void switchLEDS(){
+	if(SensorValue[OddLED] == 1){
+		SensorValue[OddLED] = 0;
+		SensorValue[EvenLED] = 1;
+	}
+	else {
+		SensorValue[OddLED] = 1;
+		SensorValue[EvenLED] = 0;
 	}
 }
 void chinaStrat(int cone){
@@ -85,7 +95,10 @@ void chinaStrat(int cone){
 	intakeSpeed = OUTTAKE;
 	delay(100);
 	autoStacking = false;
-	if(currentCone < 14) currentStag++;
+	if(currentCone < 14) {
+		currentStag++;
+		switchLEDs();
+	}
 }
 void matchStack(int cone){
 	autoStacking = true;
@@ -112,7 +125,10 @@ void matchStack(int cone){
 	mainLift.goal = 2800;//come back down to loader height
 	mainLift.PID.isRunning = true;
 	//try adding delay?
-	if (currentCone < 13) currentCone+=1;
+	if (currentCone < 13){
+		currentCone+=1;
+		switchLEDs();
+	}
 	autoStacking = false;
 }
 void standStack(int cone){
@@ -138,6 +154,7 @@ void standStack(int cone){
 		//DownUntil(&mainLift, mainLift.min + 1000, 127);
 		delay(100*currentCone);
 		currentCone+=1;
+		switchLEDs();
 	}
 	else intakeSpeed = 0;
 	autoStacking = false;
@@ -179,16 +196,20 @@ task autoStack() {
 		if (R7_2) matchStack(currentCone);
 		if ((D7) && !autoStacking && time1[T2]>200) {
 			currentCone = 0;//reset
+			SensorValue[OddLED] = 0;
+			SensorValue[EvenLED] = 0;
 			playSound(soundException);
 			clearTimer(T2);
 		}
 		if ((R7) && time1[T2]>200 && currentCone > 0) {
 			currentCone -= 1; //subtract one cone if autostack missed
+			switchLEDs();
 			playSound(soundDownwardTones);
 			clearTimer(T2);
 		}
 		if ((L7) && time1[T2]>200 && currentCone < 15) {
 			currentCone += 1; //add one cone
+			switchLEDs();
 			playSound(soundFastUpwardTones);
 			clearTimer(T2);
 		}

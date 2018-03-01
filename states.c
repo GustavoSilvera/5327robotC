@@ -296,7 +296,7 @@ void oneConeAuton(bool right, bool twenty){
 	autonRunning = false;
 }
 
-void matchLoadAuton (bool right, bool twenty){
+void matchLoadAuton (bool right){
 	int dir  = 1;
 	if(!right) dir = -1;
 	autonRunning = true;
@@ -304,7 +304,7 @@ void matchLoadAuton (bool right, bool twenty){
 	startTask(mogoOut);
 	FourBar.PID.isRunning = true;
 	intakeSpeed = INTAKE/2;
-	driveFor(50);//48
+	driveFor2(48);//48
 	//FourBar.goal = FourBar.max;
 	stopTask(mogoOut);
 	fwds(0);
@@ -313,13 +313,21 @@ void matchLoadAuton (bool right, bool twenty){
 		FourBar.goal = FourBar.max;
 		liftDiff(&mogo, -127);
 	}
+	liftMove(&mogo, 0);
 	intakeSpeed = OUTTAKE; //release preload
-	driveFor(-45);
+	driveFor2(-9);//drive back
 	intakeSpeed = 0;
-	rotFor(45);
-
+	mainLift.goal = 2800; //lift lift above loader height
+	mainLift.PID.isRunning = true;
+	if (right) RSwingFor(-90);//swing to face loader
+	else LSwingFor(90);
+	intakeSpeed = INTAKE;
+	mainLift.goal = 2400;
+	delay(100);
+	matchStack(2);
 }
 void stagoAuton (bool right){
+	//stack on the stago, then attempt mogo
 
 }
 void unblockableAuton (bool right, bool twenty){
@@ -341,7 +349,7 @@ void unblockableAuton (bool right, bool twenty){
 	}
 	liftMove(&mogo, 0);
 	intakeSpeed = OUTTAKE; //release preload
-	driveFor2(-55);//drive back
+	driveFor2(-53);//drive back
 	intakeSpeed = 0;
 	mainLift.goal = 2600; //lift lift
 	mainLift.PID.isRunning = true;
@@ -351,7 +359,7 @@ void unblockableAuton (bool right, bool twenty){
 	if(!twenty){ //score in 10pt
 		rotFor(dir * -90, 2); //rotate perp to 10pt pole
 		delay(200);
-		driveFor(5); //drive to 10pt
+		driveFor2(11); //drive to 10pt
 		//mainLift.PID.isRunning = false;
 		clearTimer(T4);
 		while(SensorValue[mogo.sensor] > mogo.min && time1[T4] < 600){ //mogo out
@@ -361,19 +369,18 @@ void unblockableAuton (bool right, bool twenty){
 		driveFor2(-25);// release & get out of the way
 	}
 	else { //score in 20 pt
-		driveFor(-6); //drive to center of zone
+		driveFor2(-18); //drive to center of zone
 		rotFor(dir * -90 , 2);
 		//driveFor(-5);//reverse to gain momentum
 		//delay(100);
 		fwds(127);//enter 20pt zone
-		delay(1500);
-		fwds(0);
+		delay(800);
 		//driveFor(16); //enter 20pt zone
 		clearTimer(T4);
 		while(SensorValue[mogo.sensor] > mogo.min + 100 && time1[T4] < 600){ //mogo out
 			liftDiff(&mogo, 127);
 		}
-		driveFor(-17);//exit zones
+		driveFor2(-17);//exit zones
 	}
 }
 task autonomous() {
@@ -436,7 +443,7 @@ task usercontrol() {//initializes everything
 	initializeOpControl(true);//driver init
 	startTask(LiftControlTask);//individual pid for lift type
 	startTask(MeasureSpeed);//velocity measurer for base
-	startTask(autoStack);
+	//startTask(autoStack);
 	startTask(antiStall);
 	startTask(killswitch);
 	if(slewRating)startTask(MotorSlewRateTask);
@@ -455,10 +462,10 @@ task usercontrol() {//initializes everything
 	else playSound(soundUpwardTones);
 	for (;;) {
 		//debug controls
-		//if (U7) unblockableAuton(RIGHT, TWENTY);//matchLoadAuton(RIGHT, TEN);//threeConeAuton(LEFT);//rotFor(-10);
-		//	if (R7) driveFor2(20);//fourConeAuton(RIGHT, TWENTY);
-		//	if (L7) driveFor2(20);//fourConeAuton(RIGHT, TWENTY);
-		//if (D7) //fourConeAuton(RIGHT, TEN);
+		if (U7) matchLoadAuton(LEFT);//matchLoadAuton(RIGHT, TEN);//threeConeAuton(LEFT);//rotFor(-10);
+		if (R7) fourConeAuton(LEFT, TEN);
+		if (L7) fourConeAuton(LEFT, TWENTY);
+		if (D7) unblockableAuton(LEFT, TWENTY);
 		driveCtrlr();
 		delay(15);//~60hz
 	}
