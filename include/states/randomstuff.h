@@ -66,6 +66,7 @@ static volatile float velocity = 0;
 float rotVelocity = 0;
 float pastRot;
 int currentCone = 0;
+int heightTEST = 200;
 int currentStag = 0;
 static const float GyroK = 15.0/80.0;//scales to normal +-360 degrees
 static int currentAutonomous = 0;

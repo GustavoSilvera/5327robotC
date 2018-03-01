@@ -121,8 +121,8 @@ void displayStuff(){
 	displayNextLCDString(currCone);
 	displayNextLCDString(" ");
 	//Display the Power Expander voltage
-	displayNextLCDString("Gy:");
-	sprintf(gyroRead, "%1.2f%c", SensorValue[Gyro], "°");//Build the value to be displayed
+	displayNextLCDString("H:");
+	sprintf(gyroRead, "%1.2f%c", heightTEST);//Build the value to be displayed
 	displayNextLCDString(gyroRead);
 
 

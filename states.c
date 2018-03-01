@@ -439,11 +439,36 @@ task autonomous() {
 	autonRunning = false;
 	return;
 }
+void TESTStack(int height){//for debugging the best heightValues for our stack
+	autoStacking = true;
+	intakeSpeed = INTAKE;
+	float batteryScale = 1;//( 8.0 / nImmediateBatteryLevel );
+	UpUntilW4Bar(height * batteryScale, 0.9, 127, true); //four bar up
+	FourBar.goal = FourBar.max + 1000;//keeps them there HARD
+	waitTill(&FourBar, FourBar.max, 100);
+	delay(100);//delayValues[cone]);
+	DownUntil(&mainLift, height - 50, 127);
+	intakeSpeed = OUTTAKE; //release cone
+	liftMove(&mainLift, 0);
+	delay(130);
+	if(currentCone < 13){
+		UpUntilW4Bar(limitUpTo(4090, height + 100), 0.85, 127, false);
+		mainLift.goal = mainLift.min + 500;// * currentCone;//bring lift down
+		mainLift.PID.isRunning = true;
+		//DownUntil(&mainLift, mainLift.min + 1000, 127);
+		waitTill(&mainLift, mainLift.goal, 100);
+		//delay(100*currentCone);
+		currentCone+=1;
+		switchLEDs();
+	}
+	else intakeSpeed = 0;
+	autoStacking = false;
+}
 task usercontrol() {//initializes everything
 	initializeOpControl(true);//driver init
 	startTask(LiftControlTask);//individual pid for lift type
 	startTask(MeasureSpeed);//velocity measurer for base
-	startTask(autoStack);
+	startTask(autoStack);//COMMENNT
 	startTask(antiStall);
 	startTask(killswitch);
 	if(slewRating)startTask(MotorSlewRateTask);
@@ -458,15 +483,15 @@ task usercontrol() {//initializes everything
 	bLCDBacklight = true;// Turn on LCD Backlight
 	clearLCDLine(0); // Clear line 1 (0) of the LCD
 	clearLCDLine(1); // Clear line 2 (1) of the LCD
-	if(nImmediateBatteryLevel < 8000) playSound(soundException);
+	if(nImmediateBatteryLevel < 8200) playSound(soundException);
 	else playSound(soundUpwardTones);
 	for (;;) {
-		//debug controls
-	//	if (U7) matchLoadAuton(LEFT);//matchLoadAuton(RIGHT, TEN);//threeConeAuton(LEFT);//rotFor(-10);
-	//	if (R7) fourConeAuton(LEFT, TEN);
-	//	if (L7) fourConeAuton(LEFT, TWENTY);
-	//	if (D7) unblockableAuton(LEFT, TWENTY);
-		driveCtrlr();
+		//debug controls UNCOMMENT
+	/*	if (U7) TESTStack(heightTEST);//matchLoadAuton(LEFT);//matchLoadAuton(RIGHT, TEN);//threeConeAuton(LEFT);//rotFor(-10);
+		if (R7 && time1[T2]>200) { heightTEST += 10; playSound(soundFastUpwardTones);clearTimer(T2);}//fourConeAuton(LEFT, TEN);
+		if (L7 && time1[T2]>200) { heightTEST -= 10; playSound(soundDownwardTones); clearTimer(T2);}//fourConeAuton(LEFT, TWENTY);
+		if (D7 && time1[T2]>200) { heightTEST += 100; playSound(soundException);clearTimer(T2);}//unblockableAuton(LEFT, TWENTY);
+	*/	driveCtrlr();
 		delay(15);//~60hz
 	}
 }//function for operator control

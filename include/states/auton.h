@@ -40,27 +40,10 @@ task goliathControl(){
 			motor[goliath] = intakeSpeed;
 		}
 		else{
-			if(L8 || L8_2)		 	motor[goliath] = 127;
+			if(L8 || L8_2)       motor[goliath] = 127;
 			else if (R8 || R8_2) motor[goliath] = -127;
-			else 						motor[goliath] = 0;
+			else                 motor[goliath] = 0;
 			}
-		delay(50);
-	}
-}
-task stupidGoliathControl() {
-	for(;;){
-		if(autoStacking ||
-			autonRunning){
-			motor[goliath] = intakeSpeed;
-		}
-		else{
-			//if(L8 || L8_2)		 motor[goliath] = 127;
-			//else if (R8 || R8_2) motor[goliath] = -80;
-			//else motor[goliath] = 0;
-			if(U6) motor[goliath] = 127;
-			else if(D6) motor[goliath] = -80;
-			else if(R8) motor[goliath] = 0;
-		}
 		delay(50);
 	}
 }
@@ -73,6 +56,10 @@ void switchLEDs(){
 		SensorValue[OddLED] = 1;
 		SensorValue[EvenLED] = 0;
 	}
+}
+void waitTill(struct liftMech *lift, int goal, int thresh){
+	while(abs(SensorValue[lift->sensor] - goal) > thresh){continue;}//wait until success
+	return;
 }
 void chinaStrat(int cone){
 	autoStacking = true;
@@ -103,12 +90,11 @@ void chinaStrat(int cone){
 void matchStack(int cone){
 	autoStacking = true;
 	intakeSpeed = INTAKE;
-	float batteryScale = 1;
 	if(currentCone<5) {
 		mainLift.goal = SensorValue[mainLift.sensor];
 		UpUntil(&FourBar, FourBar.max, 127);
 		FourBar.goal = FourBar.max + 500;
-		while(SensorValue[FourBar.sensor] < FourBar.max - 100){continue;}
+		waitTill(&FourBar, FourBar.max, 100);
 		intakeSpeed = OUTTAKE; //drop cone without lift down
 	}
 	else {
@@ -116,7 +102,7 @@ void matchStack(int cone){
 		UpUntil(&mainLift, heightValues[cone], 127);
 		UpUntil(&FourBar, heightFourBar[cone] + 100, 127);
 		FourBar.goal = FourBar.max + 500;//keeps them there
-		while(SensorValue[FourBar.sensor] < FourBar.max - 50){continue;}
+		waitTill(&FourBar, FourBar.max, 100);
 		intakeSpeed = OUTTAKE; //release cone
 	}
 	liftMove(&mainLift, 0); //stop lift
@@ -127,7 +113,7 @@ void matchStack(int cone){
 	mainLift.goal = 2800;//come back down to loader height
 	mainLift.PID.isRunning = true;
 	FourBar.goal = FourBar.min;
-	while(abs(SensorValue[mainLift.sensor] - mainLift.goal) > 100){continue;}
+	waitTill(&mainLift, mainLift.goal, 100);
 	//try adding delay?
 	if (currentCone < 13){
 		currentCone+=1;
@@ -145,7 +131,7 @@ void standStack(int cone){
 		UpUntil(&FourBar, heightFourBar[cone], 127);
 	}
 	FourBar.goal = FourBar.max + 1000;//keeps them there HARD
-	while(SensorValue[FourBar.sensor] < heightFourBar[cone]-50){continue;}
+	waitTill(&FourBar, heightFourBar[cone], 100);
 	delay(100);//delayValues[cone]);
 	DownUntil(&mainLift, SensorValue[mainLift.sensor] - 30, 127);
 	intakeSpeed = OUTTAKE; //release cone
@@ -157,7 +143,7 @@ void standStack(int cone){
 		mainLift.goal = mainLift.min + 100;// * currentCone;//bring lift down
 		mainLift.PID.isRunning = true;
 		//DownUntil(&mainLift, mainLift.min + 1000, 127);
-		while(abs(SensorValue[mainLift.sensor] - mainLift.goal) > 100){continue;}
+		waitTill(&mainLift, mainLift.goal, 100);
 		//delay(100*currentCone);
 		currentCone+=1;
 		switchLEDs();
@@ -168,14 +154,13 @@ void standStack(int cone){
 void quickStack(int cone){
 	autoStacking = true;
 	intakeSpeed = INTAKE;
-	/*if(currentCone < 9) UpUntilW4Bar(heightValues[cone] - 300, 0.9, 127, true);
+	if(currentCone < 9) UpUntilW4Bar(heightValues[cone] - 300, 0.9, 127, true);
 	else{
 		UpUntil(&mainLift, heightValues[cone] - 170, 127);
 		UpUntil(&FourBar, heightFourBar[cone], 127);
-	}*/
-	UpUntilW4Bar(heightValues[cone] - 170, 0.85, 127, true);
+	}
 	FourBar.goal = FourBar.max + 1000;//keeps them there
-	while(SensorValue[FourBar.sensor] < FourBar.max - 50){continue;}
+	waitTill(&FourBar, FourBar.max, 100);
 	///delay(delayValues[cone]);
 	//DownUntil(&mainLift, SensorValue[mainLift.sensor] - 150, 127);
 	intakeSpeed = OUTTAKE; //release cone
@@ -185,7 +170,7 @@ void quickStack(int cone){
 	delay(100);
 	mainLift.goal = mainLift.min + 100;
 	mainLift.PID.isRunning = true;
-	while(abs(SensorValue[mainLift.sensor] - mainLift.goal) > 100){continue;}
+	waitTill(&mainLift, mainLift.goal, 100);
 	//DownUntil(&mainLift, mainLift.min + 12200, 127);
 	autoStacking = false;
 	if(currentCone < 14) currentCone+=1;

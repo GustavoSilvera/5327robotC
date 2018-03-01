@@ -14,9 +14,9 @@
 * '----------------'  '----------------'  '----------------'  '----------------' *
 \*******************************************************************************/
 void liftMove(const struct liftMech* lift, const float speed) {
-	//float power = limitUpTo(127, speed);
-	motor[lift->motors[0]] = speed;//full speed
-	motor[lift->motors[1]] = speed;//full speed
+	float power = limitUpTo(127, speed);
+	motor[lift->motors[0]] = power;//full speed
+	motor[lift->motors[1]] = power;//full speed
 }
 void liftDiff(const struct liftMech* lift, const float speed) {
 	float power = limitUpTo(127, speed);
@@ -51,14 +51,7 @@ void enablePID(struct liftMech* lift){
 	lift->PID.isRunning = true;//re-enables pid
 }
 void PIDLift(const struct liftMech* lift) {
-	if (lift->PID.isRunning) {
-		if(lift->type == BINARY){
-			int sen = SensorValue[lift->sensor];
-			if(sen < lift->max && sen > lift->min)
-				liftMove(lift, pidCompute(lift->PID, lift->goal));//power the lift with its PID
-		}
-		liftMove(lift, pidCompute(lift->PID, lift->goal));//power the lift with its PID
-	}
+	if (lift->PID.isRunning) liftMove(lift, pidCompute(lift->PID, lift->goal));//power the lift with its PID
 	else resetPIDVals(lift->PID);//turn off the PID and reset values
 	delay(lift->liftPIDelay);//delay a lil bit
 }
@@ -146,7 +139,7 @@ task fourBarPID(){
 			FourBar.goal = FourBar.min;
 			FourBar.PID.isRunning = true;
 		}
-		delay(30);
+		delay(FourBar.liftPIDelay);
 		PIDLift(&FourBar);//calls the pid function for the lifts
 	}
 }
@@ -160,26 +153,6 @@ task LiftControlTask() {
 			}
 			else LiftLift(&mainLift, U6, D6, U6_2, D6_2, false, 400);
 			//	if(!autoStacking || !autonRunning) LiftLift(&goliat,	L8, R8, L8_2, R8_2, false);
-		}
-		else {
-			PIDLift(&mainLift);//calls the pid function for the lifts
-			PIDLift(&FourBar);//calls the pid function for the lifts
-		}
-		delay(10);
-	}
-}
-task stupidLiftControlTask(){
-	//startTask(fourBarPID);
-	for (;;) {
-		if(!autonRunning){
-			if(U8 || D8 || U8_2 || D8_2){
-				mainLift.PID.isRunning = false;
-				LiftLift(&mogo, U8, D8, U8_2, D8_2, false, 180);
-			}
-			else {
-				liftMove(&mainLift, limitUpTo(127, vexRT[Ch2]));
-				liftMove(&FourBar, limitUpTo(127, vexRT[Ch3]));
-			}
 		}
 		else {
 			PIDLift(&mainLift);//calls the pid function for the lifts
