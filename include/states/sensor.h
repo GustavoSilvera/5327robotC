@@ -89,7 +89,7 @@ task antiStall(){
 		//return;
 		//checkStalling(&Right);
 		//checkStalling(&Left);
-		checkStalling(&goliat);
+		//checkStalling(&goliat);
 		delay(50);
 	}
 }

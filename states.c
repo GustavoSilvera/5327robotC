@@ -53,11 +53,11 @@ void initializeOpControl(const bool driver) {
 	//-LIFT---------&reference--TYPE----------sensor-1-----motor-1-----motor-2-------max------min----delay(opt)
 	initLiftType(   &mainLift,  NORMAL,       LiftPot,     LiftTop,    LiftBottom,   4400,    2150           );
 	initLiftType(   &mogo,      DIFFERENTIAL, LiftPot,     LiftTop,    LiftBottom,   9000,    -9000          );//is this max (4000) supposed to be that off?
-	initLiftType(   &FourBar,   BINARY,       FourBarPot,  Bar,        NONE,         3900,    1600,  5    );
+	initLiftType(   &FourBar,   BINARY,       FourBarPot,  Bar,        NONE,         3800,    2000,  5    );//3900, 1600
 
 	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)----
 	initPID(    &mainLift.PID,  mainLift.sensor,    50,     0.15,   0.0,    0.0,    rev,        true          );
-	initPID(    &FourBar.PID,   FourBar.sensor,     100,     0.15,   0.0,    0.0,    rev,        false         );
+	initPID(    &FourBar.PID,   FourBar.sensor,     100,     0.2,   0.0,    0.0,    rev,        false         );//0.15
 	initPID(    &gyroBase,      Gyro,               3,      0.525,  0.0,    0.5,    !rev,       false         );
 
 	//-SIDE---------&reference----sensor------------motor-1------motor-2--------motor-3------
@@ -116,7 +116,7 @@ void fourConeAuton(bool right, bool twenty){
 	if(!right) dir = -1;
 	autonRunning = true;
 	mogoAndPreload();
-	driveFor(1);
+	driveFor(2);
 	FourBar.goal = FourBar.min;
 	DownUntil(&mainLift, mainLift.min, 127); //go for next cone
 	mainLift.goal = mainLift.min - 200;
@@ -126,7 +126,7 @@ void fourConeAuton(bool right, bool twenty){
 	stack(2); //stack first cone
 	FourBar.goal = FourBar.min;
 	mainLift.goal = mainLift.min + 600;
-	driveFor(1);
+	driveFor(2);
 	DownUntil(&mainLift, mainLift.min, 80);
 	mainLift.goal = mainLift.min-400;
 	mainLift.PID.isRunning = true;
@@ -138,7 +138,7 @@ void fourConeAuton(bool right, bool twenty){
 	DownUntil(&mainLift, mainLift.min, 80);
 	mainLift.goal = mainLift.min-400;
 	mainLift.PID.isRunning = true;
-	driveFor(1);
+	driveFor(2);
 	delay(700);
 											/*driveFor(2);
 											//driveFor(-1);
@@ -158,14 +158,14 @@ void fourConeAuton(bool right, bool twenty){
 		else LSwingFor(45);
 		rotFor(dir * -90, 2); //rotate perp to 10pt pole
 		delay(200);
-		driveFor(4); //drive to 10pt
+		driveFor2(4); //drive to 10pt
 		//mainLift.PID.isRunning = false;
 		clearTimer(T4);
 		while(SensorValue[mogo.sensor] > mogo.min && time1[T4] < 600){ //mogo out
 			liftDiff(&mogo, 127);
 		}
 		//mainLift.PID.isRunning = true;
-		driveFor(-25);// release & get out of the way
+		driveFor2(-25);// release & get out of the way
 	}
 	else { //score in 20 pt
 		driveFor2(-62);//drive back
@@ -173,19 +173,15 @@ void fourConeAuton(bool right, bool twenty){
 		mainLift.PID.isRunning = true;
 		if(right) RSwingFor(-45);
 		else LSwingFor(45);
-		driveFor(-6); //drive to center of zone
-		rotFor(dir * -90,2);
-		driveFor(-5);//reverse to gain momentum
-		delay(100);
-		fwds(127);
-		delay(1500);
-		fwds(0);
-		//driveFor(16); //enter 20pt zone
+		driveFor2(-18); //drive to center of zone
+		rotFor(dir * -90 , 2);
+		fwds(127);//enter 20pt zone
+		delay(800);
 		clearTimer(T4);
 		while(SensorValue[mogo.sensor] > mogo.min + 100 && time1[T4] < 600){ //mogo out
 			liftDiff(&mogo, 127);
 		}
-		driveFor(-17);//exit zones
+		driveFor2(-17);//exit zones
 	}
 	autonRunning = false;
 }
@@ -371,11 +367,8 @@ void unblockableAuton (bool right, bool twenty){
 	else { //score in 20 pt
 		driveFor2(-18); //drive to center of zone
 		rotFor(dir * -90 , 2);
-		//driveFor(-5);//reverse to gain momentum
-		//delay(100);
 		fwds(127);//enter 20pt zone
 		delay(800);
-		//driveFor(16); //enter 20pt zone
 		clearTimer(T4);
 		while(SensorValue[mogo.sensor] > mogo.min + 100 && time1[T4] < 600){ //mogo out
 			liftDiff(&mogo, 127);
@@ -422,16 +415,20 @@ task autonomous() {
 		threeConeAuton(LEFT, TWENTY);
 		break;
 	case    8:
-		oneConeAuton(RIGHT, TEN);
+		unblockableAuton(RIGHT, TEN);
+		//oneConeAuton(RIGHT, TEN);
 		break;
 	case    9:
-		oneConeAuton(RIGHT, TWENTY);
+		unblockableAuton(RIGHT, TWENTY);
+		//oneConeAuton(RIGHT, TWENTY);
 		break;
 	case    10:
-		oneConeAuton(LEFT, TEN);
+		unblockableAuton(LEFT, TEN);
+		//oneConeAuton(LEFT, TEN);
 		break;
 	case    11:
-		oneConeAuton(LEFT, TWENTY);
+		unblockableAuton(LEFT, TWENTY);
+		//oneConeAuton(LEFT, TWENTY);
 		break;
 	default://no auton
 		break;

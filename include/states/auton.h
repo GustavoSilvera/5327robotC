@@ -18,7 +18,7 @@ const int OUTTAKE = -127;
 const int heightValues[15] = {
 	2200, 2350, 2460, 2560, 2670, 2780,
 	2840, 2970, 3090, 3200, 3350, 3475,
-	3540, 3750, 3900 };//values for where the lift should go to when autoStacking
+	3600, 3750, 3900 };//values for where the lift should go to when autoStacking
 const int heightFourBar[15] = {
 	FourBar.max, FourBar.max, FourBar.max, FourBar.max, FourBar.max,
 	FourBar.max, FourBar.max, FourBar.max, FourBar.max, FourBar.max,
@@ -88,6 +88,7 @@ void standStack(int cone){
 	delay(130);
 	if(currentCone < 13){
 		UpUntilW4Bar(limitUpTo(4090, SensorValue[mainLift.sensor] + 100), 0.875, 127, false);
+		if(SensorValue[FourBar.sensor] > 2200)DownUntil(&FourBar, FourBar.min);//make sure four bar is down
 		intakeSpeed = INTAKE;
 		DownUntil(&mainLift, mainLift.min + 500, 127);
 		currentCone+=1;
@@ -107,10 +108,11 @@ void quickStack(int cone){
 	intakeSpeed = OUTTAKE; //release cone
 	liftMove(&mainLift, 0); //stop lift
 	delay(150);
-	UpUntilW4Bar(limitUpTo(4090, SensorValue[mainLift.sensor] + 30), 0.75, 127, false);
+	UpUntilW4Bar(limitUpTo(4090, SensorValue[mainLift.sensor] + 100), 0.75, 127, false); //make sure lift is above
+	if(SensorValue[FourBar.sensor] > 2200)DownUntil(&FourBar, FourBar.min);//make sure four bar is down
+	//DownUntil(&mainLift, 3100); //initial downUntil to start goliath intake later
 	intakeSpeed = INTAKE;
 	DownUntil(&mainLift, mainLift.min + 500, 127);
-	currentCone+=1;
 	switchLEDs();
 	//DownUntil(&mainLift, mainLift.min + 12200, 127);
 	autoStacking = false;
@@ -149,7 +151,7 @@ task autoStack() {
 		if (U7 ) stack(currentCone);
 		if (U7_2) chinaStrat(currentCone);
 		if (R7_2) matchStack(currentCone);
-		if (goliat.stalling && !autoStacking && !matchLoads) stack(currentCone);
+		//if (goliat.stalling && !autoStacking && !matchLoads) stack(currentCone);
 		if ((D7) && time1[T2]>200) {
 			currentCone = 0;//reset
 			SensorValue[OddLED] = 0;
