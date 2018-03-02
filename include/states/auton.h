@@ -16,8 +16,8 @@
 const int INTAKE = 100;//for roller hold
 const int OUTTAKE = -127;
 const int heightValues[15] = {
-	2350, 2400, 2560, 2590, 2670, 2780,
-	2840, 2970, 3050, 3200, 3350, 3475,
+	2200, 2350, 2460, 2560, 2670, 2780,
+	2840, 2970, 3090, 3200, 3350, 3475,
 	3540, 3750, 3900 };//values for where the lift should go to when autoStacking
 const int heightFourBar[15] = {
 	FourBar.max, FourBar.max, FourBar.max, FourBar.max, FourBar.max,
@@ -33,20 +33,6 @@ const int heightStago[9] = {
 const int delayValues[15] = {0, 0, 0, 0, 0, 0, 0, 0, 200, 330, 300, 350, 400, 450, 500};//values for individual delays when autostacking
 //const int delayValues[11] = {0, 0, 0, 0, 0, 0, 150, 150, 240, 200, 200};//values for individual delays when autstacking
 volatile int intakeSpeed = 0;
-task goliathControl(){
-	for(;;){
-		if(autoStacking ||
-			autonRunning){
-			motor[goliath] = intakeSpeed;
-		}
-		else{
-			if(L8 || L8_2)       motor[goliath] = 127;
-			else if (R8 || R8_2) motor[goliath] = -127;
-			else                 motor[goliath] = 0;
-			}
-		delay(50);
-	}
-}
 void switchLEDs(){
 	if(SensorValue[OddLED] == 1){
 		SensorValue[OddLED] = 0;
@@ -58,7 +44,8 @@ void switchLEDs(){
 	}
 }
 void waitTill(struct liftMech *lift, int goal, int thresh){
-	while(abs(SensorValue[lift->sensor] - goal) > thresh){continue;}//wait until success
+	clearTimer(T3);
+	while(abs(SensorValue[lift->sensor] - goal) > thresh && time1[T3] < 1000){continue;}//wait until success
 	return;
 }
 void chinaStrat(int cone){
@@ -87,98 +74,73 @@ void chinaStrat(int cone){
 		switchLEDs();
 	}
 }
-void matchStack(int cone){
-	autoStacking = true;
-	intakeSpeed = INTAKE;
-	if(currentCone<5) {
-		mainLift.goal = SensorValue[mainLift.sensor];
-		UpUntil(&FourBar, FourBar.max, 127);
-		FourBar.goal = FourBar.max + 500;
-		waitTill(&FourBar, FourBar.max, 100);
-		intakeSpeed = OUTTAKE; //drop cone without lift down
-	}
-	else {
-		//stack normally
-		UpUntil(&mainLift, heightValues[cone], 127);
-		UpUntil(&FourBar, heightFourBar[cone] + 100, 127);
-		FourBar.goal = FourBar.max + 500;//keeps them there
-		waitTill(&FourBar, FourBar.max, 100);
-		intakeSpeed = OUTTAKE; //release cone
-	}
-	liftMove(&mainLift, 0); //stop lift
-	delay(180);
-	//UpUntilW4Bar(limitUpTo(4090, SensorValue[mainLift.sensor] + 100), 0.875, 127, false); //fourbar out
-	//delay(100);
-	intakeSpeed = INTAKE;
-	mainLift.goal = 2800;//come back down to loader height
-	mainLift.PID.isRunning = true;
-	FourBar.goal = FourBar.min;
-	waitTill(&mainLift, mainLift.goal, 100);
-	//try adding delay?
-	if (currentCone < 13){
-		currentCone+=1;
-		switchLEDs();
-	}
-	autoStacking = false;
-}
 void standStack(int cone){
 	autoStacking = true;
-	intakeSpeed = INTAKE;
+	intakeSpeed = INTAKE*0.8;
 	float batteryScale = 1;//( 8.0 / nImmediateBatteryLevel );
-	if(currentCone < 9) UpUntilW4Bar(heightValues[cone] + 95 * batteryScale, 0.9, 127, true); //four bar up
-	else{
-		UpUntil(&mainLift, heightValues[cone], 127);
-		UpUntil(&FourBar, heightFourBar[cone], 127);
-	}
-	FourBar.goal = FourBar.max + 1000;//keeps them there HARD
-	waitTill(&FourBar, heightFourBar[cone], 100);
-	delay(100);//delayValues[cone]);
+	UpUntilW4Bar(heightValues[cone] * batteryScale, 0.79, 127, true); //four bar up
+	FourBar.goal = FourBar.max + 300;//keeps them there HARD
+	waitTill(&FourBar, 3850, 100);
+	//delay(100);//delayValues[cone]);
 	DownUntil(&mainLift, SensorValue[mainLift.sensor] - 30, 127);
 	intakeSpeed = OUTTAKE; //release cone
 	liftMove(&mainLift, 0);
 	delay(130);
 	if(currentCone < 13){
 		UpUntilW4Bar(limitUpTo(4090, SensorValue[mainLift.sensor] + 100), 0.875, 127, false);
-		//delay(100);
-		mainLift.goal = mainLift.min + 100;// * currentCone;//bring lift down
-		mainLift.PID.isRunning = true;
-		//DownUntil(&mainLift, mainLift.min + 1000, 127);
-		waitTill(&mainLift, mainLift.goal, 100);
-		//delay(100*currentCone);
+		intakeSpeed = INTAKE;
+		DownUntil(&mainLift, mainLift.min + 500, 127);
 		currentCone+=1;
 		switchLEDs();
 	}
-	else intakeSpeed = 0;
+	else intakeSpeed = INTAKE;
 	autoStacking = false;
 }
 void quickStack(int cone){
 	autoStacking = true;
-	intakeSpeed = INTAKE;
-	if(currentCone < 9) UpUntilW4Bar(heightValues[cone] - 300, 0.9, 127, true);
-	else{
-		UpUntil(&mainLift, heightValues[cone] - 170, 127);
-		UpUntil(&FourBar, heightFourBar[cone], 127);
-	}
-	FourBar.goal = FourBar.max + 1000;//keeps them there
+	intakeSpeed = INTAKE*0.8;
+	UpUntilW4Bar(heightValues[cone] - 150, 0.85, 127, true);
+	FourBar.goal = FourBar.max;//keeps them there
 	waitTill(&FourBar, FourBar.max, 100);
 	///delay(delayValues[cone]);
 	//DownUntil(&mainLift, SensorValue[mainLift.sensor] - 150, 127);
 	intakeSpeed = OUTTAKE; //release cone
 	liftMove(&mainLift, 0); //stop lift
-	delay(200);
+	delay(150);
 	UpUntilW4Bar(limitUpTo(4090, SensorValue[mainLift.sensor] + 30), 0.75, 127, false);
-	delay(100);
-	mainLift.goal = mainLift.min + 100;
-	mainLift.PID.isRunning = true;
-	waitTill(&mainLift, mainLift.goal, 100);
+	intakeSpeed = INTAKE;
+	DownUntil(&mainLift, mainLift.min + 500, 127);
+	currentCone+=1;
+	switchLEDs();
 	//DownUntil(&mainLift, mainLift.min + 12200, 127);
 	autoStacking = false;
 	if(currentCone < 14) currentCone+=1;
 }
 void stack(int cc){
+	autoStacking = true;
 	//controls which stack to go to
-	if(cc < 9 || cc == 14 || cc == 12) standStack(currentCone);
+	if(cc < 9 || cc == 14) standStack(currentCone);
 	else quickStack(currentCone);
+	autoStacking = false;
+}
+void matchStack(int cone){
+	autoStacking = true;
+	matchLoads = true;
+	intakeSpeed = INTAKE;
+	if(currentCone < 3) {
+		mainLift.goal = 2650;
+		mainLift.PID.isRunning = true;
+		UpUntil(&FourBar, FourBar.max, 127);
+		FourBar.goal = FourBar.max + 500;
+		waitTill(&FourBar, FourBar.max-100, 100);
+		intakeSpeed = OUTTAKE; //drop cone without lift down
+		delay(200);
+		DownUntil(&FourBar, FourBar.min, 127);
+		currentCone++;
+	}
+	else stack(currentCone);
+	matchLoads = false;
+	autoStacking = false;
 }
 task autoStack() {
 	currentCone = 0;
@@ -187,7 +149,8 @@ task autoStack() {
 		if (U7 ) stack(currentCone);
 		if (U7_2) chinaStrat(currentCone);
 		if (R7_2) matchStack(currentCone);
-		if ((D7) && !autoStacking && time1[T2]>200) {
+		if (goliat.stalling && !autoStacking && !matchLoads) stack(currentCone);
+		if ((D7) && time1[T2]>200) {
 			currentCone = 0;//reset
 			SensorValue[OddLED] = 0;
 			SensorValue[EvenLED] = 0;
@@ -209,35 +172,29 @@ task autoStack() {
 		delay(30);
 	}
 }
-task autoAutoStack(){
-	return;
-	autoAutoStacking = true;
-	stopTask(goliathControl);
-	while(!goliat.stalling)	{
-		if(R8 || U7) {
-			startTask(goliathControl);
-			autoAutoStacking = false;
-			return;//cancel or manual autostack
+task goliathControl(){
+	for(;;){
+		if(autoStacking ||
+			autonRunning){
+			motor[goliath] = intakeSpeed;
 		}
-		motor[goliath] = 127;
+		else{
+			if(L8 || L8_2)       motor[goliath] = 127;
+			else if (R8 || R8_2) motor[goliath] = -127;
+			else                 motor[goliath] = 0;
+		}
+		delay(50);
 	}
-	autoAutoStacking = false;
-	startTask(goliathControl);
-	stack(currentCone);
-	return;
 }
 task killswitch(){
 	for(;;){
-		if(R7 && autonRunning){
-			stopAllTasks();
-		}
+		if(R7 && autonRunning) stopAllTasks();
 		if((D7 || D7_2) && autoStacking ) {//autostack killswitch
 			stopTask(autoStack);
 			playSound(soundBeepBeep);//killed autostack
 			startTask(autoStack);
 			delay(300);
 		}
-		if (doubleTap()) startTask(autoAutoStack);
 		delay(50);
 	}
 }

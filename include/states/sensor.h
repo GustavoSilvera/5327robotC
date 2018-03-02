@@ -64,8 +64,8 @@ bool doubleTap(){
 }
 bool stalling(const struct sideBase* side){
 	return (
-	abs(motor[side->motors[0]]) > 80 &&//high ish power
-	abs(motor[side->motors[0]]) > 80 &&//high ish power
+	abs(motor[side->motors[0]]) > 65 &&//high ish power
+	abs(motor[side->motors[0]]) > 65 &&//high ish power
 	abs(side->velocity) < 50//low ish velocity yet high speed (for like 500 ms)
 	);
 }
@@ -86,7 +86,7 @@ void checkStalling(struct sideBase* side){
 }
 task antiStall(){
 	for(;;){
-		return;
+		//return;
 		//checkStalling(&Right);
 		//checkStalling(&Left);
 		checkStalling(&goliat);

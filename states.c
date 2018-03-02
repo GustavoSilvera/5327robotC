@@ -53,7 +53,7 @@ void initializeOpControl(const bool driver) {
 	//-LIFT---------&reference--TYPE----------sensor-1-----motor-1-----motor-2-------max------min----delay(opt)
 	initLiftType(   &mainLift,  NORMAL,       LiftPot,     LiftTop,    LiftBottom,   4400,    2150           );
 	initLiftType(   &mogo,      DIFFERENTIAL, LiftPot,     LiftTop,    LiftBottom,   9000,    -9000          );//is this max (4000) supposed to be that off?
-	initLiftType(   &FourBar,   BINARY,       FourBarPot,  Bar,        NONE,         4030,    1600,  5    );
+	initLiftType(   &FourBar,   BINARY,       FourBarPot,  Bar,        NONE,         3900,    1600,  5    );
 
 	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)----
 	initPID(    &mainLift.PID,  mainLift.sensor,    50,     0.15,   0.0,    0.0,    rev,        true          );
@@ -445,14 +445,14 @@ void TESTStack(int height){//for debugging the best heightValues for our stack
 	float batteryScale = 1;//( 8.0 / nImmediateBatteryLevel );
 	UpUntilW4Bar(height * batteryScale, 0.9, 127, true); //four bar up
 	FourBar.goal = FourBar.max + 1000;//keeps them there HARD
-	waitTill(&FourBar, FourBar.max, 100);
+	waitTill(&FourBar, FourBar.max-200, 100);
 	delay(100);//delayValues[cone]);
-	DownUntil(&mainLift, height - 50, 127);
+	DownUntil(&mainLift, SensorValue[mainLift.sensor] - 50, 127);
 	intakeSpeed = OUTTAKE; //release cone
 	liftMove(&mainLift, 0);
 	delay(130);
 	if(currentCone < 13){
-		UpUntilW4Bar(limitUpTo(4090, height + 100), 0.85, 127, false);
+		UpUntilW4Bar(limitUpTo(4090, SensorValue[mainLift.sensor] + 130), 0.85, 127, false);
 		mainLift.goal = mainLift.min + 500;// * currentCone;//bring lift down
 		mainLift.PID.isRunning = true;
 		//DownUntil(&mainLift, mainLift.min + 1000, 127);
@@ -487,11 +487,12 @@ task usercontrol() {//initializes everything
 	else playSound(soundUpwardTones);
 	for (;;) {
 		//debug controls UNCOMMENT
-	/*	if (U7) TESTStack(heightTEST);//matchLoadAuton(LEFT);//matchLoadAuton(RIGHT, TEN);//threeConeAuton(LEFT);//rotFor(-10);
+		/*if (U7) TESTStack(heightTEST);//matchLoadAuton(LEFT);//matchLoadAuton(RIGHT, TEN);//threeConeAuton(LEFT);//rotFor(-10);
 		if (R7 && time1[T2]>200) { heightTEST += 10; playSound(soundFastUpwardTones);clearTimer(T2);}//fourConeAuton(LEFT, TEN);
 		if (L7 && time1[T2]>200) { heightTEST -= 10; playSound(soundDownwardTones); clearTimer(T2);}//fourConeAuton(LEFT, TWENTY);
 		if (D7 && time1[T2]>200) { heightTEST += 100; playSound(soundException);clearTimer(T2);}//unblockableAuton(LEFT, TWENTY);
-	*/	driveCtrlr();
+		*/
+		driveCtrlr();
 		delay(15);//~60hz
 	}
 }//function for operator control
