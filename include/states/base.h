@@ -85,7 +85,7 @@ void driveLR(const int powerR, const int powerL) {
 }
 void driveCtrlr() {
 	//scale for joystick
-	const float partner = 1;//0.8;
+	const float partner = 0.8;
 	const float primary = 1;
 	//driveLR(//truspeed taking both controllers
 	//TruSpeed(limitUpTo(127, primary*vexRT[Ch2] + partner*vexRT[Ch2Xmtr2]), 3),

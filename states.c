@@ -129,39 +129,52 @@ void fourConeAuton(bool right, bool twenty){
 	fwds(0);
 	FourBar.goal = FourBar.min;
 	DownUntil(&mainLift, mainLift.min, 127); //go for next cone
-	mainLift.goal = mainLift.min - 200;
+	mainLift.goal = mainLift.min - 300;
 	mainLift.PID.isRunning = true;
 	intakeSpeed = INTAKE; //intake first cone
-	while (!goliat.stalling){continue;}
-	stack(currentCone);//waits until detected cone pickup
+	clearTimer(T4);
+	while (!goliat.stalling && time1[T4]<400){continue;}
+	stack(1);//waits until detected cone pickup
 	intakeSpeed = 0;
 	//drives to third cone
 	FourBar.goal = FourBar.min;
-	mainLift.goal = mainLift.min + 600;
+	//mainLift.goal = mainLift.min + 600;
 	////////////driveFor(4);
 	fwds(100);
 	delay(220);
 	fwds(0);
 	DownUntil(&mainLift, mainLift.min, 127);
-	mainLift.goal = mainLift.min - 400;
+	mainLift.goal = mainLift.min - 500;
 	mainLift.PID.isRunning = true;
 	intakeSpeed = INTAKE;
-	while (!goliat.stalling){continue;}
-	stack(currentCone);//waits until detected cone pickup
+	cleartimer(T4);
+	while (!goliat.stalling && time1[T4]<400){continue;}
+	stack(2);//waits until detected cone pickup
 	intakeSpeed = 0;
 	FourBar.goal = FourBar.min - 100;
 	DownUntil(&mainLift, mainLift.min, 127);
+	/*
 	//drives to fourth cone
 	FourBar.goal = FourBar.min - 100;
-	mainLift.goal = mainLift.min-100;
+	mainLift.goal = mainLift.min-300;
 	mainLift.PID.isRunning = true;
 	FourBar.PID.isRunning = true;
 	////////////driveFor(3.8);
 	fwds(100);
 	delay(200);
+	fwds(0);*/
+	//intake 4th cone normally
+	fwds(100);
+	delay(150);
 	fwds(0);
+	FourBar.goal = FourBar.min - 100;
+	mainLift.goal = mainLift.min-300;
+	mainLift.PID.isRunning = true;
+	FourBar.PID.isRunning = true;
+
 	intakeSpeed = INTAKE;
-	while (!goliat.stalling){continue;}
+	clearTimer(T4);
+	while (!goliat.stalling && time1[T4]<400){continue;}
 	startTask(stackTask);
 	if(twenty){ //score in 20pt
 		driveFor2(-62);//drive back
@@ -169,7 +182,7 @@ void fourConeAuton(bool right, bool twenty){
 		else LSwingFor(45);
 		mainLift.goal = avg2(mainLift.max, mainLift.min); //lift lift
 		mainLift.PID.isRunning = true;
-		driveFor2(-11); //drive to center of zone
+		driveFor2(-15); //drive to center of zone (-11)
 		rotFor(-dir * 90, 2.2);
 		mainLift.PID.isRunning = false;
 		fwds(127);//enter 20pt zone
@@ -338,9 +351,47 @@ void matchLoadAuton (bool right){
 	delay(100);
 	matchStack(2);
 }
-void stagoAuton (bool right){
-	//stack on the stago, then attempt mogo
-
+void stagoAuton (bool right){//stack on the stago 2x
+	int dir  = 1;
+	if(!right) dir = -1;
+	//four bar out
+	FourBar.goal = FourBar.min;
+	FourBar.PID.isRunning = true;
+	intakeSpeed = INTAKE;//keeps cone intooked
+	mainLift.goal = 3300;
+	MainLift.PID.isRunning = true;
+	delay(200);
+	driveFor2(14);
+	mainLift.goal = 3100;
+	delay(500);
+	//FourBar.PID.isRunning = false;
+	intakeSpeed = OUTTAKE; //drop preload
+	delay(200);
+	mainLift.goal = 3300;
+	driveFor2(-6);
+	rotFor(dir * -90);
+	driveFor2(5);
+	FourBar.goal = FourBar.min;
+	FourBar.PID.isRunning = true;
+	mainLift.goal = mainLift.min -300;
+	intakeSpeed = INTAKE;//pick up second cone
+	clearTimer(T4);
+	while (!goliat.stalling && time1[T4]<1000){continue;}
+	//delay(500);
+	//FourBar.PID.isRunning = false;
+	intakeSpeed = INTAKE/2; //hold in cone
+	//delay(1000);
+	mainLift.goal = 3600;
+	driveFor2(-8);
+	delay(200);
+	rotFor(dir * 90);
+	delay(200);
+	driveFor2(6);
+	delay(200);
+	mainLift.goal = 3400;
+	intakeSpeed = OUTTAKE;
+	delay(500);
+	intakeSpeed = 0;
 }
 void unblockableAuton (bool right, bool twenty){
 	int dir  = 1;
@@ -406,6 +457,7 @@ task autonomous() {
 	startTask(goliathControl);
 	FourBar.PID.kP = 0.9;
 	FourBar.PID.thresh = 30;
+	//stagoAuton(RIGHT);
 	fourConeAuton(RIGHT, TWENTY);
 		/*
 	switch( currentAutonomous ) {
@@ -459,9 +511,9 @@ task usercontrol() {//initializes everything
 	initializeOpControl(true);//driver init
 	startTask(LiftControlTask);//individual pid for lift type
 	startTask(MeasureSpeed);//velocity measurer for base
-	//startTask(autoStack);//COMMENNT
+	startTask(autoStack);//COMMENNT
 	startTask(antiStall);
-	startTask(killswitch);
+	//startTask(killswitch);
 	if(slewRating)startTask(MotorSlewRateTask);
 	startTask(goliathControl);
 	startTask(displayLCD);
@@ -482,9 +534,9 @@ task usercontrol() {//initializes everything
 		if (R7 && time1[T2]>200) { heightTEST += 10; playSound(soundFastUpwardTones);clearTimer(T2);}//fourConeAuton(LEFT, TEN);
 		if (L7 && time1[T2]>200) { heightTEST -= 10; playSound(soundDownwardTones); clearTimer(T2);}//fourConeAuton(LEFT, TWENTY);
 		if (D7 && time1[T2]>200) { heightTEST += 100; playSound(soundException);clearTimer(T2);}//unblockableAuton(LEFT, TWENTY);
-		*/
+
 		if (R7) fourConeAuton(RIGHT, TWENTY);
-		if (L7) rotFor(-45);
+		if (L7) rotFor(-45);*/
 
 		driveCtrlr();
 		delay(15);//~60hz

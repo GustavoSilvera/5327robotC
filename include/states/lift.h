@@ -149,9 +149,9 @@ task LiftControlTask() {
 	startTask(fourBarPID);
 	for (;;) {//while true
 		if(!autonRunning){
-			if(U8 || D8 || U8_2 || D8_2){
+			if(U8 || D8){
 				mainLift.PID.isRunning = false;
-				LiftLift(&mogo, U8, D8, U8_2, D8_2, false, 180);
+				LiftLift(&mogo, U8, D8, 0, 0, false, 180);
 			}
 			else LiftLift(&mainLift, U6, D6, U6_2, D6_2, false, 400);
 			//	if(!autoStacking || !autonRunning) LiftLift(&goliat,	L8, R8, L8_2, R8_2, false);

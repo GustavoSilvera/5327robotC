@@ -16,7 +16,7 @@
 const int INTAKE = 100;//for roller hold
 const int OUTTAKE = -127;
 const int heightValues[15] = {
-	2200, 2300, 2400, 2500, 2600, 2600,
+	2200, 2300, 2400, 2550, 2600, 2600,
 	2700, 2800, 2900, 3000, 3100, 3200,
 	3400, 3500, 3600 };//values for where the lift should go to when autoStacking
 const int heightFourBar[15] = {
@@ -133,8 +133,11 @@ void matchStack(int cone){
 		mainLift.goal = 2650;
 		mainLift.PID.isRunning = true;
 		UpUntil(&FourBar, FourBar.max, 127);
-		FourBar.goal = FourBar.max + 500;
+		FourBar.goal = FourBar.max + 300;
 		waitTill(&FourBar, FourBar.max-100, 100);
+		mainLift.goal = 2000;
+		delay(100);
+		mainLift.goal = 2650;
 		intakeSpeed = OUTTAKE; //drop cone without lift down
 		delay(200);
 		DownUntil(&FourBar, FourBar.min, 127);
@@ -149,23 +152,23 @@ task autoStack() {
 	currentStag = 0;
 	for (;;) {
 		if (U7 ) stack(currentCone);
-		if (U7_2) chinaStrat(currentCone);
+		//if (U7_2) chinaStrat(currentCone);
 		if (R7_2) matchStack(currentCone);
 		if (goliat.stalling && !autoStacking && !matchLoads) stack(currentCone);
-		if ((D7) && time1[T2]>200) {
+		if ((D7 || L7_2) && time1[T2]>200) {
 			currentCone = 0;//reset
 			SensorValue[OddLED] = 0;
 			SensorValue[EvenLED] = 0;
 			playSound(soundException);
 			clearTimer(T2);
 		}
-		if ((R7) && time1[T2]>200 && currentCone > 0) {
+		if ((R7 || D7_2) && time1[T2]>200 && currentCone > 0) {
 			currentCone -= 1; //subtract one cone if autostack missed
 			switchLEDs();
 			playSound(soundDownwardTones);
 			clearTimer(T2);
 		}
-		if ((L7) && time1[T2]>200 && currentCone < 15) {
+		if ((L7 || U7_2) && time1[T2]>200 && currentCone < 14) {
 			currentCone += 1; //add one cone
 			switchLEDs();
 			playSound(soundFastUpwardTones);
