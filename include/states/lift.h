@@ -66,10 +66,12 @@ void UpUntil(const struct liftMech* lift, int goal, int speed = 127) {
 }
 void UpUntilW4Bar(int goal, float prop, int speed, bool FourBarToMax) {
 	mainLift.PID.isRunning = false;
+	int offset = 0;
+	if(currentCone >= 13) offset = 250;
 	while (SensorValue[mainLift.sensor] < goal){ //brings lift up to goal
 		liftMove(mainLift, abs(speed));
 		if(SensorValue[mainLift.sensor] > goal * prop){
-			if(FourBarToMax) FourBar.goal = FourBar.max;
+			if(FourBarToMax) FourBar.goal = FourBar.max - offset;
 			else FourBar.goal = FourBar.min;
 			FourBar.PID.isRunning = true;
 		}

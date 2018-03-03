@@ -83,6 +83,7 @@ void autonSelect(int delayTime = 5000){
 	const int LEFT = 1;
 	const int RIGHT = 4;
 	const int CENTER = 2;
+	const static volatile unsigned signed int NUMAUTONS = 11;
 	while(time1[T4] < delayTime){
 		// diaplay default choice
 		displayAuton(value);
@@ -92,7 +93,7 @@ void autonSelect(int delayTime = 5000){
 			if( nLCDButtons == LEFT && value > 0)
 				value--;
 			// next choice
-			if( nLCDButtons == RIGHT && value < 5)
+			if( nLCDButtons == RIGHT && value < NUMAUTONS)
 				value ++;
 			displayAuton(value);//dosent say "ACTIVE"
 			clearTimer(T4);
@@ -121,8 +122,8 @@ void displayStuff(){
 	displayNextLCDString(currCone);
 	displayNextLCDString(" ");
 	//Display the Power Expander voltage
-	displayNextLCDString("H:");
-	sprintf(gyroRead, "%1.2f%c", heightTEST);//Build the value to be displayed
+	displayNextLCDString("Gy:");
+	sprintf(gyroRead, "%1.2f%c", SensorValue[Gyro] * GyroK);//Build the value to be displayed
 	displayNextLCDString(gyroRead);
 
 

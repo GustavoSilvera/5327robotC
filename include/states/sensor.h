@@ -89,7 +89,7 @@ task antiStall(){
 		//return;
 		//checkStalling(&Right);
 		//checkStalling(&Left);
-		//checkStalling(&goliat);
+		checkStalling(&goliat);
 		delay(50);
 	}
 }
@@ -127,7 +127,7 @@ task MeasureSpeed() {
 	const float delayAmount = 50;
 	for (;;) {
 		mRot = (float)(GyroK*SensorValue[Gyro]);
-		encoderAvg = avg2(SensorValue[Right.sensor], SensorValue[Left.sensor]);
+		encoderAvg = SensorValue[Right.sensor];//avg2(SensorValue[Right.sensor], SensorValue[Left.sensor]);
 		//base velocity
 		Right.velocity = calcVel(&Right, circum, delayAmount);
 		Left.velocity = calcVel(&Left, circum, delayAmount);
