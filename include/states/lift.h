@@ -138,7 +138,7 @@ task fourBarPID(){
 			FourBar.PID.isRunning = true;
 		}
 		else if(D5 || D5_2) {
-			FourBar.goal = FourBar.min;
+			FourBar.goal = FourBar.min-150;
 			FourBar.PID.isRunning = true;
 		}
 		delay(FourBar.liftPIDelay);

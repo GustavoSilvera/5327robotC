@@ -64,33 +64,35 @@ bool doubleTap(){
 }
 bool stalling(const struct sideBase* side){
 	return (
-	abs(motor[side->motors[0]]) > 65 &&//high ish power
-	abs(motor[side->motors[0]]) > 65 &&//high ish power
-	abs(side->velocity) < 50//low ish velocity yet high speed (for like 500 ms)
+	abs(motor[side->motors[0]]) >= 80 &&//high ish power
+	//abs(motor[side->motors[0]]) > 80 &&//high ish power
+	abs(side->velocity) < 20//low ish velocity yet high speed (for like 500 ms)
 	);
 }
 void checkStalling(struct sideBase* side){
 	if(stalling(side)){
 		clearTimer(T1);
 		bool currentlyStalling = true;
-		while(time1[T1] < 100){//checkingn for continuous stalling (else instantanious refresh)
+		while(time1[T1] < 150){//checkingn for continuous stalling (else instantanious refresh)
 			currentlyStalling = stalling(side);//still stalling
 			if(currentlyStalling) continue;//keep going until time limit
 			else break;
 		}
-		if(currentlyStalling)//done waiting, final check
+		if(currentlyStalling){//done waiting, final check
+			playSound(soundBlip);
 			side->stalling = true;//if so, consider it stalling
+		}
 	}
 	else side->stalling = false;
-	if(side->stalling) playSound(soundShortBlip);
+	//if(side->stalling) playSound(soundShortBlip);
 }
 task antiStall(){
 	for(;;){
 		//return;
 		//checkStalling(&Right);
 		//checkStalling(&Left);
-		checkStalling(&goliat);
-		delay(50);
+		if(!autoStacking) checkStalling(&goliat);
+		delay(20);
 	}
 }
 /********************************************************************************\
@@ -141,4 +143,5 @@ task MeasureSpeed() {
 		delay(delayAmount);
 	}
 }//task for measuring velocity of the base, in IN/Sec
+
 #endif

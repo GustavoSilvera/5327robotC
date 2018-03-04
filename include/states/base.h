@@ -172,7 +172,7 @@ void LSwingFor(int target){
 	SensorScale[Gyro] = 260;
 	while(abs(SensorValue[Gyro]*GyroK - target) > 0.5){
 		if (target>0) baseMove(&Right, 25); //keep right side still moving back
-		baseMove(&Left, limitDownTo(20, 3*(SensorValue[Gyro]*GyroK- target) ) );
+		baseMove(&Left, limitDownTo(40, 7.5*(SensorValue[Gyro]*GyroK- target) ) );
 	}
 	baseMove(&Left,-sgn(target) *60);
 	delay(30);

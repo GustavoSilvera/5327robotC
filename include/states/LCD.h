@@ -33,20 +33,26 @@ void displayAuton( int value, bool select = false  ){
 	// Simple selection display
 	switch(value){
 	case    0:
-		displayLCDString(0, 0, "4C 10 R");
+		displayLCDString(0, 0, "C 20 R");
 		break;
 	case    1:
-		displayLCDString(0, 0, "4C 20 R");
+		displayLCDString(0, 0, "C 20 L");
 		break;
 	case    2:
-		displayLCDString(0, 0, "4C 10 L");
+		displayLCDString(0, 0, "Stag R");
 		break;
 	case    3:
-		displayLCDString(0, 0, "4C 20 L");
+		displayLCDString(0, 0, "Stag L");
 		break;
 	case    4:
-		displayLCDString(0, 0, "3C 10 R");
+		displayLCDString(0, 0, "+StagL");
 		break;
+	case    5:
+		displayLCDString(0, 0, "+StagR");
+		break;
+	case    6:
+		displayLCDString(0, 0, " NONE ");
+		break;/*
 	case    5:
 		displayLCDString(0, 0, "3C 20 R");
 		break;
@@ -67,7 +73,7 @@ void displayAuton( int value, bool select = false  ){
 		break;
 	case    11:
 		displayLCDString(0, 0, "1C 20 L");
-		break;
+		break;*/
 	default:
 		displayLCDString(0, 0, "Unknown");
 		break;
@@ -83,7 +89,7 @@ void autonSelect(int delayTime = 5000){
 	const int LEFT = 1;
 	const int RIGHT = 4;
 	const int CENTER = 2;
-	const static volatile unsigned signed int NUMAUTONS = 11;
+	const static volatile unsigned signed int NUMAUTONS = 8;
 	while(time1[T4] < delayTime){
 		// diaplay default choice
 		displayAuton(value);
