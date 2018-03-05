@@ -49,22 +49,39 @@ void checkStalling(struct mechanism* mech) {
 
 task antiStall() {
 	for (;;) {
-	//	checkStalling(&baseRight.m);
-	//	checkStalling(&baseLeft.m);
+		checkStalling(&baseRight.m);
+		checkStalling(&baseLeft.m);
 		delay(50);
 	}
 }
 task displayLCD(){
 	for(;;){
-		string mRotangle;
+		string encode, LeftSonar, RightSonar, gyroRead;
 		//Display the Primary Robot battery voltage
-		displayLCDString(0, 0, "Primary: ");
+		displayLCDString(0, 0, "B:");
 		sprintf(mainBattery, "%1.2f%c", nImmediateBatteryLevel/1000.0,'V'); //Build the value to be displayed
 		displayNextLCDString(mainBattery);
+		displayNextLCDString(" ");
+		//Display the encoder amnt
+		displayNextLCDString("E:");
+		sprintf(encode, "%d", (int)encoderAvg, 't');//Build the value to be displayed
+		displayNextLCDString(encode);
+		displayNextLCDString(" ");
+		//NEXT LINE
+		//Display the Left Sonar
+		displayLCDString(1, 0, "L:");
+		sprintf(LeftSonar, "%d", SensorValue[Lsonar], '"');//Build the value to be displayed
+		displayNextLCDString(LeftSonar);
+		displayNextLCDString(" ");
+		//Display the right Sonar
+		displayLCDString(1, 5, "R:");
+		sprintf(RightSonar, "%d", SensorValue[Rsonar], '"');//Build the value to be displayed
+		displayNextLCDString(RightSonar);
+		displayNextLCDString(" ");
 		//Display the Power Expander voltage
-		displayLCDString(1, 0, "Angle: ");
-		sprintf(mRotangle, "%1.2f%c",   SensorValue[Gyro]*GyroK);//Build the value to be displayed
-		displayNextLCDString(mRotangle);
+		displayLCDString(1, 10, "G:");
+		sprintf(gyroRead, "%1.2f%c", SensorValue[Gyro] * GyroK);//Build the value to be displayed
+		displayNextLCDString(gyroRead);
 		delay(30);
 	}
 }

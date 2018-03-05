@@ -19,7 +19,7 @@ struct mechanism {//basic underlying mechanism class
 	float velocity, past;
 	bool position;//for binary mechanisms
 };
-enum mechType { CONVEYER, DRIVE };//what kinds of lift we have
+enum mechType { CONVEY, DRIVE };//what kinds of lift we have
 struct apparatus {
 	enum mechType type;
 	struct mechanism m;
@@ -40,7 +40,6 @@ struct liftMech fourBar;
 volatile float mainVelocity = 0;
 volatile float rotVelocity = 0;
 volatile float pastRot;
-static int currentAutonomous = 0;
 static const float GyroK = 15.0/80.0;//scales to normal +-360 degrees
 volatile bool autonRunning = false;
 string mainBattery, powerExpander;
