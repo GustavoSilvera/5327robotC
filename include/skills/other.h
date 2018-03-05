@@ -49,8 +49,8 @@ void checkStalling(struct mechanism* mech) {
 
 task antiStall() {
 	for (;;) {
-	//	checkStalling(&baseRight.m);
-	//	checkStalling(&baseLeft.m);
+		checkStalling(&baseRight.m);
+		checkStalling(&baseLeft.m);
 		delay(50);
 	}
 }

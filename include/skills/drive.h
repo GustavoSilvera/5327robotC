@@ -113,8 +113,7 @@ void alignToDark(float dir){
 //}
 
 void driveToSonar(bool side, int goal, float kP){ //use sonar to reach distance in inches
-	//if(side == RIGHT) while(SensorValue[Rsonar] > goal) fwds(kP*(SensorValue[Rsonar] - goal));
-	//else
-	while(SensorValue[Lsonar] > goal) fwds(kP*(SensorValue[Lsonar] - goal));
+	if(side == RIGHT) while(SensorValue[Rsonar] > goal) fwds(kP*(SensorValue[Rsonar] - goal));
+	else while(SensorValue[Lsonar] > goal) fwds(kP*(SensorValue[Lsonar] - goal));
 	return;
 }

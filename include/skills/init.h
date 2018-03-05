@@ -58,3 +58,7 @@ void resetGyros() {
 	delay(300);
 	scaleGyros();
 }
+void resetencoders() {
+	SensorValue[LeftBaseEnc] = 0;//resets gyro sensor
+	SensorValue[RightBaseEnc] = 0;//resets gyro sensor
+}
