@@ -183,9 +183,10 @@ void LSwingFor(int target){
 	gyroBase.isRunning = true;
 	SensorValue[Gyro] = 0;//resets gyros
 	SensorScale[Gyro] = 260;
-	while(abs(SensorValue[Gyro]*GyroK - target) > 0.5 && time1[T2] < 500){
+	clearTimer(T2);
+	while(abs(SensorValue[Gyro]*GyroK - target) > 0.5 && time1[T2] < 800){
 		//if (target>0) baseMove(&Right, 25); //keep right side still moving back
-		swingL(LimitDownTo(20, 5*(SensorValue[Gyro]*GyroK- target) ) );
+		swingL(LimitDownTo(20, 5*(SensorValue[Gyro]*GyroK-target)));
 	}
 	//swingL(-GETSIGN(target) *60);
 	//delay(30);

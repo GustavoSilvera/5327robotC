@@ -16,12 +16,12 @@ void fwdsLong(const int power, const float angle = mRot) {//drive base forwards
 }
 
 void fwds(const int power, const float angle = mRot) {//drive base forwards
-	const int speed = LIMITUP(127, power);
-	//int dirSkew = limitUpTo(speed, 15*(mRot - angle));
-	motor[RBaseFront] = speed;//+dirSkew;
-	motor[RBaseBack] = speed;//+dirSkew;
-	motor[LBaseFront] = speed;//-dirSkew;
-	motor[LBaseBack] = speed;//-dirSkew;
+	const int speed = LimitUpTo(127, power);
+	float dirSkew = LimitUpTo(speed, 15 * (mRot - angle) );
+	motor[RBaseFront] = speed - dirSkew;
+	motor[RBaseBack] = speed - dirSkew;
+	motor[LBaseFront] = speed + dirSkew;
+	motor[LBaseBack] = speed + dirSkew;
 }
 bool nearStopped(int velThresh, int motorThresh){
 	return(abs(mainVelocity) < velThresh && //low base velocity
@@ -37,11 +37,10 @@ void settle(){
 	}
 	return;
 }
-void driveFor(int goal) {//drives for certain inches
+void driveFor(int goal, const float initDir = mRot) {//drives for certain inches
 	SensorValue[LeftBaseEnc] = 0;
 	SensorValue[RightBaseEnc] = 0;
 	const int thresh = 360;
-	const int initDir = mRot;
 	//const float encoderScale = 1;//number of motor rotations = this() rotations
 	const float dP = 0.06;//25;//multiplier for velocity controller
 	goalTicks = goal*114.5916 ;
@@ -51,10 +50,10 @@ void driveFor(int goal) {//drives for certain inches
 		//360 ticks per revolution
 		//therefore conversion to ticks is goal / 4pi * 360 * 4 => scalar of 114.5916
 		goalPower = GETSIGN(goal) * LIMITDOWN(15, dP * abs(goalTicks - encoderAvg));
-		fwds(goalPower, mRot);
+		fwds(goalPower, initDir);
 	}
-	fwds(GETSIGN(goal)*-60, initDir);
-	delay(200);
+	//fwds(GETSIGN(goal)*-60, initDir);
+	//delay(200);
 	fwds(0, initDir);
 	settle();
 	return;
@@ -112,17 +111,10 @@ void alignToDark(float dir){
 //	}
 //	fwds(0, mRot);
 //}
-void alignSonar(int goal, float kP){ //use sonar to reach distance in inches
-	/*
-	while(SensorValue[sonar] > goal){
-		fwds(100);
-	}
-	fwds(-127);
-	delay(100);
-	return;*/
 
-	while(SensorValue[sonar] > goal){
-		fwds(kP*(SensorValue[sonar] - goal));
-	}
+void driveToSonar(bool side, int goal, float kP){ //use sonar to reach distance in inches
+	//if(side == RIGHT) while(SensorValue[Rsonar] > goal) fwds(kP*(SensorValue[Rsonar] - goal));
+	//else
+	while(SensorValue[Lsonar] > goal) fwds(kP*(SensorValue[Lsonar] - goal));
 	return;
 }

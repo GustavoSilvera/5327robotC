@@ -39,7 +39,7 @@
 	#define AVG(x,y) ((x + y)/2)
 	#define AVGINT(x,y) ((x + y)>>1)
 	#define MIN(x,y) (x <= y ? x : y)
-	#define GETSIGN(x) (x < 0 ? -1 : 1)
+//	#define GETSIGN(x) (x < 0 ? -1 : 1)
 	#define LIMITUP(max, val) (val < max ? val : max)
 	#define LIMITDOWN(min, val) (val > min ? val : min)
 
