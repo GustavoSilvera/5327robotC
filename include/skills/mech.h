@@ -13,7 +13,7 @@
 \*******************************************************************************/
 
 float TruSpeed(const float value) {//for all other polynomials; visit: goo.gl/mhvbx4
-	return(GETSIGN(value) * (SQUARE(value) / (127)));//squaring
+	return(getSign(value) * (SQUARE(value) / (127)));//squaring
 }//function for calculating the truSpeed function based off a polynomial
 void mechMove(const struct mechanism* mech, const int speed) {
 	if(!mech->stalling){

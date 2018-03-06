@@ -1,12 +1,14 @@
 //#include "include/skills/other.h"
 //function for driving the robot
+void swingL(int power){
+	motor[LBaseFront] = -power;
+	motor[LBaseBack] = -power;
+}
+void swingR(int power){
+	motor[RBaseFront] = power;
+	motor[RBaseBack] = power;
+}
 
-void swingR(float power) {//swings right base
-	analogMechControl(&baseRight.m, power);
-}
-void swingL(float power) {//swings right base
-	analogMechControl(&baseLeft.m, power);
-}
 void fwdsLong(const int power, const float angle = mRot) {//drive base forwards
 	const float speed = LIMITUP(127, power);
 	motor[RBaseFront] = speed;
@@ -49,8 +51,8 @@ void driveFor(int goal, const float initDir = mRot) {//drives for certain inches
 		//goal / 4pi = number of revolutions
 		//360 ticks per revolution
 		//therefore conversion to ticks is goal / 4pi * 360 * 4 => scalar of 114.5916
-		goalPower = GETSIGN(goal) * LIMITDOWN(15, dP * abs(goalTicks - encoderAvg));
-		fwds(goalPower, initDir);
+		goalPower = getSign(goal) * LimitDownTo(15, dP * abs(goalTicks - encoderAvg));
+		fwds(goalPower);
 	}
 	//fwds(GETSIGN(goal)*-60, initDir);
 	//delay(200);
@@ -61,7 +63,7 @@ void driveFor(int goal, const float initDir = mRot) {//drives for certain inches
 void alignToLine(float dir){
 	const float lineThresh = 1500;
 	bool isAligned = (SensorValue[RLin] + SensorValue[LLin] < lineThresh);
-	const int power = dir * 75;
+	const int power = dir * 35;
 	while(!isAligned){
 		if(SensorValue[LLin] < lineThresh){
 			fwds(0, mRot);
@@ -73,11 +75,11 @@ void alignToLine(float dir){
 		else if (SensorValue[RLin] < lineThresh){
 			fwds(0, mRot);
 			while(SensorValue[LLin] > lineThresh){
-				swingL(power);
+				swingL(-power);
 			}
 			isAligned = true;
 		}
-		else fwds(power*0.5);// fwds(power, mRot); //speed where robot will stop on line
+		else fwds(power);// fwds(power, mRot); //speed where robot will stop on line
 	}
 	fwds(0);
 }
