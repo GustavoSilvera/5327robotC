@@ -8,15 +8,6 @@ void swingR(int power){
 	motor[RBaseFront] = power;
 	motor[RBaseBack] = power;
 }
-
-void fwdsLong(const int power, const float angle = mRot) {//drive base forwards
-	const float speed = LIMITUP(127, power);
-	motor[RBaseFront] = speed;
-	motor[RBaseBack] = speed;
-	motor[LBaseFront] = speed;
-	motor[LBaseBack] = speed;
-}
-
 void fwds(const int power, const float angle = mRot) {//drive base forwards
 	const int speed = LimitUpTo(127, power);
 	float dirSkew = LimitUpTo(speed, 15 * (mRot - angle) );
@@ -57,14 +48,15 @@ void driveFor(int goal, const float initDir = mRot) {//drives for certain inches
 	//fwds(GETSIGN(goal)*-60, initDir);
 	//delay(200);
 	fwds(0, initDir);
-	settle();
+	//settle();
 	return;
 }
 void alignToLine(float dir){
 	const float lineThresh = 1500;
 	bool isAligned = (SensorValue[RLin] + SensorValue[LLin] < lineThresh);
 	const int power = dir * 35;
-	while(!isAligned){
+	clearTimer(T2);
+	while(!isAligned && (time1(T2) < 800)){
 		if(SensorValue[LLin] < lineThresh){
 			fwds(0, mRot);
 			while(SensorValue[RLin] > lineThresh){
