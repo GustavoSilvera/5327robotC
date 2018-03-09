@@ -79,28 +79,13 @@ void rotFor(float target){
 	settle();
 	return;
 }
-void rotFast(int target){
-	SensorValue[RightBaseEnc]= 0;
-	SensorValue[LeftBaseEnc] = 0;///reset
-	SensorValue[Gyro] = 0;//resets gyros
-	if(abs(target) == 90){
-		while(abs(SensorValue[LeftBaseEnc]) < 230){
-			rot(sgn(target)*127);
-		}
+void rotFor2(int angle){//gyro based turn
+	int initGyro = SensorValue[Gyro];
+	while(abs( (SensorValue[Gyro]-initGyro)*GyroK - angle) > 10){
+		rot(LimitDownTo(30, -2.5*((SensorValue[Gyro]-initGyro)*GyroK - angle)));
 	}
-	else if (abs(target) == 45){
-		while(abs(SensorValue[LeftBaseEnc]) < 120){
-			rot(sgn(target)*127);
-		}
-	}
-	rot(-sgn(target)*127);
-	delay(10);
-	clearTimer(T2);
-	while(abs(SensorValue[Gyro] - target) > 1 && time1[T2] < 500){
-		while(SensorValue[Gyro]*GyroK < target) rot(20);
-		while(SensorValue[Gyro]*GyroK > target) rot(-20);
-		delay(10);
-	}
+	rot(0);
+	return;
 }
 void rotAcc(int target, float kP, int delayTime = 1200){
 	SensorValue[RightBaseEnc]= 0;
@@ -113,37 +98,25 @@ void rotAcc(int target, float kP, int delayTime = 1200){
 	}
 	settle();
 }
-void rotAccFast(int target){
-	SensorValue[RightBaseEnc]= 0;
-	SensorValue[LeftBaseEnc]= 0;
-	SensorValue[Gyro] = 0;//resets gyros
-	SensorScale[Gyro] = 260;
-	clearTimer(T2);
-	while(abs(SensorValue[Gyro] - target) > 0){
-		rot(target - SensorValue[Gyro]*GyroK );
-	}
-	rot(-sgn(target - SensorValue[Gyro]*GyroK )*127);//hard break
-	delay(10);
-	while(SensorValue[Gyro]*GyroK < target) rot(60);
-	while(SensorValue[Gyro]*GyroK > target) rot(-60);
-	settle();
-}
-void rotEnc(int angle){
+void rotEnc(int angle, bool brake = false){
 	//SensorValue[Gyro]= 0;
 	//SensorScale[Gyro]= 260;
 	int initGyro = SensorValue[Gyro];
 	SensorValue[RightBaseEnc]= 0;
 	SensorValue[LeftBaseEnc]= 0;
-	int delayTime = 700;
+	int delayTime = 500;
 	//rightEnc degreesToTicks = 10.9956/
 	//distance = (angle/360)*2*pi*7 //2*pi*r (arc length)
 	//to ticks -> *114.5916
 	//constant is 4.4563
 	int goalTicks = 10.5 * angle;
 	int thresh = 16;
-	clearTimer(T2);
 	while(abs(SensorValue[RightBaseEnc] - goalTicks) > thresh){
 		rot(getSign(angle)*127);
+	}
+	if(brake) {
+		rot(-getSign(angle)*80);
+		delay(50);
 	}
 	clearTimer(T2);
 	while(time1[T2] < delayTime){

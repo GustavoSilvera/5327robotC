@@ -56,13 +56,11 @@ void initializeOpControl(const bool driver) {
 		mainVelocity = 0.0;
 	resetencoders();
 	//--------&reference-------TYPE-----------sensor-----------motor1---------motor2-----//
-	initMech( &conveyer,       CONVEY,        0,               LConveyor,     RConveyor   );//CONVEYOR
-	initMech( &baseLeft,       DRIVE,         LeftBaseEnc,     LBaseFront,    LBaseBack   );//LEFT BASE
-	initMech( &baseRight,      DRIVE,         RightBaseEnc,    RBaseFront,    RBaseBack   );//RIGHT BASE
+	initMech( &conveyer,       CONVEY,        0,               LConveyor,     RConveyor);//CONVEYOR
+	initMech( &baseLeft,       DRIVE,         LeftBaseEnc,     LBaseFront,    LBaseBack);//LEFT BASE
+	initMech( &baseRight,      DRIVE,         RightBaseEnc,    RBaseFront,    RBaseBack);//RIGHT BASE
 	//--------&reference-------Sensor------------thresh---kP----kI---kD-----reversed---isRunning
-	//initPID(  &fourBar.PID,    fourBar.m.sensor, 50,      0.05, 0.0, 0.05,  true,      true);
-	//initPID(  &lock.PID,       lock.m.sensor,    30,      0.5,  0.0, 0.0,   true,      true);
-	initPID(  &gyroBase,       Gyro,             1,       1,    0.0, 0,     true,      false);//kP = .35, kD = 0.6
+	initPID ( &gyroBase,       Gyro,             1,       1,    0.0, 0,     true,      false);//kP = .35, kD = 0.6
 	pastRot = mRot;
 }
 task intakeMogos(){
