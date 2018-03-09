@@ -108,6 +108,7 @@ task intakeMogo(){
 	playSound(soundBlip);
 	motor[LConveyor] = 0;
 	motor[RConveyor] = 0;
+	return;
 }
 task conveyerMove(){
 	stopTask(MechControlTask);
@@ -116,21 +117,24 @@ task conveyerMove(){
 			delay(50);
 	}
 }
-task skillsPart1() {
+void skillsPart1() {
 	//startTask(conveyerMove);
-	startTask(killswitch);
+//	startTask(killswitch);
 	//Corner Mogo (LOADER)
 	startDir = mRot;
 	motor[LConveyor] = INTAKE;
 	motor[RConveyor] = INTAKE;
 	startTask(intakeMogo);
 	driveFor(60);//drive and grab mogo
-	if( abs( startDir - mRot ) > 2) rotTune( startDir - mRot + 2);//angular correction
+//	if( abs( startDir - mRot ) > 2) rotTune( startDir - mRot + 2);//angular correction
 	driveFor(-58);//come back to 10pt pole
 	RSwingFor(-40);//align with 10pt
-	motor[LConveyor] = INTAKE;
-	motor[RConveyor] = INTAKE;
-	delay(400);//release mogo in 10pt
+	clearTimer(T4);
+	while(time1[T4] < 400){//release mogo in 10pt OPTIMIZE
+		motor[LConveyor] = INTAKE;
+		motor[RConveyor] = INTAKE;
+	}
+	delay(300);
 	motor[LConveyor] = 0;
 	motor[RConveyor] = 0;
 
@@ -143,15 +147,16 @@ task skillsPart1() {
 	//End
 	//startTask(MechControlTask);
 }
-task skillsPart2(){
+void skillsPart2(bool first){
 
 	//Cross Field
 	startTask(intakeMogos);
 	driveFor(110); //intake mogos
 
 	//Double Mogo Score
-	rotEnc(120); //OPTIMIZE closer to left side of zone
-	driveFor(-22); //drive to center
+	if(first) rotEnc(125); //OPTIMIZE closer to left side of zone
+	else rotEnc(114); //OPTIMIZE closer to left side of zone
+	driveFor(-19); //drive to center
 	LSwingFor(45); //swing to 10pt pole
 	clearTimer(T4);
 	while(time1(T4)<900) fwds(-127);//full power drive forward
@@ -162,7 +167,7 @@ task skillsPart2(){
 		motor[RConveyor] = INTAKE;
 	}
 	clearTimer(T4);
-	while(time1(T4)<700) {//start driving out of 10pt
+	while(time1(T4)<500) {//start driving out of 10pt
 		motor[LConveyor] = INTAKE;
 		motor[RConveyor] = INTAKE;
 		fwds(127);
@@ -178,23 +183,25 @@ task skillsPart2(){
 	//End
 	//startTask(MechControlTask);
 }
-task skillsPart3() {
+void skillsPart3() {
 
 	//Align after double mogo
 	alignToLine(1);
-	driveFor(7);
+	driveFor(8);
 	rotEnc(-90);
 	delay(200);
 
 	//Right Mogo
-	driveToSonar(RIGHT, 8, 3); //drive to wall
+	driveToSonar(RIGHT, 11, 3); //drive to wall
 	RSwingFor(30); //face mogo
 	startDir = mRot;
-	delay(200);
+	//delay(200);
 	startTask(intakeMogo);
-	driveFor(10); //drive to middle line
+	driveFor(12); //drive to middle line
 	alignToLine(1); //align line
 	driveFor(30); //intake mogo
+
+	//driveFor(47);
 	if( abs( startDir - mRot ) > 3) rotTune((startDir - mRot));//angular correction
 	driveFor(-55); //drive back
 	LSwingFor(47); //align with 10pt
@@ -221,22 +228,16 @@ task skillsPart3() {
 	driveFor(20);
 	clearTimer(T4);
 	//playSound(soundFastUpwardTones);
-	while(time1[T4]<100) { rot(127); }
+	while(time1[T4]<70) { rot(127); }
 	rot(0);
-	resetencoders();
-	delay(100);
-	driveFor(25);
-	//playSound(soundFastUpwardTones);
-	resetencoders();
-	delay(100);
-	driveFor(-25);
-	clearTimer(T4);
-	//playSound(soundFastUpwardTones);
-	while(time1[T4]<50){ rot(-127); }
-	rot(0);
-	resetencoders();
-	delay(100);
-	driveFor(-22);
+	driveFor(27);
+	//driveFor(-10);
+	//clearTimer(T4);
+	//while(time1[T4]<100){ rot(-127); }
+	//playSound(soundFastUpwardTones)
+	//rot(0);
+	//driveFor(-35);
+	driveFor(-48);
 	//playSound(soundFastUpwardTones);
 	RSwingFor(-40); //align with 10pt
 	delay(300);
@@ -249,9 +250,9 @@ task skillsPart3() {
 	motor[LConveyor] = 0;
 	motor[RConveyor] = 0;
 
-	startTask(skillsPart2); //repeat skills Part 2
+	//skillsPart2(); //repeat skills Part 2
 }
-task skillsPart4 () {
+void skillsPart4 () {
 	//Align after double mogo
 	alignToLine(1);
 	driveFor(7);
@@ -283,171 +284,27 @@ task skillsPart4 () {
 	LSwingFor(-45);
 	driveFor(60);
 }
-task progSkills(){
-	startTask(killswitch);
-
-	/////////////////////////////////////////////////////
-	//////////////// Part 1: 4 sec //////////////////////
-	/////////////////////////////////////////////////////
-	//Corner Mogo (LOADER)
-	startDir = mRot;
-	motor[LConveyor] = INTAKE;
-	motor[RConveyor] = INTAKE;
-	startTask(intakeMogo);
-	driveFor(60);//drive and grab mogo OPTIMIZE
-	if( abs( startDir - mRot ) > 2) rotTune( startDir - mRot + 2);//angular correction
-	driveFor(-58);//come back to 10pt pole OPTIMIZE
-	RSwingFor(-40);//align with 10pt
-	motor[LConveyor] = INTAKE;
-	motor[RConveyor] = INTAKE;
-	delay(300);//release mogo in 10pt OPTIMIZE
-	motor[LConveyor] = 0;
-	motor[RConveyor] = 0;
-
-	/////////////////////////////////////////////////////
-	//////////////// Part 2: 11 sec /////////////////////
-	/////////////////////////////////////////////////////
-	//Cross Field
-	startTask(intakeMogos);
-	driveFor(110); //intake mogos
-
-	//Double Mogo Score
-	rotEnc(120); //OPTIMIZE closer to left side of zone
-	driveFor(-22); //drive to center
-	LSwingFor(45); //swing to 10pt pole
-	clearTimer(T4);
-	while(time1(T4)<900) fwds(-127);//full power drive forward
-	//driveFor(18);
-	clearTimer(T4);
-	while(time1(T4)<1000) {//outtake 20pt mogo
-		motor[LConveyor] = INTAKE; //OPTIMIZE
-		motor[RConveyor] = INTAKE;
-	}
-	clearTimer(T4);
-	while(time1(T4)<700) {//start driving out of 10pt
-		motor[LConveyor] = INTAKE;
-		motor[RConveyor] = INTAKE;
-		fwds(127);
-	}
-	clearTimer(T4);//drive conveyor in case 2nd mogo doesn't outtake
-	while(time1(T4)<100) {
-		motor[LConveyor] = INTAKE;
-		motor[RConveyor] = INTAKE;
-	}
-
-	/////////////////////////////////////////////////////
-	//////////////// Part 3: ? sec + 11 sec /////////////
-	/////////////////////////////////////////////////////
-
-	//Align after double mogo
-	alignToLine(1);
-	driveFor(7);
-	rotEnc(-90);
-	delay(300);
-
-	//Right Mogo
-	driveToSonar(RIGHT, 8, 3); //drive to wall
-	RSwingFor(30); //face mogo
-	startDir = mRot;
-	delay(200);
-	startTask(intakeMogo);
-	driveFor(10); //intake mogo
-	alignToLine(1);
-	driveFor(30);
-	if( abs( startDir - mRot ) > 3) rotTune((startDir - mRot));//angular correction
-	driveFor(-55); //drive back
-	LSwingFor(47); //align with 10pt
-	clearTimer(T4);
-	while(time1[T4]<400){//release mogo in 10pt
-		motor[LConveyor] = INTAKE; //TUNE
-		motor[RConveyor] = INTAKE;
-	}
-	//delay(400);
-	motor[LConveyor] = 0;
-	motor[RConveyor] = 0;
-
-	//Align after right mogo
-	alignToLine(1);
-	driveFor(7);
-	rotEnc(90);
-
-	//Left Mogo
-	driveToSonar(LEFT, 11, 3); //drive to wall
-	LSwingFor(-35); //face mogo
-	delay(200);
-	startTask(intakeMogo);
-	//playSound(soundFastUpwardTones);
-	driveFor(20);
-	clearTimer(T4);
-	//playSound(soundFastUpwardTones);
-	while(time1[T4]<100) { rot(127); }
-	rot(0);
-	resetencoders();
-	delay(100);
-	driveFor(25);
-	//playSound(soundFastUpwardTones);
-	resetencoders();
-	delay(100);
-	driveFor(-25);
-	clearTimer(T4);
-	//playSound(soundFastUpwardTones);
-	while(time1[T4]<50){ rot(-127); }
-	rot(0);
-	resetencoders();
-	delay(100);
-	driveFor(-22);
-	//playSound(soundFastUpwardTones);
-	RSwingFor(-40); //align with 10pt
-	//delay(300);
-	clearTimer(T4);
-	while(time1[T4]<400){
-		motor[LConveyor] = INTAKE;
-		motor[RConveyor] = INTAKE;
-	}
-	delay(400);//release mogo in 10pt
-	motor[LConveyor] = 0;
-	motor[RConveyor] = 0;
-
-	startTask(skillsPart2); //repeat skills Part 2
-
-	/////////////////////////////////////////////////////
-	//////////////// Part 4: 13 sec /////////////////////
-	/////////////////////////////////////////////////////
-	//Align after double mogo
-	alignToLine(1);
-	driveFor(7);
-	rotEnc(-90);
-	delay(300);
-
-	//Right Mogo
-	driveToSonar(RIGHT, 8, 3); //drive to wall
-	RSwingFor(30); //face mogo
-	delay(100);
-	startDir = mRot;
-	startTask(intakeMogo);
-	driveFor(15); //intake mogo
-	alignToLine(1);
-	driveFor(25);
-	if( abs(startDir - mRot ) > 3) rotTune((startDir - mRot));//angular correction
-	driveFor(-50); //drive back
-	LSwingFor(47); //align with 10pt
-	clearTimer(T4);
-	while(time1[T4]<300){ //release mogo in 10pt
-		motor[LConveyor] = INTAKE;
-		motor[RConveyor] = INTAKE;
-	}
-	//delay(400);
-	motor[LConveyor] = 0;
-	motor[RConveyor] = 0;
-
-	//Park
-	LSwingFor(-45);
-	driveFor(60);
-
+void progSkills(){
+	//skills order: 1, 2, 3, 2, 4
+	skillsPart1();
+	skillsPart2(true);
+	skillsPart3();
+	skillsPart2(false);
+	skillsPart4();
+	return;
 }
 
 task autonomous(){
-	startTask(progSkills);
+	initializeOpControl(true);//driver init
+	startTask(MechControlTask);//individual pid for lift type
+	startTask(MeasureSpeed);//velocity measurer for base
+	startTask(sensorsUpdate);
+	//startTask(antiStall); no
+	startTask(killswitch);
+	startTask(displayLCD);
+	SensorValue[Gyro] = 0;//resets gyros
+	SensorScale[Gyro] = 260;
+	progSkills();
 }
 task usercontrol() {//initializes everything
 	initializeOpControl(true);//driver init
@@ -470,11 +327,11 @@ task usercontrol() {//initializes everything
 		if(U7) driveFor(50);
 		if(R7) driveFor(-45);
 		if(D7) RSwingFor(30);
-		if(R8) startTask(progSkills);
-		if(U5) startTask(skillsPart1);
-		if(D5) startTask(skillsPart2);
-		if(U8) startTask(skillsPart3);
-		if(D8) startTask(skillsPart4);
+		if(R8) progSkills();
+		if(U5) skillsPart1();
+		if(D5) skillsPart2(true);
+		if(U8) skillsPart3();
+		if(D8) skillsPart4();
 
 		//accelerometer driving:
 		/*
