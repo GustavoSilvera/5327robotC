@@ -1,6 +1,7 @@
 #pragma config(Sensor, in1,    RLin,           sensorNone)
 #pragma config(Sensor, in2,    LLin,           sensorLineFollower)
 #pragma config(Sensor, in3,    MLin,           sensorLineFollower)
+#pragma config(Sensor, in4,    MFLin,          sensorLineFollower)
 #pragma config(Sensor, in5,    BATERY_2_PORT,  sensorAnalog)
 #pragma config(Sensor, in6,    Gyro,           sensorGyro)
 #pragma config(Sensor, dgtl1,  LeftBaseEnc,    sensorQuadEncoder)
@@ -66,29 +67,25 @@ void initializeOpControl(const bool driver) {
 }
 task intakeMogos(){
 	//pick up first mogo
-	while(SensorValue[MogoFront] == 0){
-		motor[LConveyor] = INTAKE;
-		motor[RConveyor] = INTAKE;
-	}
-	while(SensorValue[MogoFront] == 1){
+	while(SensorValue[MFLin] > 350){//SensorValue[MogoFront] == 0){
 		motor[LConveyor] = INTAKE;
 		motor[RConveyor] = INTAKE;
 	}
 	playSound(soundBlip);
 	motor[LConveyor] = 0;
 	motor[RConveyor] = 0;
-	delay(500);
+	delay(300);
 	//pick up second mogo
-	while(SensorValue[MLin] > 150){
+	while(SensorValue[MLin] > 350){
 		motor[LConveyor] = INTAKE;
 		motor[RConveyor] = INTAKE;
 	}
-	while(SensorValue[MogoFront] == 0){
+	while(SensorValue[MFLin] > 350){
 		motor[LConveyor] = INTAKE;
 		motor[RConveyor] = INTAKE;
 	}
-	delay(150); //finish intaking mogo
 	playSound(soundBlip);
+	delay(550); //finish intaking mogo
 	motor[LConveyor] = 0;
 	motor[RConveyor] = 0;
 	return;
@@ -326,7 +323,7 @@ task usercontrol() {//initializes everything
 		if(L7) alignToLine(1);
 		if(U7) driveFor(50);
 		if(R7) driveFor(-45);
-		if(D7) RSwingFor(30);
+		if(D7) startTask(intakeMogos);
 		if(R8) progSkills();
 		if(U5) skillsPart1();
 		if(D5) skillsPart2(true);
