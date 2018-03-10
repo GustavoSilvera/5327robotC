@@ -79,10 +79,40 @@ void rotFor(float target){
 	settle();
 	return;
 }
-void rotFor2(int angle){//gyro based turn
+void rotTune(int angle){
 	int initGyro = SensorValue[Gyro];
-	while(abs( (SensorValue[Gyro]-initGyro)*GyroK - angle) > 10){
-		rot(LimitDownTo(30, -2.5*((SensorValue[Gyro]-initGyro)*GyroK - angle)));
+	int delayTime = 700;
+	clearTimer(T2);
+	while(time1[T2] < delayTime){
+		rot(LimitDownTo(30, -0.8*((SensorValue[Gyro]-initGyro)*GyroK - angle)));
+	}
+}
+void rotFor2(int angle, bool brake = false){//gyro based turn(DONT EVER USE)
+	const int initGyro = SensorValue[Gyro];
+	/*while(abs( ( SensorValue[Gyro] - initGyro ) * GyroK - angle) > 2){
+		rot(LimitDownTo(40, -10 * ( (SensorValue[Gyro] - initGyro) * GyroK - angle)));
+	}
+	if(brake) {
+		clearTimer(T3);
+		while(time1[T3] < 100){
+			rot(-getSign(angle)*127);
+		}
+	}*/
+	//if( abs( angle - (SensorValue[Gyro] - initGyro) * GyroK  ) > 1) rotTune( ( SensorValue[Gyro] - initGyro)*GyroK - angle );//angular correction
+	for(int iterator = 127; iterator > 0; iterator -= 25){
+		while(abs(( SensorValue[Gyro] - initGyro ) * GyroK) > abs(angle) ){
+			rot(-iterator * getSign( (SensorValue[Gyro] - initGyro) * GyroK - angle));
+		}
+		while(abs(( SensorValue[Gyro] - initGyro ) * GyroK) < abs(angle) ){
+			rot( iterator * getSign( (SensorValue[Gyro] - initGyro) * GyroK - angle));
+		}
+		if(brake) {
+			clearTimer(T3);
+			while(time1[T3] < 100){
+				rot(-getSign(angle)*iterator);
+			}
+		}
+		rot(0);
 	}
 	rot(0);
 	return;
@@ -104,7 +134,7 @@ void rotEnc(int angle, bool brake = false){
 	int initGyro = SensorValue[Gyro];
 	SensorValue[RightBaseEnc]= 0;
 	SensorValue[LeftBaseEnc]= 0;
-	int delayTime = 500;
+	int delayTime = 700;
 	//rightEnc degreesToTicks = 10.9956/
 	//distance = (angle/360)*2*pi*7 //2*pi*r (arc length)
 	//to ticks -> *114.5916
@@ -115,22 +145,16 @@ void rotEnc(int angle, bool brake = false){
 		rot(getSign(angle)*127);
 	}
 	if(brake) {
-		rot(-getSign(angle)*80);
-		delay(50);
+		clearTimer(T2);
+		while(time1[T2] < 50){
+			rot(-getSign(angle)*70);
+		}
 	}
 	clearTimer(T2);
 	while(time1[T2] < delayTime){
-		rot(LimitDownTo(30, -2.5*((SensorValue[Gyro]-initGyro)*GyroK - angle)));
+		rot(LimitDownTo(30, -3*((SensorValue[Gyro]-initGyro)*GyroK - angle)));
 	}
 	rot(0);
-}
-void rotTune(int angle){
-	int initGyro = SensorValue[Gyro];
-	int delayTime = 700;
-	clearTimer(T2);
-	while(time1[T2] < delayTime){
-		rot(LimitDownTo(30, -0.8*((SensorValue[Gyro]-initGyro)*GyroK - angle)));
-	}
 }
 void RSwingFor(int target){
 	gyroBase.isRunning = true;

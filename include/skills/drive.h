@@ -60,14 +60,14 @@ void alignToLine(float dir){
 		if(SensorValue[LLin] < lineThresh){
 			fwds(0, mRot);
 			while(SensorValue[RLin] > lineThresh){
-				swingR(power);
+				swingR(1.5*power);
 			}
 			isAligned = true;
 		}
 		else if (SensorValue[RLin] < lineThresh){
 			fwds(0, mRot);
 			while(SensorValue[LLin] > lineThresh){
-				swingL(-power);
+				swingL(-1.5*power);
 			}
 			isAligned = true;
 		}
