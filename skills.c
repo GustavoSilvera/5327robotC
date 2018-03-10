@@ -37,6 +37,8 @@
 #include "include/skills/physics.h"
 #include "include/skills/init.h"
 
+#define withCorrection true
+
 int startDir = 0;
 
 void pre_auton() {//dont care
@@ -109,73 +111,52 @@ task intakeMogo(){
 	motor[RConveyor] = 0;
 	return;
 }
-task conveyerMove(){
-	stopTask(MechControlTask);
-	for(;;){
-		if(autonRunning) mechMove(&conveyer.m, conveyer.speed);//allows multitasking
-			delay(50);
-	}
-}
 void skillsPart1() {
-	//startTask(conveyerMove);
-//	startTask(killswitch);
-	//Corner Mogo (LOADER)
+	//corner mogo (loader)
 	startDir = mRot;
 	motor[LConveyor] = INTAKE;
 	motor[RConveyor] = INTAKE;
 	startTask(intakeMogo);
-	driveFor(60);//drive and grab mogo
-//	if( abs( startDir - mRot ) > 2) rotTune( startDir - mRot + 2);//angular correction
-	driveFor(-58);//come back to 10pt pole
+	driveFor(60, withCorrection);//drive and grab mogo (with drive correction)
+	//	if( abs( startDir - mRot ) > 2) rotTune( startDir - mRot + 2);//angular correction (kinda bad...)
+	driveFor(-58);//come back to 10pt pole (NO correction)
 	RSwingFor(-40);//align with 10pt
 	clearTimer(T4);
-	while(time1[T4] < 400){//release mogo in 10pt OPTIMIZE
+	while(time1[T4] < 500){//release mogo in 10pt OPTIMIZE
 		motor[LConveyor] = INTAKE;
 		motor[RConveyor] = INTAKE;
 	}
-	delay(300);
+	delay(200);
 	motor[LConveyor] = 0;
 	motor[RConveyor] = 0;
-
-	//Cross Field
-	/*
-	startTask(intakeMogos);
-	driveFor(110); //drive and intake 2 mogos
-	rotEnc(130);*/
-
-	//End
-	//startTask(MechControlTask);
 }
-void skillsPart2(bool first){
+void skillsPart2(bool firstCross){
 
 	//Cross Field
 	startTask(intakeMogos);
-	driveFor(110); //intake mogos
-
-	//Double Mogo Score
-	if(first) rotEnc(125); //OPTIMIZE closer to left side of zone
-	else rotEnc(114); //OPTIMIZE closer to left side of zone
-	driveFor(-19); //drive to center
+	if(firstCross) driveFor(110); //intake mogos (NO correction)
+	else driveFor(105); //intake mogos (NO correction) (less than first time)
+		//Double Mogo Score
+	rotEnc(125); //OPTIMIZE closer to left side of zone
+	driveFor(-17); //drive to center
 	LSwingFor(45); //swing to 10pt pole
 	clearTimer(T4);
-	while(time1(T4)<800) fwds(-127);//full power drive forward
-	clearTimer(T4);
-	while(time1(T4)<400) {//outtake 20pt mogo
+	while(time1(T4)<850) fwds(-127);//full power drive forward
+		clearTimer(T4);
+	while(time1(T4)<400) {//outtake 20pt mogo and drive fwds
 		motor[LConveyor] = INTAKE;
 		motor[RConveyor] = INTAKE;
 		fwds(-127);
 	}
 	fwds(0);
 	clearTimer(T4);
-	while(time1(T4)<800) {//outtake 20pt mogo
+	while(time1(T4)<500) {//outtake 20pt mogo
 		motor[LConveyor] = INTAKE;
 		motor[RConveyor] = INTAKE;
 	}
 	clearTimer(T4);
-	while(time1(T4)<200) {//outtake 20pt mogo
-		fwds(0);
-	}
-	clearTimer(T4);
+	while(time1(T4)<200) fwds(0);//stop stalling our base
+		clearTimer(T4);
 	while(time1(T4)<500) {//start driving out of 10pt
 		motor[LConveyor] = INTAKE;
 		motor[RConveyor] = INTAKE;
@@ -186,19 +167,14 @@ void skillsPart2(bool first){
 		motor[LConveyor] = INTAKE;
 		motor[RConveyor] = INTAKE;
 	}
-
-	//alignToLine(1);
-
-	//End
-	//startTask(MechControlTask);
 }
 void skillsPart3() {
 
 	//Align after double mogo
 	alignToLine(1);
-	driveFor(8);
+	driveFor(7);
 	rotEnc(-90);
-	delay(200);
+	delay(200);//settle time
 
 	//Right Mogo
 	driveToSonar(RIGHT, 11, 3); //drive to wall
@@ -212,14 +188,14 @@ void skillsPart3() {
 	driveFor(30); //intake mogo
 
 	//driveFor(47);
-	if( abs( startDir - mRot ) > 3) rotTune((startDir - mRot));//angular correction
-	driveFor(-55); //drive back
+	if( abs( startDir - mRot ) > 2.5) rotTune((startDir - mRot));//angular correction
+		driveFor(-55, withCorrection); //drive back(with correction)
 	LSwingFor(47); //align with 10pt
 	clearTimer(T4);
 	while(time1[T4]<400){ //release mogo in 10pt
 		motor[LConveyor] = INTAKE;
 		motor[RConveyor] = INTAKE;
-		fwds(-50);
+		fwds(-50);//drive back whilst doing this
 	}
 	fwds(0);
 	delay(200);
@@ -251,21 +227,19 @@ void skillsPart3() {
 	delay(300);
 	driveFor(30); //intake mogo
 	if( abs( startDir - mRot ) > 2) rotTune((startDir - mRot));//angular correction
-	driveFor(-50);
+		driveFor(-50, withCorrection);//(TRY NOT TO HIT CONES ON WAY BACK)
 	RSwingFor(-40); //align with 10pt
 	delay(300);
 	clearTimer(T4);
 	while(time1[T4]<600){
 		motor[LConveyor] = INTAKE;
 		motor[RConveyor] = INTAKE;
-		fwds(-40);
+		fwds(-40);//drive back a bit to ensure 10pt
 	}
 	fwds(0);
 	delay(200);//release mogo in 10pt
 	motor[LConveyor] = 0;
 	motor[RConveyor] = 0;
-
-	//skillsPart2(); //repeat skills Part 2
 }
 void skillsPart4 () {
 	//Align after double mogo
@@ -275,8 +249,8 @@ void skillsPart4 () {
 	delay(300);
 
 	//Right Mogo
-	driveToSonar(RIGHT, 8, 3); //drive to wall
-	RSwingFor(30); //face mogo
+	driveToSonar(RIGHT, 9, 3); //drive to wall
+	RSwingFor(32); //face mogo
 	delay(100);
 	startDir = mRot;
 	startTask(intakeMogo);
@@ -284,20 +258,21 @@ void skillsPart4 () {
 	alignToLine(1);
 	driveFor(25);
 	if( abs(startDir - mRot ) > 3) rotTune((startDir - mRot));//angular correction
-	driveFor(-50); //drive back
+		driveFor(-50, withCorrection); //drive back(CONT HIT CONES)
 	LSwingFor(47); //align with 10pt
 	clearTimer(T4);
-	while(time1[T4]<300){
+	while(time1[T4]<400){
 		motor[LConveyor] = INTAKE;
 		motor[RConveyor] = INTAKE;
+		fwds(-40);
 	}
-	delay(400);//release mogo in 10pt
+	delay(300);//release mogo in 10pt
 	motor[LConveyor] = 0;
 	motor[RConveyor] = 0;
 
 	//Park
 	LSwingFor(-45);
-	driveFor(60);
+	driveFor(60, withCorrection);//lol 102 pls
 }
 void progSkills(){
 	//skills order: 1, 2, 3, 2, 4
@@ -353,12 +328,12 @@ task usercontrol() {//initializes everything
 		float yaxis = 2*vexRT[AccelY];//drive
 		float xaxis = 2*vexRT[AccelX];//rotate
 		if(abs(yaxis) > abs(xaxis)){
-			analogMechControl(&baseRight.m, -yaxis );
-			analogMechControl(&baseLeft.m, -yaxis );
+		analogMechControl(&baseRight.m, -yaxis );
+		analogMechControl(&baseLeft.m, -yaxis );
 		}
 		else{
-			analogMechControl(&baseRight.m, -xaxis );
-			analogMechControl(&baseLeft.m,   xaxis );
+		analogMechControl(&baseRight.m, -xaxis );
+		analogMechControl(&baseLeft.m,   xaxis );
 		}
 		//if(abs(yaxis) > 20) 			fwds(-TruSpeed(yaxis));
 		//else if(abs(xaxis) > 20)	rot(-TruSpeed(xaxis));

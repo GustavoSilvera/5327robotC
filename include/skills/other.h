@@ -18,10 +18,8 @@ task sensorsUpdate() {
 	//int rot=0;
 	for (;;) {
 		mRot = ((float)(GyroK*SensorValue[Gyro]));
-		encoderAvg = AVG(SensorValue[RightBaseEnc], SensorValue[LeftBaseEnc]);
-
+		encoderAvg = avg(SensorValue[RightBaseEnc], SensorValue[LeftBaseEnc]);
 		delay(5);//really quick delay
-
 	}
 }
 bool stalling(const struct mechanism* mech) {
@@ -89,33 +87,6 @@ task killswitch() {
 	for (;;) {
 		if (D7 && autonRunning) {
 			stopAllTasks();
-		}
-		delay(50);
-	}
-}
-/*
-void clawControl(int close, int open){
-	if (open || L8_2) {
-		motor[ClawMotor] = 127;
-		delay(500);
-	}
-	else if (close || R8_2){
-		motor[ClawMotor] = -80;
-		delay(200);
-	}
-	else motor[ClawMotor] = 0;
-}
-task clawTask(){
-	for(;;){
-		clawControl(L8, R8);//allows manual claw control
-		delay(50);
-	}
-}*/
-task liftPID(){
-	for(;;){
-		if(autonRunning){//turns on PID for the lifts during auton
-			PIDLift(&fourBar);
-			PIDLift(&lock);
 		}
 		delay(50);
 	}

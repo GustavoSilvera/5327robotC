@@ -67,5 +67,4 @@ float LimitDownTo(float min, float val) {
 //}
 float avg(float a, float b) {
 	return 0.5*(a + b);//avg between two things
-	// a + b >>2;
 }
