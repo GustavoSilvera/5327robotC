@@ -119,7 +119,7 @@ void skillsPart1() {
 	startTask(intakeMogo);
 	driveFor(60, withCorrection);//drive and grab mogo (with drive correction)
 	//	if( abs( startDir - mRot ) > 2) rotTune( startDir - mRot + 2);//angular correction (kinda bad...)
-	driveFor(-58);//come back to 10pt pole (NO correction)
+	driveFor(-58, withCorrection);//come back to 10pt pole (With correction)
 	RSwingFor(-40);//align with 10pt
 	clearTimer(T4);
 	while(time1[T4] < 500){//release mogo in 10pt OPTIMIZE
@@ -135,7 +135,7 @@ void skillsPart2(bool firstCross){
 	//Cross Field
 	startTask(intakeMogos);
 	if(firstCross) driveFor(110); //intake mogos (NO correction)
-	else driveFor(105); //intake mogos (NO correction) (less than first time)
+	else driveFor(108); //intake mogos (NO correction) (less than first time)
 		//Double Mogo Score
 	rotEnc(125); //OPTIMIZE closer to left side of zone
 	driveFor(-17); //drive to center
@@ -156,16 +156,20 @@ void skillsPart2(bool firstCross){
 	}
 	clearTimer(T4);
 	while(time1(T4)<200) fwds(0);//stop stalling our base
-		clearTimer(T4);
-	while(time1(T4)<500) {//start driving out of 10pt
-		motor[LConveyor] = INTAKE;
-		motor[RConveyor] = INTAKE;
-		fwds(127);
+	clearTimer(T4);
+	if(firstCross){
+		while(time1(T4)<600) {//start driving out of 10pt
+			motor[LConveyor] = INTAKE;
+			motor[RConveyor] = INTAKE;
+			fwds(127);
+		}
 	}
-	clearTimer(T4);//drive conveyor in case 2nd mogo doesn't outtake
-	while(time1(T4)<100) {
+	else {
+		while(time1[T4]<800){
 		motor[LConveyor] = INTAKE;
 		motor[RConveyor] = INTAKE;
+		fwds(-40);//drive back a bit to ensure 10pt
+		}
 	}
 }
 void skillsPart3() {
@@ -177,19 +181,19 @@ void skillsPart3() {
 	delay(200);//settle time
 
 	//Right Mogo
-	driveToSonar(RIGHT, 11, 3); //drive to wall
-	RSwingFor(30); //face mogo
+	driveToSonar(RIGHT, 14); //drive to wall
+	RSwingFor(32); //face mogo
 	startDir = mRot;
 	//delay(200);
 	startTask(intakeMogo);
-	driveFor(12); //drive to middle line
+	driveFor(14); //drive to middle line
 	alignToLine(1); //align line
-	delay(300);
+	delay(100);
 	driveFor(30); //intake mogo
 
 	//driveFor(47);
 	if( abs( startDir - mRot ) > 2.5) rotTune((startDir - mRot));//angular correction
-		driveFor(-55, withCorrection); //drive back(with correction)
+	driveFor(-55, withCorrection); //drive back(with correction)
 	LSwingFor(47); //align with 10pt
 	clearTimer(T4);
 	while(time1[T4]<400){ //release mogo in 10pt
@@ -208,7 +212,7 @@ void skillsPart3() {
 	rotEnc(90);
 
 	//Left Mogo
-	driveToSonar(LEFT, 11, 3); //drive to wall
+	driveToSonar(LEFT, 11); //drive to wall
 	/*LSwingFor(-35); //face mogo
 	delay(200);
 	startTask(intakeMogo);
@@ -218,16 +222,16 @@ void skillsPart3() {
 	rot(0);
 	driveFor(27);
 	driveFor(-48);*/
-	LSwingFor(-33); //face mogo
+	LSwingFor(-40); //face mogo
 	delay(200);
 	startDir = mRot;
 	startTask(intakeMogo);
-	driveFor(12); //drive to middle line
+	driveFor(13); //drive to middle line
 	alignToLine(1); //align line
-	delay(300);
+	delay(200);
 	driveFor(30); //intake mogo
-	if( abs( startDir - mRot ) > 2) rotTune((startDir - mRot));//angular correction
-		driveFor(-50, withCorrection);//(TRY NOT TO HIT CONES ON WAY BACK)
+	//if( abs( startDir - mRot ) > 2) rotTune((startDir - mRot));//angular correction
+	driveFor(-52, withCorrection);//(TRY NOT TO HIT CONES ON WAY BACK)
 	RSwingFor(-40); //align with 10pt
 	delay(300);
 	clearTimer(T4);
@@ -249,7 +253,7 @@ void skillsPart4 () {
 	delay(300);
 
 	//Right Mogo
-	driveToSonar(RIGHT, 9, 3); //drive to wall
+	driveToSonar(RIGHT, 9); //drive to wall
 	RSwingFor(32); //face mogo
 	delay(100);
 	startDir = mRot;
@@ -261,7 +265,7 @@ void skillsPart4 () {
 		driveFor(-50, withCorrection); //drive back(CONT HIT CONES)
 	LSwingFor(47); //align with 10pt
 	clearTimer(T4);
-	while(time1[T4]<400){
+	while(time1[T4]<600){
 		motor[LConveyor] = INTAKE;
 		motor[RConveyor] = INTAKE;
 		fwds(-40);
@@ -314,7 +318,7 @@ task usercontrol() {//initializes everything
 		//debug controls
 		//do not use D7 -- killswitch
 		if(L7) alignToLine(1);
-		if(U7) rotEnc(90, true);
+		if(U7) driveFor(50);
 		if(R7) rotEnc(-90, true);
 		if(D7) startTask(intakeMogos);
 		if(R8) progSkills();

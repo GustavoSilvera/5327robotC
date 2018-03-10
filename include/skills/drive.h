@@ -35,7 +35,7 @@ void driveFor(const int goal, bool angularCorrectionEnabled = false) {//drives f
 	const int thresh = 360;
 	const float initDir = mRot;
 	//const float encoderScale = 1;//number of motor rotations = this() rotations
-	const float dP = 0.06;//25;//multiplier for velocity controller
+	const float dP = 0.2;//0.06;//25;//multiplier for velocity controller
 	goalTicks = goal*114.5916 ;
 	while (abs(goalTicks - encoderAvg) > thresh) { //while error > threshold
 		//encoder geared down 4:1, circum = 4*pi
@@ -96,7 +96,7 @@ void alignToDark(float dir){
 	}
 	fwds(0);
 }
-void driveToSonar(bool side, int goal, float kP){ //use sonar to reach distance in inches
+void driveToSonar(bool side, int goal, float kP=6){ //use sonar to reach distance in inches
 	if(side == RIGHT) while(SensorValue[Rsonar] > goal) fwds(kP*(SensorValue[Rsonar] - goal));
 	else while(SensorValue[Lsonar] > goal) fwds(kP*(SensorValue[Lsonar] - goal));
 	return;
