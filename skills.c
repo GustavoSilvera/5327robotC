@@ -45,7 +45,7 @@ void pre_auton() {//dont care
 	bStopTasksBetweenModes = true;
 	SensorType[Gyro] = sensorGyro;
 	wait1Msec(1220);
-	//Adjust SensorScale to correct the scaling for your gyro
+	//Adjust SensorScale to corr	ect the scaling for your gyro
 	scaleGyros();
 	while (bIfiRobotDisabled) {//in preauton
 		startTask(displayLCD);
@@ -65,6 +65,7 @@ void initializeOpControl(const bool driver) {
 	initPID ( &gyroBase,       Gyro,             1,       1,    0.0, 0,     true,      false);//kP = .35, kD = 0.6
 	pastRot = mRot;
 }
+bool firstCrossing = true;
 task intakeMogos(){
 	//pick up first mogo
 	while(SensorValue[MFLin] > 350){//SensorValue[MogoFront] == 0){
@@ -74,7 +75,8 @@ task intakeMogos(){
 	playSound(soundBlip);
 	motor[LConveyor] = 0;
 	motor[RConveyor] = 0;
-	delay(350);
+	if(firstCrossing) delay(350);
+	else delay(500)
 	//pick up second mogo
 	while(SensorValue[MLin] > 350){
 		motor[LConveyor] = INTAKE;
@@ -85,7 +87,7 @@ task intakeMogos(){
 		motor[RConveyor] = INTAKE;
 	}
 	clearTimer(T4);
-	while(time1(T4)<50) {//outtake 20pt mogo
+	while(time1(T4)<150) {//outtake 20pt mogo
 		motor[LConveyor] = INTAKE;
 		motor[RConveyor] = INTAKE;
 	}
@@ -133,6 +135,8 @@ void skillsPart1() {
 void skillsPart2(bool firstCross){
 
 	//Cross Field
+	if(firstCross) firstCrossing = true;
+	else firstCrossing = false;
 	startTask(intakeMogos);
 	if(firstCross) driveFor(110); //intake mogos (NO correction)
 	else driveFor(108); //intake mogos (NO correction) (less than first time)
@@ -165,10 +169,10 @@ void skillsPart2(bool firstCross){
 		}
 	}
 	else {
-		while(time1[T4]<800){
+		while(time1[T4]<700){
 		motor[LConveyor] = INTAKE;
 		motor[RConveyor] = INTAKE;
-		fwds(-40);//drive back a bit to ensure 10pt
+		fwds(127);
 		}
 	}
 }
@@ -192,17 +196,17 @@ void skillsPart3() {
 	driveFor(30); //intake mogo
 
 	//driveFor(47);
-	if( abs( startDir - mRot ) > 2.5) rotTune((startDir - mRot));//angular correction
+	if( abs( startDir - mRot ) > 2.5) rotTune(0.5*(startDir - mRot));//angular correction
 	driveFor(-55, withCorrection); //drive back(with correction)
 	LSwingFor(47); //align with 10pt
 	clearTimer(T4);
-	while(time1[T4]<400){ //release mogo in 10pt
+	while(time1[T4]<500){ //release mogo in 10pt //UNDO IF NOT WORK
 		motor[LConveyor] = INTAKE;
 		motor[RConveyor] = INTAKE;
 		fwds(-50);//drive back whilst doing this
 	}
 	fwds(0);
-	delay(200);
+	delay(300);
 	motor[LConveyor] = 0;
 	motor[RConveyor] = 0;
 
@@ -230,6 +234,7 @@ void skillsPart3() {
 	alignToLine(1); //align line
 	delay(200);
 	driveFor(30); //intake mogo
+	delay(200);
 	//if( abs( startDir - mRot ) > 2) rotTune((startDir - mRot));//angular correction
 	driveFor(-52, withCorrection);//(TRY NOT TO HIT CONES ON WAY BACK)
 	RSwingFor(-40); //align with 10pt
@@ -253,16 +258,17 @@ void skillsPart4 () {
 	delay(300);
 
 	//Right Mogo
-	driveToSonar(RIGHT, 9); //drive to wall
-	RSwingFor(32); //face mogo
+	driveToSonar(RIGHT, 12); //drive to wall
+	RSwingFor(34); //face mogo
 	delay(100);
 	startDir = mRot;
 	startTask(intakeMogo);
 	driveFor(15); //intake mogo
 	alignToLine(1);
-	driveFor(25);
+	driveFor(27);
 	if( abs(startDir - mRot ) > 3) rotTune((startDir - mRot));//angular correction
-		driveFor(-50, withCorrection); //drive back(CONT HIT CONES)
+	else delay(200);
+	driveFor(-50, withCorrection); //drive back(CONT HIT CONES)
 	LSwingFor(47); //align with 10pt
 	clearTimer(T4);
 	while(time1[T4]<600){
@@ -289,16 +295,19 @@ void progSkills(){
 }
 
 task autonomous(){
-	initializeOpControl(true);//driver init
+	initializeOpControl(false);//AUTONOMOUS, NOT DRIVER init
 	startTask(MechControlTask);//individual pid for lift type
 	startTask(MeasureSpeed);//velocity measurer for base
 	startTask(sensorsUpdate);
 	//startTask(antiStall); no
 	startTask(killswitch);
 	startTask(displayLCD);
-	SensorValue[Gyro] = 0;//resets gyros
-	SensorScale[Gyro] = 260;
+	//SensorValue[Gyro] = 0;//resets gyros
+	//SensorScale[Gyro] = 260;
+	autonRunning = true;
+	//delay(1000);
 	progSkills();
+
 }
 task usercontrol() {//initializes everything
 	initializeOpControl(true);//driver init
@@ -311,8 +320,8 @@ task usercontrol() {//initializes everything
 	SensorValue[Gyro] = 0;//resets gyros
 	SensorScale[Gyro] = 260;
 	autonRunning = false;
-	if(nImmediateBatteryLevel < 8500) playSound(soundException);
-	else playSound(soundUpwardTones);
+	//if(nImmediateBatteryLevel < 8500) playSound(soundException);
+	//else playSound(soundUpwardTones);
 
 	for (;;) {
 		//debug controls
