@@ -54,17 +54,17 @@ void alignToLine(float dir){
 	bool isAligned = (SensorValue[RLin] + SensorValue[LLin] < lineThresh);
 	const int power = dir * 35;
 	clearTimer(T2);
-	while(!isAligned && (time1(T2) < 800)){
-		if(SensorValue[LLin] < lineThresh){
+	while(!isAligned && (time1(T2) < 2000)){
+		if(SensorValue[LLin] < lineThresh/2){
 			fwds(0, mRot);
-			while(SensorValue[RLin] > lineThresh){
+			while(SensorValue[RLin] > lineThresh/2){
 				swingR(1.5*power);
 			}
 			isAligned = true;
 		}
-		else if (SensorValue[RLin] < lineThresh){
+		else if (SensorValue[RLin] < lineThresh/2){
 			fwds(0, mRot);
-			while(SensorValue[LLin] > lineThresh){
+			while(SensorValue[LLin] > lineThresh/2){
 				swingL(-1.5*power);
 			}
 			isAligned = true;

@@ -1,8 +1,7 @@
-#pragma config(Sensor, in1,    RLin,           sensorNone)
+#pragma config(Sensor, in1,    RLin,           sensorLineFollower)
 #pragma config(Sensor, in2,    LLin,           sensorLineFollower)
 #pragma config(Sensor, in3,    MLin,           sensorLineFollower)
 #pragma config(Sensor, in4,    MFLin,          sensorLineFollower)
-#pragma config(Sensor, in5,    BATERY_2_PORT,  sensorAnalog)
 #pragma config(Sensor, in6,    Gyro,           sensorGyro)
 #pragma config(Sensor, dgtl1,  LeftBaseEnc,    sensorQuadEncoder)
 #pragma config(Sensor, dgtl3,  RightBaseEnc,   sensorQuadEncoder)
@@ -22,6 +21,8 @@
 
 // This code is for the VEX cortex platform
 #pragma platform(VEX2)
+
+
 // Select Download method as "competition"
 #pragma competitionControl(Competition)
 //Main competition background code...do not modify!5
@@ -55,7 +56,7 @@ void initializeOpControl(const bool driver) {
 	clearLCDLine(0);
 	clearLCDLine(1);
 	if (driver) resetGyros();//wastes time on auton
-		mainVelocity = 0.0;
+	mainVelocity = 0.0;
 	resetencoders();
 	//--------&reference-------TYPE-----------sensor-----------motor1---------motor2-----//
 	initMech( &conveyer,       CONVEY,        0,               LConveyor,     RConveyor);//CONVEYOR
@@ -75,8 +76,8 @@ task intakeMogos(){
 	playSound(soundBlip);
 	motor[LConveyor] = 0;
 	motor[RConveyor] = 0;
-	if(firstCrossing) delay(350);
-	else delay(500)
+	if(firstCrossing) delay(450);
+	else delay(500);
 	//pick up second mogo
 	while(SensorValue[MLin] > 350){
 		motor[LConveyor] = INTAKE;
@@ -97,13 +98,14 @@ task intakeMogos(){
 	return;
 }
 task intakeMogo(){
+	clearTimer(T1);
 	//intake one mogo, all the way at the top
-	while(SensorValue[MogoEnd] == 0){
+	while(SensorValue[MogoEnd] == 0 && time1[T1] < 5000){
 		//keep running conveyer
 		motor[LConveyor] = INTAKE;
 		motor[RConveyor] = INTAKE;
 	}
-	while(SensorValue[MogoEnd] == 1){
+	while(SensorValue[MogoEnd] == 1 && time1[T1] < 5000){
 		//keep running conveyer
 		motor[LConveyor] = INTAKE;
 		motor[RConveyor] = INTAKE;
@@ -144,8 +146,13 @@ void skillsPart2(bool firstCross){
 	rotEnc(125); //OPTIMIZE closer to left side of zone
 	driveFor(-17); //drive to center
 	LSwingFor(45); //swing to 10pt pole
+
 	clearTimer(T4);
-	while(time1(T4)<850) fwds(-127);//full power drive forward
+	while(time1(T4)<200) fwds(127);//full power drive forward
+	fwds(0);
+	delay(200);
+	clearTimer(T4);
+	while(time1(T4)<1000) fwds(-127);//full power drive forward
 		clearTimer(T4);
 	while(time1(T4)<400) {//outtake 20pt mogo and drive fwds
 		motor[LConveyor] = INTAKE;
@@ -162,19 +169,29 @@ void skillsPart2(bool firstCross){
 	while(time1(T4)<200) fwds(0);//stop stalling our base
 	clearTimer(T4);
 	if(firstCross){
-		while(time1(T4)<600) {//start driving out of 10pt
+		while(time1(T4)<900) {//start driving out of 10pt
 			motor[LConveyor] = INTAKE;
 			motor[RConveyor] = INTAKE;
 			fwds(127);
 		}
 	}
 	else {
-		while(time1[T4]<700){
+		while(time1[T4]<900){
 		motor[LConveyor] = INTAKE;
 		motor[RConveyor] = INTAKE;
 		fwds(127);
 		}
 	}
+}
+task releaseMogoDumb(){
+	clearTimer(T3);
+	while(time1[T3] < 600){
+		motor[LConveyor] = INTAKE;
+		motor[RConveyor] = INTAKE;
+	}
+	motor[LConveyor] = 0;
+	motor[RConveyor] = 0;
+	return;
 }
 void skillsPart3() {
 
@@ -185,8 +202,8 @@ void skillsPart3() {
 	delay(200);//settle time
 
 	//Right Mogo
-	driveToSonar(RIGHT, 14); //drive to wall
-	RSwingFor(32); //face mogo
+	driveToSonar(RIGHT, 12.5); //drive to wall
+	RSwingFor(35); //face mogo
 	startDir = mRot;
 	//delay(200);
 	startTask(intakeMogo);
@@ -196,9 +213,13 @@ void skillsPart3() {
 	driveFor(30); //intake mogo
 
 	//driveFor(47);
-	if( abs( startDir - mRot ) > 2.5) rotTune(0.5*(startDir - mRot));//angular correction
+	if( abs( startDir - mRot ) > 1.5) rotTune(0.5*(startDir - mRot));//angular correction
 	driveFor(-55, withCorrection); //drive back(with correction)
 	LSwingFor(47); //align with 10pt
+	clearTimer(T4);
+	while(time1[T4]<100){ //release mogo in 10pt //UNDO IF NOT WORK
+		fwds(-90);//drive back whilst doing this
+	}
 	clearTimer(T4);
 	while(time1[T4]<500){ //release mogo in 10pt //UNDO IF NOT WORK
 		motor[LConveyor] = INTAKE;
@@ -214,7 +235,7 @@ void skillsPart3() {
 	alignToLine(1);
 	driveFor(7);
 	rotEnc(90);
-
+	startTask(releaseMogoDumb);
 	//Left Mogo
 	driveToSonar(LEFT, 11); //drive to wall
 	/*LSwingFor(-35); //face mogo
@@ -226,21 +247,26 @@ void skillsPart3() {
 	rot(0);
 	driveFor(27);
 	driveFor(-48);*/
-	LSwingFor(-40); //face mogo
+	LSwingFor(-37.5); //face mogo
 	delay(200);
 	startDir = mRot;
 	startTask(intakeMogo);
+
 	driveFor(13); //drive to middle line
 	alignToLine(1); //align line
 	delay(200);
 	driveFor(30); //intake mogo
 	delay(200);
-	//if( abs( startDir - mRot ) > 2) rotTune((startDir - mRot));//angular correction
+	if( abs( startDir - mRot ) > 2) rotTune(0.5*(startDir - mRot));//angular correction
 	driveFor(-52, withCorrection);//(TRY NOT TO HIT CONES ON WAY BACK)
 	RSwingFor(-40); //align with 10pt
 	delay(300);
 	clearTimer(T4);
-	while(time1[T4]<600){
+	while(time1[T4]<100){
+		fwds(-85);//drive back a bit to ensure 10pt
+	}
+	clearTimer(T4);
+	while(time1[T4]<500){
 		motor[LConveyor] = INTAKE;
 		motor[RConveyor] = INTAKE;
 		fwds(-40);//drive back a bit to ensure 10pt
@@ -300,7 +326,7 @@ task autonomous(){
 	startTask(MeasureSpeed);//velocity measurer for base
 	startTask(sensorsUpdate);
 	//startTask(antiStall); no
-	startTask(killswitch);
+	//startTask(killswitch);
 	startTask(displayLCD);
 	//SensorValue[Gyro] = 0;//resets gyros
 	//SensorScale[Gyro] = 260;

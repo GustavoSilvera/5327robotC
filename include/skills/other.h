@@ -67,17 +67,15 @@ task displayLCD(){
 		displayNextLCDString(" ");
 		//NEXT LINE
 		//Display the Left Sonar
-		displayLCDString(1, 0, "L:");
-		//sprintf(LeftSonar, "%d", SensorValue[Lsonar], '"');//Build the value to be displayed
-		displayNextLCDString(LeftSonar);
+		sprintf(LeftSonar, "%d", SensorValue[LLin]);//Build the value to be displayed
+		displayLCDString(1, 0, LeftSonar);
 		displayNextLCDString(" ");
 		//Display the right Sonar
-		displayLCDString(1, 5, "R:");
-		//sprintf(RightSonar, "%d", SensorValue[Rsonar], '"');//Build the value to be displayed
-		displayNextLCDString(RightSonar);
+		sprintf(RightSonar, "%d", SensorValue[RLin], '"');//Build the value to be displayed
+		displayLCDString(1, 5, RightSonar);
 		displayNextLCDString(" ");
 		//Display the Power Expander voltage
-		displayLCDString(1, 10, "G:");
+		displayLCDString(1, 11, "G");
 		sprintf(gyroRead, "%1.2f%c", SensorValue[Gyro] * GyroK);//Build the value to be displayed
 		displayNextLCDString(gyroRead);
 		delay(30);
