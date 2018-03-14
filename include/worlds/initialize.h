@@ -50,7 +50,7 @@ struct sideBase{
 };
 struct sideBase Left;
 struct sideBase Right;
-struct sideBase goliat;
+//struct sideBase goliat;
 
 void initLiftType(const struct liftMech* lift, enum liftType type, char sensor, int m1, int m2, int max, int min, int delayAmnt = 20) {
 	lift->type = type;

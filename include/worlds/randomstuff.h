@@ -47,6 +47,11 @@ const float circum = 4 * PI;//4 inch wheels
 #define RIGHTside true
 #define TEN false
 #define TWENTY true
+#define STOP 0
+#define UP 1
+#define DOWN 2
+#define INTAKE 3
+#define OUTTAKE 4
 
 //other
 static volatile float velocity = 0;
@@ -65,6 +70,7 @@ string mainBattery, powerExpander, currCone, gyroRead;
 //int startRot = 90;
 volatile float mRot;//current rotation
 volatile float encoderAvg;//used only for straight fwds and bkwds direction
+int RVDState = STOP;
 //MISC FUNCTIONS
 //use macros!!! :)...ew gross
 int getSign(const float val){

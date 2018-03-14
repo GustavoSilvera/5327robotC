@@ -53,7 +53,7 @@ void enablePID(struct liftMech* lift){
 void PIDLift(const struct liftMech* lift) {
 	if (lift->PID.isRunning) liftMove(lift, pidCompute(lift->PID, lift->goal));//power the lift with its PID
 	else resetPIDVals(lift->PID);//turn off the PID and reset values
-	delay(lift->liftPIDelay);//delay a lil bit
+		delay(lift->liftPIDelay);//delay a lil bit
 }
 void UpUntil(const struct liftMech* lift, int goal, int speed = 127) {
 	lift->PID.isRunning = false;
@@ -102,7 +102,7 @@ void manualLiftControl(const struct liftMech* lift, int bUp, int bDown, int bUp2
 	else if (upButton) 	 power =  dir * maxSpeed;//up max speed
 	else if (downButton)  power = -dir * maxSpeed;//down max speed
 	else 	power = 0;//anything else? just kill it
-	if(lift->type == DIFFERENTIAL){
+		if(lift->type == DIFFERENTIAL){
 		if(abs(power) > 0) {
 			mainLift.PID.isRunning = false;
 			liftDiff(lift, power);//main lift and 4bar are normal-er
@@ -131,7 +131,7 @@ void LiftLift(const struct liftMech* lift, int bUp, int bDown, int bUp2, int bDo
 	else if (lift->type == DIFFERENTIAL)return;//dont even touch motors
 	else return;
 }
-task fourBarPID(){
+task fourBarPID(){ // no pid for RVD
 	for(;;){
 		if(U5 || U5_2) {
 			FourBar.goal = FourBar.max;
@@ -145,21 +145,45 @@ task fourBarPID(){
 		PIDLift(&FourBar);//calls the pid function for the lifts
 	}
 }
+void binVBar(){
+	if (RVDState == INTAKE) liftDiff(&FourBar, -127);
+	else if (RVDState == OUTTAKE) liftDiff(&FourBar, 127);
+	else if (RVDState == UP && SensorValue[FourBarLin] > 300) liftMove(&Fourbar, -127);
+	else if (RVDState == DOWN){
+		if (SensorValue[FourBarLin]<2000 || SensorValue[FourBarLin]>2600) liftMove(&FourBar, 127);
+		else liftMove(&FourBar,60);
+	}
+	else liftMove(&FourBar, 0);
+}
 task LiftControlTask() {
-	startTask(fourBarPID);
+	//startTask(fourBarPID);
 	for (;;) {//while true
 		if(!autonRunning){
 			if(U8 || D8){
 				mainLift.PID.isRunning = false;
 				LiftLift(&mogo, U8, D8, 0, 0, false, 180);
 			}
-			else LiftLift(&mainLift, U6, D6, U6_2, D6_2, false, 400);
+			else {
+				//RVD control
+				/*if(U5 && SensorValue[FourBarLin]>300) liftMove(&FourBar, 100); //move same dir, up
+				else if(D5 && (SensorValue[FourBarLin]<2000 || SensorValue[FourBarLin]>2600)) liftMove(&FourBar, -100); //move same dir, down
+				else if(L8) liftDiff(&FourBar, -127);
+				else if(R8) liftDiff(&FourBar, 127);
+				else liftMove(&FourBar, 0);*/
+				if(U5) RVDState = UP;
+				else if(D5) RVDState = DOWN;
+				else if(L8) RVDState = INTAKE;
+				else if(R8) RVDState = OUTTAKE;
+
+				LiftLift(&mainLift, U6, D6, U6_2, D6_2, false, 400);
+			}
 			//	if(!autoStacking || !autonRunning) LiftLift(&goliat,	L8, R8, L8_2, R8_2, false);
 		}
 		else {
 			PIDLift(&mainLift);//calls the pid function for the lifts
-			PIDLift(&FourBar);//calls the pid function for the lifts
+			//PIDLift(&FourBar);//calls the pid function for the lifts
 		}
+		binVBar();
 		delay(10);
 	}
 }

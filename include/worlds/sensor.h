@@ -91,7 +91,7 @@ task antiStall(){
 		//return;
 		//checkStalling(&Right);
 		//checkStalling(&Left);
-		if(!autoStacking) checkStalling(&goliat);
+		//if(!autoStacking) checkStalling(&goliat);
 		delay(20);
 	}
 }
@@ -137,8 +137,8 @@ task MeasureSpeed() {
 		rotVelocity = calcRotVel();//calculates rotational velocity
 		//lift velocities
 		mainLift.velocity = calcVel(&mainLift, dist, delayAmount);
-		FourBar.velocity = calcVel(&FourBar, dist, delayAmount);
-		goliat.velocity = calcVel(&goliat, dist, delayAmount);
+		//FourBar.velocity = calcVel(&FourBar, dist, delayAmount);
+		//goliat.velocity = calcVel(&goliat, dist, delayAmount);
 		//does the waitings
 		delay(delayAmount);
 	}
