@@ -15,7 +15,6 @@
  '----------------'  '----------------'  '----------------'  '----------------'  '----------------'  '----------------'
 */
 #define PI 3.1415
-const float circum = 4 * PI;//4 inch wheels
 //controller
 #define U5    		vexRT[Btn5U]//5U
 #define D5	  		vexRT[Btn5D]//5D
@@ -43,10 +42,10 @@ const float circum = 4 * PI;//4 inch wheels
 #define L8_2    	vexRT[Btn8LXmtr2]//8L2
 #define R8_2	    vexRT[Btn8RXmtr2]//8R2
 
-#define LEFTside false
-#define RIGHTside true
-#define TEN false
-#define TWENTY true
+#define LEFTside    false
+#define RIGHTside   true
+#define TEN         false
+#define TWENTY      true
 #define STOP 0
 #define UP 1
 #define DOWN 2
@@ -54,37 +53,24 @@ const float circum = 4 * PI;//4 inch wheels
 #define OUTTAKE 4
 
 //other
-static volatile float velocity = 0;
-float rotVelocity = 0;
-float pastRot;
-int currentCone = 0;
-int currentStag = 0;
-static const float GyroK = 15.0/80.0;//scales to normal +-360 degrees
-static int currentAutonomous = 0;
-bool autonRunning = false;
-bool slewRating = false;
-bool autoAutoStacking = false;
-volatile bool autoStacking = false;
-bool matchLoads = false;
+const float circum = 12.56;//4*PI;//4 inch wheels
+float rotVelocity, pastRot;
+static const float GyroK = 0.1875;//(15.0/80.0);//scales to normal +-360 degrees
+static int currentAutonomous = 0, currentCone = 0;
+const bool slewRating = false;
+bool autoStacking = false, autonRunning = false, matchLoads = false;
 string mainBattery, powerExpander, currCone, gyroRead;
-//int startRot = 90;
-volatile float mRot;//current rotation
-volatile float encoderAvg;//used only for straight fwds and bkwds direction
-int RVDState = STOP;
+volatile float encoderAvg = 0, velocity = 0;//used only for straight fwds and bkwds direction
+
 //MISC FUNCTIONS
-//use macros!!! :)...ew gross
-int getSign(const float val){
-	if(val < 0) return -1;
-	else if(val > 0) return 1;
-	else return 0;
-}
+//use macros!!! :)
 float limitUpTo(const float max, float val) {
 	if (abs(val) < abs(max)) return val;
-	else return getSign(val) * max;
+	else return sgn(val) * max;
 }
 float limitDownTo(const float min, const float val) {
 	if (abs(val) > abs(min)) return val;
-	else return getSign(val) * min;
+	else return sgn(val) * min;
 }
 float avg2(const float a, const float b){
 	return 0.5*(a+b);//avg between two things

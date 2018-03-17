@@ -15,7 +15,6 @@
 */
 void scaleGyros(){
 	SensorScale[Gyro] = 260;
-	//SensorBias[Gyro] = 1;
 	SensorFullCount[Gyro] = 3600;
 }
 void gyroBias(){
@@ -50,49 +49,55 @@ void resetEncoders(){
 	SensorValue[LeftEncoder] = 0;
 	SensorValue[RightEncoder] = 0;
 }
-/*ANTI-STALLING STUFF*/
-bool doubleTap(){
-	if(vexRT[Btn8L] == 1){
-		clearTimer(T3);
-		delay(100);
-		while(time1[T3] < 400){
-			if(vexRT[Btn8L] == 1) return true;
-		}
-		return false;
-	}
-	return false;
-}
-bool stalling(const struct sideBase* side){
+bool isStalling(const int *motorPower, float currentVelocity){
 	return (
-	abs(motor[side->motors[0]]) >= 80 &&//high ish power
-	//abs(motor[side->motors[0]]) > 80 &&//high ish power
-	abs(side->velocity) < 20//low ish velocity yet high speed (for like 500 ms)
+		abs(motor[motorPower[0]]) >= 80 &&//high ish power
+		abs(motor[motorPower[1]]) >= 80 &&//high ish power
+		abs(currentVelocity) < 20//low ish velocity yet high speed (for like 500 ms)
 	);
 }
-void checkStalling(struct sideBase* side){
-	if(stalling(side)){
+void checkStalling(struct sideBase* side, int delayThresh){
+	if(isStalling(side->motors, side->velocity)){
 		clearTimer(T1);
-		bool currentlyStalling = true;
-		while(time1[T1] < 150){//checkingn for continuous stalling (else instantanious refresh)
-			currentlyStalling = stalling(side);//still stalling
-			if(currentlyStalling) continue;//keep going until time limit
+		bool currentlyisStalling = true;
+		while(time1[T1] < delayThresh){//checkingn for continuous isStalling (else instantanious refresh)
+			currentlyisStalling = isStalling(side->motors, side->velocity);//still isStalling
+			if(currentlyisStalling) continue;//keep going until time limit
 			else break;
 		}
-		if(currentlyStalling){//done waiting, final check
+		if(currentlyisStalling){//done waiting, final check
 			playSound(soundBlip);
-			side->stalling = true;//if so, consider it stalling
+			side->isStalling = true;//if so, consider it isStalling
 		}
 	}
-	else side->stalling = false;
-	//if(side->stalling) playSound(soundShortBlip);
+	else side->isStalling = false;
+	if(side->isStalling) playSound(soundShortBlip);
 }
+void checkStalling(struct liftMech* lift, int delayThresh){
+	if(isStalling(lift->motors, lift->velocity)){
+		clearTimer(T1);
+		bool currentlyisStalling = true;
+		while(time1[T1] < delayThresh){//checkingn for continuous isStalling (else instantanious refresh)
+			currentlyisStalling = isStalling(lift->motors, lift->velocity);//still isStalling
+			if(currentlyisStalling) continue;//keep going until time limit
+			else break;
+		}
+		if(currentlyisStalling){//done waiting, final check
+			playSound(soundBlip);
+			lift->isStalling = true;//if so, conliftr it isStalling
+		}
+	}
+	else lift->isStalling = false;
+	if(lift->isStalling) playSound(soundShortBlip);
+}
+
 task antiStall(){
 	for(;;){
 		//return;
-		//checkStalling(&Right);
-		//checkStalling(&Left);
-		//if(!autoStacking) checkStalling(&goliat);
-		delay(20);
+		checkStalling(&Right, 200);
+		checkStalling(&Left, 200);
+		//if(!autoStacking) checkisStalling(&goliat);
+		delay(50);
 	}
 }
 /********************************************************************************\
@@ -128,7 +133,6 @@ task MeasureSpeed() {
 	const float dist = 1.125*PI;
 	const float delayAmount = 50;
 	for (;;) {
-		mRot = (float)(GyroK*SensorValue[Gyro]);
 		encoderAvg = SensorValue[Right.sensor];//avg2(SensorValue[Right.sensor], SensorValue[Left.sensor]);
 		//base velocity
 		Right.velocity = calcVel(&Right, circum, delayAmount);

@@ -67,15 +67,15 @@ void baseMove(const struct sideBase* side, int speed) {
 }
 void driveLR(const int powerR, const int powerL) {
 	if(autonRunning){//only do antistall during auton
-		if(!Right.stalling) baseMove(&Right, powerR);
+		if(!Right.isStalling) baseMove(&Right, powerR);
 		else {
 			baseMove(&Right, 0);
-			delay(750);//stall waiter
+			delay(500);//stall waiter
 		}
-		if(!Left.stalling) baseMove(&Left, powerL);
+		if(!Left.isStalling) baseMove(&Left, powerL);
 		else {
 			baseMove(&Left, 0);
-			delay(750);//stall waiter
+			delay(500);//stall waiter
 		}
 	}
 	else{
@@ -91,41 +91,24 @@ void driveCtrlr() {
 	//TruSpeed(limitUpTo(127, primary*vexRT[Ch2] + partner*vexRT[Ch2Xmtr2]), 3),
 	//TruSpeed(limitUpTo(127, primary*vexRT[Ch3] + partner*vexRT[Ch3Xmtr2]), 3)
 	//	);
-	driveLR(//truspeed taking both controllers
-	primary*vexRT[Ch2] + partner*vexRT[Ch2Xmtr2],
-	primary*vexRT[Ch3] + partner*vexRT[Ch3Xmtr2]
+	driveLR(//NO truspeed taking both controllers
+		primary * vexRT[Ch2] + partner * vexRT[Ch2Xmtr2],
+		primary * vexRT[Ch3] + partner * vexRT[Ch3Xmtr2]
 	);
 }
-void fwds(const int power, const float angle = mRot) {//drive base forwards
+void fwds(const int power, const float angle = SensorValue[Gyro]*GyroK) {//drive base forwards
 	int speed = limitUpTo(127, power);
 	const float scalar = 15;//scalar for rotation
-	float dirSkew = limitUpTo(speed, scalar*(mRot - angle));
+	float dirSkew = limitUpTo(speed, scalar*(angle - angle));
 	driveLR(speed - dirSkew, speed + dirSkew);
 }
 void rot(const float speed) {//rotates base
 	driveLR(speed, -speed);
 }
-void driveFor(float goal) {//drives for certain distance (arbitrary units)
-	//works best from 1 to 40 ish.
-	resetEncoders();
-	//	goal *= 2;//doubles "goal" not tuned very well as of rn
-	const int thresh = 5;//10 ticks
-	int initDir = mRot;
-	//ClearTimer(T1);
-	float dP = 20;//multiplier for velocity controller
-	float vel = velocity;
-	const float encoderRatio = 0.5;
-	while (abs(goal * circum - encoderAvg*encoderRatio) > thresh) {
-		fwds(limitDownTo(15, dP * ((goal*circum - encoderAvg*encoderRatio - 0.1*vel))), initDir);
-	}
-	fwds(0);
-	return;
-}
-void driveFor2(int goal) {//drives for certain distance in inches
+void driveFor(int goal) {//drives for certain distance in inches
 	resetEncoders();
 	const int thresh = 120;
-	const int initDir = mRot;
-	//const float encoderScale = 1;//number of motor rotations = this() rotations
+	const int initDir = SensorValue[Gyro]*GyroK;
 	const float dP = 0.3;//25;//multiplier for velocity controller
 	float goalTicks = goal*28.6479 ;
 	while (abs(goalTicks - encoderAvg) > thresh) { //while error > threshold

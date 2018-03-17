@@ -89,7 +89,7 @@ void autonSelect(int delayTime = 5000){
 	const int LEFT = 1;
 	const int RIGHT = 4;
 	const int CENTER = 2;
-	const static volatile unsigned signed int NUMAUTONS = 8;
+	extern intrinsic const static volatile unsigned signed int NUMAUTONS = 8;
 	while(time1[T4] < delayTime){
 		// diaplay default choice
 		displayAuton(value);
@@ -131,8 +131,6 @@ void displayStuff(){
 	displayNextLCDString("Gy:");
 	sprintf(gyroRead, "%1.2f%c", SensorValue[Gyro] * GyroK);//Build the value to be displayed
 	displayNextLCDString(gyroRead);
-
-
 }
 task displayLCD(){
 	for(;;){
@@ -140,7 +138,7 @@ task displayLCD(){
 			autonSelect();
 		}//displays auton for 5 seconds
 		else displayStuff();
-		delay(30);
+		delay(50);
 	}
 }
 #endif
