@@ -118,13 +118,6 @@ void manualLiftControl(const struct liftMech* lift, int up1, int up2, int dwn1, 
 	if(upButton && withinUpper) power = maxSpeed;
 	else if (downButton && withinLower) power = -maxSpeed;
 	else power = 0;
-	/*
-	if (!upButton && !downButton) power = 0;//not pressed any buttons
-	else if ( (!withinUpper && upButton) || (!withinLower && downButton)) power = 0;//pressing buttons but !within bounds
-	else if (upButton) 	 power =  dir * maxSpeed;//up max speed
-	else if (downButton)  power = -dir * maxSpeed;//down max speed
-	else 	power = 0;//anything else? just kill it
-	*/
 	if(lift->type == DIFFERENTIAL){
 		if(power != 0) {
 			mainLift.PID.isRunning = false;

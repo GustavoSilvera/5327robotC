@@ -47,23 +47,25 @@ void waitTill(struct liftMech *lift, int goal, int thresh){
 	while(abs(SensorValue[lift->sensor] - goal) > thresh && time1[T3] < 1000){continue;}//wait until success
 	return;
 }
+int intakeSpeed = 0;
 task outtakeGoliat(){
-	clearTimer(T2);
-	FourBar.PID.isRunning = false;
-	while(time1[T2] < 450) liftDiff(&goliat, -127);
-	liftDiff(&goliat, 0);
+	while(autoStacking) liftMove(&goliat, intakeSpeed);
+	liftMove(&goliat, 0);
 	return;
 }
 volatile bool finalCone = false;//used if dont want autostack to complete the loop
 void standStack(int cone){
+	startTask(outtakeGoliat);
+	intakeSpeed = 60;
 	UpUntilW4Bar(heightValues[cone] - 50, 0.85, 127, true);
 	FourBar.PID.goal = FourBar.max;//keeps them there
 	waitTill(&FourBar, FourBar.max, 100);
 	FourBar.PID.isRunning = false;
-	startTask(outtakeGoliat);
+	intakeSpeed = -127;
 	delay(delayValues[cone]);
 	liftMoveT(&mainLift, -80, 130);
 	delay(150);
+	intakeSpeed = 0;
 	if(!finalCone){
 		FourBar.PID.isRunning = true;
 		FourBar.PID.goal = FourBar.min;
