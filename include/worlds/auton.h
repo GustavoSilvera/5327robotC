@@ -16,8 +16,8 @@
 const int INSPEED = 100;//for roller hold
 const int OUTSPEED = -127;
 const int heightValues[15] = {
-	2200, 2300, 2400, 2550, 2600, 2600,
-	2750, 2850, 2940, 3030, 3120, 3210,
+	2270, 2300, 2400, 2550, 2600, 2650,
+	2790, 2850, 2910, 3050, 3120, 3210,
 	3400, 3500, 3600 };//values for where the lift should go to when autoStacking
 const int heightFourBar[15] = {
 	FourBar.max, FourBar.max, FourBar.max, FourBar.max, FourBar.max,
@@ -30,7 +30,7 @@ const int heightStago[9] = {
 	3200, 3330, 3420,
 	3540, 3750, 3900
 };//values for where the lift should go to when autoStacking
-const int delayValues[15] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 150, 200, 200, 200};//values for individual delays when autostacking
+const int delayValues[15] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 150, 200, 250, 350};//values for individual delays when autostacking
 
 void switchLEDs(){
 	if(SensorValue[OddLED] == 1){
@@ -56,21 +56,20 @@ task outtakeGoliat(){
 }
 volatile bool finalCone = false;//used if dont want autostack to complete the loop
 void standStack(int cone){
-	UpUntilW4Bar(heightValues[cone] + 50, 0.8, 127, true);
+	UpUntilW4Bar(heightValues[cone] - 50, 0.85, 127, true);
 	FourBar.PID.goal = FourBar.max;//keeps them there
 	waitTill(&FourBar, FourBar.max, 100);
 	FourBar.PID.isRunning = false;
 	startTask(outtakeGoliat);
 	delay(delayValues[cone]);
-	DownUntil(&mainLift, SensorValue[mainLift.sensor] - 50, 127);
+	liftMoveT(&mainLift, -80, 130);
 	delay(150);
 	if(!finalCone){
-		UpUntilW4Bar(limitUpTo(4090, SensorValue[mainLift.sensor] + 150), 0.8, 127, false); //make sure lift is above
 		FourBar.PID.isRunning = true;
 		FourBar.PID.goal = FourBar.min;
-		mainLift.PID.goal = mainLift.min + 100;
-		mainLift.PID.isRunning = true;
-		waitTill(&mainLift, mainLift.PID.goal, 100);
+		UpUntilW4Bar(limitUpTo(mainLift.max, SensorValue[mainLift.sensor] + 50), 0.8, 127, false); //make sure lift is above
+		waitTill(&FourBar, FourBar.min + 500, 100);//waits till 4bar gets away from stack
+		DownUntil(&mainLift, mainLift.min + 400, 127);
 	}
 	switchLEDs();
 	if(currentCone < 14) currentCone+=1;
@@ -82,7 +81,7 @@ void quickStack(int cone){
 	FourBar.PID.isRunning = false;
 	startTask(outtakeGoliat);
 	delay(delayValues[cone] + 150);
-	UpUntilW4Bar(limitUpTo(4090, SensorValue[mainLift.sensor] + 150), 0.75, 127, false); //make sure lift is above
+	UpUntilW4Bar(limitUpTo(mainLift.max, SensorValue[mainLift.sensor] + 150), 0.75, 127, false); //make sure lift is above
 	FourBar.PID.isRunning = true;
 	FourBar.PID.goal = FourBar.min;
 	mainLift.PID.goal = mainLift.min + 100;

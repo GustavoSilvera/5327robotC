@@ -23,6 +23,10 @@ void liftDiff(const struct liftMech* lift, const float speed) {
 	motor[lift->motors[0]] = power;//full speed
 	motor[lift->motors[1]] = -power;//isReversed for differential
 }
+void liftDiffStrange(const struct liftMech* lift, const float speed1, const float speed2) {
+	motor[lift->motors[0]] = speed1;//full speed
+	motor[lift->motors[1]] = -speed2;//isReversed for differential
+}
 void resetPIDVals(const struct PIDs* pid) {
 	pid->Last = 0;
 	pid->Integral = 0;
@@ -67,21 +71,32 @@ void UpUntil(const struct liftMech* lift, int goal, int speed = 127) {
 	enablePID(lift);
 	return;
 }
+void liftMoveT(struct liftMech* lift, int power, int delayTime){//time based lift move
+	clearTimer(T4);
+	while(time1[T4] < delayTime) liftMove(lift, power);
+	liftMove(lift, 0);
+	return;
+}
 void UpUntilW4Bar(int goal, float prop, int speed, bool FourBarToMax) {
 	mainLift.PID.isRunning = false;
 	int offset = 0;
-	if(currentCone >= 13) offset = 250;
+	if(currentCone >= 13) offset = 100;
 	while (SensorValue[mainLift.sensor] < goal){ //brings lift up to goal
 		liftMove(mainLift, abs(speed));
 		if(SensorValue[mainLift.sensor] > goal * prop){
 			if(FourBarToMax) FourBar.PID.goal = FourBar.max - offset;
 			else FourBar.PID.goal = FourBar.min;
 			FourBar.PID.isRunning = true;
+			/*if(FourBarToMax) {
+				liftDiffStrange(&FourBar, 127, 0);//up and intaking
+			}//FourBar.PID.goal = FourBar.max - offset;
+			else {
+				liftDiffStrange(&FourBar, 0, -127);//down and outtaking
+			}//FourBar.PID.goal = FourBar.min;
+			*/
 		}
 		else liftDiff(&goliat, 127);//if not moving 4bar, hold the cone more
 	}
-	if(FourBarToMax)liftMove(mainLift, -abs(speed*0.5));
-	delay(10);
 	return;
 }
 void DownUntil(struct liftMech* lift, int goal, int speed = 127) {
@@ -123,6 +138,7 @@ void manualLiftControl(const struct liftMech* lift, int up1, int up2, int dwn1, 
 		if(power > 0) lift->PID.goal = lift->max;//holdTo(lift, true);//go to max
 		else if (power < 0) lift->PID.goal = lift->min;//holdTo(lift, false);//go to min
 		else lift->PID.goal = SensorValue[lift->sensor];
+		liftMove(lift, dir * power);
 	}
 	else liftMove(lift, dir * power);//MoGo has motors going opposite speeds
 	return;
@@ -148,18 +164,6 @@ void LiftLift(const struct liftMech* lift, int up1, int up2, int dwn1, int dwn2,
 	}
 	else return;
 }
-/*void binVBar(){
-	if (RVDState == INTAKE) liftDiff(&FourBar, -127);
-	else if (RVDState == OUTTAKE) liftDiff(&FourBar, 127);
-	else if (RVDState == DOWN && SensorValue[FourBarLin] > 450) liftMove(&FourBar, -127);
-	else if (RVDState == UP){
-		//if (SensorValue[FourBarLin]<2000 || SensorValue[FourBarLin]>2600) liftMove(&FourBar, 127);
-		//else liftMove(&FourBar,60);
-		if (SensorValue[FourBarLin]>600 || SensorValue[FourBarPot] < 1000) liftMove(&FourBar, 127);
-		else liftMove(&FourBar,40);
-	}
-	else liftMove(&FourBar, 0);
-}*/
 bool notButtons(int u1, int u2, int d1, int d2){
 	if(!u1 && !u2 && !d1 && !d2)	return true;
 	else return false;

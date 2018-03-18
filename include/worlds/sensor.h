@@ -96,6 +96,8 @@ task antiStall(){
 		//return;
 		checkStalling(&Right, 200);
 		checkStalling(&Left, 200);
+	//	checkStalling(&mainLift, 200);
+	//	checkStalling(&FourBar, 200);
 		//if(!autoStacking) checkisStalling(&goliat);
 		delay(50);
 	}
