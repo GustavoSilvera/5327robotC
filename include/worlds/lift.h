@@ -78,6 +78,7 @@ void UpUntilW4Bar(int goal, float prop, int speed, bool FourBarToMax) {
 			else FourBar.PID.goal = FourBar.min;
 			FourBar.PID.isRunning = true;
 		}
+		else liftDiff(&goliat, 127);//if not moving 4bar, hold the cone more
 	}
 	if(FourBarToMax)liftMove(mainLift, -abs(speed*0.5));
 	delay(10);
@@ -171,7 +172,7 @@ task LiftControlTask() {
 	#define intkBtns L8, L8_2, R8, R8_2
 	for (;;) {//while true
 		if(!autonRunning){
-			if(notButtons(MoGoBtns)) 	LiftLift(&mainLift, LiftBtns, 200);
+			if(notButtons(MoGoBtns)) 	LiftLift(&mainLift, LiftBtns, 400);
 			else  					      LiftLift(&MoGo,     MoGoBtns     );
 			LiftLift(&FourBar,  VBarBtns, 200);
 			LiftLift(&goliat,   intkBtns     );

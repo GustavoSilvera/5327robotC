@@ -59,7 +59,7 @@ void initializeOpControl(const bool driver) {
 	initLiftType(   &goliat,    DIFFERENTIAL, NONE,        DiffL,      DiffR,        1,       -1                );
 
 	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)----
-	initPID(    &mainLift.PID,  mainLift.sensor,    150,    0.15,   0.01,   0.01,   rev,        false         );
+	initPID(    &mainLift.PID,  mainLift.sensor,    50,     0.25,   0.01,   0.01,   rev,        false         );
 	initPID(    &FourBar.PID,   FourBar.sensor,     100,    0.2,    0.0,    0.0,    rev,        false         );//no pid for RVD
 	initPID(    &gyroBase,      Gyro,               3,      0.525,  0.0,    0.5,    !rev,       false         );
 
@@ -83,7 +83,6 @@ void pre_auton() {//dont care
 }
 task autonomous() {
 	autonRunning = true;
-
 	autonRunning = false;
 	return;
 }
@@ -91,7 +90,7 @@ task usercontrol() {//initializes everything
 	initializeOpControl(true);//driver init
 	startTask(LiftControlTask);//individual pid for lift type
 	startTask(MeasureSpeed);//velocity measurer for base
-	//startTask(autoStack);//COMMENNT
+	startTask(autoStack);
 	startTask(antiStall);
 	startTask(killswitch);
 	if(slewRating) startTask(MotorSlewRateTask);
