@@ -55,7 +55,7 @@ void initializeOpControl(const bool driver) {
 	//-LIFT---------&reference--TYPE----------sensor-1-----motor-1-----motor-2-------max------min-----isReversed? (opt)
 	initLiftType(   &mainLift,  NORMAL,       LiftPot,     LiftTop,    LiftBottom,   4400,    2150                );
 	initLiftType(   &MoGo,      DIFFERENTIAL, NONE,        LiftTop,    LiftBottom,   1,       -1                );
-	initLiftType(   &FourBar,   BINARY,       FourBarPot,  DiffL,      DiffR,        2650,    700                );
+	initLiftType(   &FourBar,   BINARY,       FourBarPot,  DiffL,      DiffR,        2700,    1000                );
 	initLiftType(   &goliat,    NOSENSOR,     NONE,        goliathM,   NONE,        10,      -10                );
 
 	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)----

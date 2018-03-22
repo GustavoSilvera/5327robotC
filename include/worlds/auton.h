@@ -76,6 +76,30 @@ void standStack(int cone){
 	switchLEDs();
 	if(currentCone < 14) currentCone+=1;
 }
+void standStackMom(int cone){
+	startTask(outtakeGoliat);
+	intakeSpeed = 60;
+	FourBar.PID.isRunning = true;
+	FourBar.PID.goal = FourBar.min;//keeps them there
+	UpUntilW4Bar(limitUpTo(mainLift.max, heightValues[cone] + 120), 0.95, 127, true);
+	FourBar.PID.goal = FourBar.max;//keeps them there
+	liftMoveT(&mainLift, -127, 230);
+	waitTill(&FourBar, FourBar.max - 50, 100);
+	intakeSpeed = OUTSPEED;
+	delay(delayValues[cone]);
+	liftMoveT(&mainLift, -80, 130);
+	delay(150);
+	if(!finalCone){
+		FourBar.PID.isRunning = true;
+		FourBar.PID.goal = FourBar.min;
+		UpUntilW4Bar(limitUpTo(mainLift.max, SensorValue[mainLift.sensor] + 120), 0.8, 127, false); //make sure lift is above
+		intakeSpeed = 0;
+		waitTill(&FourBar, FourBar.min + 500, 100);//waits till 4bar gets away from stack
+		DownUntil(&mainLift, mainLift.min + 400, 127);
+	}
+	switchLEDs();
+	if(currentCone < 14) currentCone+=1;
+}
 void quickStack(int cone){
 	UpUntilW4Bar(heightValues[cone] + 50, 0.9, 127, true);
 	FourBar.PID.goal = FourBar.max;//keeps them there
@@ -94,7 +118,7 @@ void quickStack(int cone){
 }
 void stack(int cc){
 	autoStacking = true; //controls which stack to go to
-	standStack(currentCone);
+	standStackMom(currentCone);
 	//if(cc < 10 || cc == 14) standStack(currentCone);
 	//else quickStack(currentCone);
 	autoStacking = false;
