@@ -97,7 +97,7 @@ void driveCtrlr() {
 	);
 	int sigCh2 = sgn(vexRT[Ch2]);
 	int sigCh3 = sgn(vexRT[Ch3]);
-	if((sigCh2 - sigCh3 == 0) && sigCh2 != 0 ) motor[Base_B] = (vexRT[Ch2] + vexRT[Ch3])/2;
+	if((sigCh2 == sigCh3) && abs(sigCh2) < 15 && abs(sigCh3) < 15 ) motor[Base_B] = avg2(vexRT[Ch2], vexRT[Ch3]);
 }
 void fwds(const int power, const float angle = SensorValue[Gyro]*GyroK) {//drive base forwards
 	int speed = limitUpTo(127, power);

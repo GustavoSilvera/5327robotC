@@ -53,15 +53,15 @@ void initializeOpControl(const bool driver) {
 	resetEncoders();
 	velocity = 0.0;
 	//-LIFT---------&reference--TYPE----------sensor-1-----motor-1-----motor-2-------max------min-----isReversed? (opt)
-	initLiftType(   &mainLift,  NORMAL,       LiftPot,     LiftTop,    LiftBottom,   4400,    2150                );
+	initLiftType(   &mainLift,  NORMAL,       LiftPot,     LiftTop,    LiftBottom,   4400,    1700                );
 	initLiftType(   &MoGo,      DIFFERENTIAL, NONE,        LiftTop,    LiftBottom,   1,       -1                );
 	initLiftType(   &FourBar,   BINARY,       FourBarPot,  DiffL,      DiffR,        2700,    1000                );
-	initLiftType(   &goliat,    NOSENSOR,     NONE,        goliathM,   NONE,        10,      -10                );
+	initLiftType(   &goliat,    HOLD,     NONE,        goliathM,   NONE,        10,      -10                );
 
 	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)----
 	initPID(    &mainLift.PID,  mainLift.sensor,    50,     0.25,   0.01,   0.01,   rev,        false         );
 	initPID(    &FourBar.PID,   FourBar.sensor,     100,    0.15,   0.0,    0.0,    rev,        false         );//no pid for RVD
-	initPID(    &gyroBase,      Gyro,               3,      0.525,  0.0,    0.5,    !rev,       false         );
+	//initPID(    &gyroBase,      Gyro,               3,      0.525,  0.0,    0.5,    !rev,       false         );
 
 	//-SIDE---------&reference----sensor------------motor-1------motor-2--------motor-3------
 	initSideBase(   &Left,        LeftEncoder,      Base_L_F,    Base_L_M,      NONE        );

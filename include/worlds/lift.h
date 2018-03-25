@@ -136,10 +136,15 @@ void manualLiftControl(const struct liftMech* lift, int up1, int up2, int dwn1, 
 	else liftMove(lift, dir * power);//MoGo has motors going opposite speeds
 	return;
 }
+int holdPower = 0;
 void LiftLift(const struct liftMech* lift, int up1, int up2, int dwn1, int dwn2, float velLimit = 100) {
-	if (up1 || up2 || dwn1 || dwn2)
+	if (up1 || up2 || dwn1 || dwn2){
 		manualLiftControl(lift, up1, up2, dwn1, dwn2);
-	else if(lift->type != NOPID && lift->type != DIFFERENTIAL){//INTAKE & DIFFERENTIAL is only type without PID
+		if(lift->type == HOLD && (up1 || up2 )) holdPower = 30;
+		else if(lift->type == HOLD && (dwn1 || dwn2 )) holdPower = 0;
+
+	}
+	else if(lift->type != NOPID && lift->type != DIFFERENTIAL && lift->type != HOLD){//INTAKE & DIFFERENTIAL is only type without PID
 		if (abs(lift->velocity) < velLimit) {
 			if (!lift->PID.isRunning) lift->PID.goal = SensorValue[lift->sensor];//sets goal if not already running
 			lift->PID.isRunning = true;//now pid is definitely running
@@ -151,6 +156,7 @@ void LiftLift(const struct liftMech* lift, int up1, int up2, int dwn1, int dwn2,
 		PIDLift(lift);//calls the pid function for the lifts
 	}
 	else if (lift->type == NOPID) liftMove(lift, 0);
+	else if (lift->type = HOLD) liftMove(lift, holdPower);
 	else if (lift->type == DIFFERENTIAL) {
 		lift->PID.isRunning = false;
 		return;//dont even touch motors

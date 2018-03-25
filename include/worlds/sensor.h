@@ -93,7 +93,7 @@ void checkStalling(struct liftMech* lift, int delayThresh){
 
 task antiStall(){
 	for(;;){
-		//return;
+		return;
 		checkStalling(&Right, 200);
 		checkStalling(&Left, 200);
 	//	checkStalling(&mainLift, 200);

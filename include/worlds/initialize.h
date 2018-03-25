@@ -26,7 +26,8 @@ enum liftType{
 	DIFFERENTIAL,
 	NORMAL,
 	NOSENSOR,
-	NOPID
+	NOPID,
+	HOLD
 };//what kinds of lift we have
 struct liftMech {
 	enum liftType type;
