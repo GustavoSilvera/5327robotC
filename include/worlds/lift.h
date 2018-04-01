@@ -34,14 +34,16 @@ void resetPIDVals(const struct PIDs* pid) {
 }
 float pidCompute(const struct PIDs* PID, float current) {
 	float error = current - PID->goal;//calculate error
-	if (abs(error) < PID->thresh) return 0;
+	//if (abs(error) < PID->thresh);
 	int dir = 1;
+	int power = 0;
 	if (PID->isReversed) dir = -1;
 	const float untilIntegral = PID->thresh;//considered "low threshold" for potentiometers
 	// calculate the integral
 	if (PID->kI != 0.0) {//calculates integral (only at very end)
 		if (abs(error) < untilIntegral) PID->Integral += error;//used for averaging the integral amount, later in motor power divided by 25
 		else PID->Integral = 0.0;
+		power += PID->kI * PID->Integral;
 	}
 	else PID->Integral = 0.0;
 	// calculate the derivative
@@ -50,7 +52,12 @@ float pidCompute(const struct PIDs* PID, float current) {
 		PID->Last = error;
 	}
 	else PID->Derivative = 0.0;
-	return dir * (PID->kP * error + PID->kI * PID->Integral + PID->kD * PID->Derivative);
+	if(abs(error) > PID->thresh) {
+		power += PID->kP * error;
+		power += PID->kD * PID->Derivative;
+	}
+	if(abs(power) < 25) power = 0; //lowest power = 15
+	return dir * power;
 }
 void enablePID(struct liftMech* lift){
 	lift->PID.goal = SensorValue[lift->sensor];//keeps lift in last position
@@ -136,13 +143,11 @@ void manualLiftControl(const struct liftMech* lift, int up1, int up2, int dwn1, 
 	else liftMove(lift, dir * power);//MoGo has motors going opposite speeds
 	return;
 }
-int holdPower = 0;
 void LiftLift(const struct liftMech* lift, int up1, int up2, int dwn1, int dwn2, float velLimit = 100) {
 	if (up1 || up2 || dwn1 || dwn2){
 		manualLiftControl(lift, up1, up2, dwn1, dwn2);
 		if(lift->type == HOLD && (up1 || up2 )) holdPower = 30;
-		else if(lift->type == HOLD && (dwn1 || dwn2 )) holdPower = 0;
-
+		else if(lift->type == HOLD && (dwn1 || dwn2 || U7)) holdPower = 0;
 	}
 	else if(lift->type != NOPID && lift->type != DIFFERENTIAL && lift->type != HOLD){//INTAKE & DIFFERENTIAL is only type without PID
 		if (abs(lift->velocity) < velLimit) {
@@ -156,7 +161,7 @@ void LiftLift(const struct liftMech* lift, int up1, int up2, int dwn1, int dwn2,
 		PIDLift(lift);//calls the pid function for the lifts
 	}
 	else if (lift->type == NOPID) liftMove(lift, 0);
-	else if (lift->type = HOLD) liftMove(lift, holdPower);
+	else if (lift->type == HOLD) liftMove(lift, holdPower);
 	else if (lift->type == DIFFERENTIAL) {
 		lift->PID.isRunning = false;
 		return;//dont even touch motors
@@ -177,7 +182,7 @@ task LiftControlTask() {
 		if(!autonRunning){
 			if(notButtons(MoGoBtns)) 	LiftLift(&mainLift, LiftBtns, 400);
 			else  					      LiftLift(&MoGo,     MoGoBtns     );
-			LiftLift(&FourBar,  VBarBtns, 200);
+			LiftLift(&FourBar,  VBarBtns, 5000);
 			LiftLift(&goliat,   intkBtns     );
 		}
 		else {

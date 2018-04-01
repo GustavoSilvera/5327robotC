@@ -98,7 +98,7 @@ task antiStall(){
 		checkStalling(&Left, 200);
 	//	checkStalling(&mainLift, 200);
 	//	checkStalling(&FourBar, 200);
-		//if(!autoStacking) checkisStalling(&goliat);
+		checkStalling(&goliat, 100);
 		delay(50);
 	}
 }
@@ -116,6 +116,7 @@ task antiStall(){
 * '----------------'  '----------------'  '----------------'  '----------------' *
 \********************************************************************************/
 float calcVel(const struct liftMech* lift, const float dist, const float delayAmount) {
+	//	const float roundedSensor = 100 * ((int)(SensorValue(lift->sensor)/100));
 	float velocity = ((SensorValue(lift->sensor) - lift->past) / dist) / ((float)(delayAmount / 1000));//1000ms in 1s
 	lift->past = SensorValue[lift->sensor];
 	return (velocity);//1000 ms in 1s;
@@ -143,8 +144,8 @@ task MeasureSpeed() {
 		rotVelocity = calcRotVel();//calculates rotational velocity
 		//lift velocities
 		mainLift.velocity = calcVel(&mainLift, dist, delayAmount);
-		//FourBar.velocity = calcVel(&FourBar, dist, delayAmount);
-		//goliat.velocity = calcVel(&goliat, dist, delayAmount);
+		FourBar.velocity = calcVel(&FourBar, dist, delayAmount);
+		goliat.velocity = calcVel(&goliat, dist, delayAmount);
 		//does the waitings
 		delay(delayAmount);
 	}

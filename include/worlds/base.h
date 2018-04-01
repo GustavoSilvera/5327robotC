@@ -95,9 +95,8 @@ void driveCtrlr() {
 		primary * vexRT[Ch2] + partner * vexRT[Ch2Xmtr2],
 		primary * vexRT[Ch3] + partner * vexRT[Ch3Xmtr2]
 	);
-	int sigCh2 = sgn(vexRT[Ch2]);
-	int sigCh3 = sgn(vexRT[Ch3]);
-	if((sigCh2 == sigCh3) && abs(sigCh2) < 15 && abs(sigCh3) < 15 ) motor[Base_B] = avg2(vexRT[Ch2], vexRT[Ch3]);
+	if(sgn(vexRT[Ch2]) == sgn(vexRT[Ch3]) && abs(vexRT[Ch2]) > 15 && abs(vexRT[Ch3]) > 15 ) motor[Base_B] = avg2(vexRT[Ch2], vexRT[Ch3]);
+	else motor[Base_B] = 0;
 }
 void fwds(const int power, const float angle = SensorValue[Gyro]*GyroK) {//drive base forwards
 	int speed = limitUpTo(127, power);
@@ -150,6 +149,15 @@ void RSwingFor(int target){
 	baseMove(&Right,-sgn(target)*60);
 	delay(30);
 	rot(0);
+	return;
+}
+void sonarLock(){
+	int initLock = SensorValue[SonarR];
+	for(;;){
+		fwds(0.1*(SensorValue[SonarR] - initLock));
+		if(D8) break;
+		delay(10);
+	}
 	return;
 }
 void LSwingFor(int target){
