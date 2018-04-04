@@ -82,6 +82,7 @@ void driveLR(const int powerR, const int powerL) {
 		baseMove(&Right, powerR);
 		baseMove(&Left,  powerL);
 	}
+	motor[Base_B] = avg2(powerR, powerL);
 }
 void driveCtrlr() {
 	//scale for joystick
@@ -118,10 +119,10 @@ void driveFor(int goal) {//drives for certain distance in inches
 		//goal / 4pi = number of revolutions
 		//360 ticks per revolution
 		//therefore conversion to ticks is goal / 4pi * 360 => scalar of 28.6479
-		fwds(limitDownTo(15, dP * (goalTicks - encoderAvg)));
+		fwds(limitDownTo(15, dP * (goalTicks - encoderAvg)), initDir);
 	}
-	fwds(sgn(goal) * -40, initDir);
-	delay(30);
+	fwds(sgn(goal) * -abs(velocity), initDir);
+	delay(100);
 	fwds(0, initDir);
 	//settle();
 	return;

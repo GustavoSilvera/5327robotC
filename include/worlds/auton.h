@@ -47,14 +47,13 @@ void waitTill(struct liftMech *lift, int goal, int thresh){
 	return;
 }
 int intakeSpeed = 0;
-task outtakeGoliat(){
-	while(autoStacking) liftMove(&goliat, intakeSpeed);
+task goliatTask(){
+	while(autoStacking || autonRunning) liftMove(&goliat, intakeSpeed);
 	liftMove(&goliat, 0);
 	return;
 }
 volatile bool finalCone = false;//used if dont want autostack to complete the loop
 void standStack(int cone){
-	startTask(outtakeGoliat);
 	intakeSpeed = 60;
 	UpUntilW4Bar(heightValues[cone], 0.89, 127, true);
 	FourBar.PID.goal = FourBar.max;//keeps them there
@@ -70,6 +69,7 @@ void standStack(int cone){
 	if(currentCone < 14) currentCone+=1;
 }
 void stackUp(int cc){
+	startTask(goliatTask);
 	autoStacking = true; //controls which stack to go to
 	standStack(currentCone);
 	holdPower = 0;
@@ -80,20 +80,21 @@ void stackUp(int cc){
 
 void stackDown(int cc){
 	autoStacking = true; //controls which stack to go to
-	startTask(outtakeGoliat);
-	intakeSpeed = -127;
+	startTask(goliatTask);
+	intakeSpeed = OUTTAKE;
 	FourBar.PID.isRunning = true;
 	FourBar.PID.goal = FourBar.max + 100;
-	liftMoveT(&mainLift, 127, 200);
+	liftMoveT(&mainLift, 127, 300);
 	FourBar.PID.isRunning = true;
 	FourBar.PID.goal = FourBar.min;
 	waitTill(&FourBar, FourBar.min + 300, 100);//waits till 4bar gets away from stack
 	intakeSpeed = 0;
-	DownUntil(&mainLift, 2600, 127);
+	mainLift.PID.goal = mainLift.min;
+	DownUntil(&mainLift, mainLift.min + 200, 127);
 	autoStacking = false;
 }
 void matchStack(int cone){
-	startTask(outtakeGoliat);
+	startTask(goliatTask);
 	autoStacking = true;
 	intakeSpeed = 60;
 	if(currentCone < 3) {
