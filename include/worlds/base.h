@@ -110,18 +110,19 @@ void rot(const float speed) {//rotates base
 }
 void driveFor(int goal) {//drives for certain distance in inches
 	resetEncoders();
-	const int thresh = 120;
+	const int thresh = 60;
 	const int initDir = SensorValue[Gyro]*GyroK;
-	const float dP = 0.3;//25;//multiplier for velocity controller
-	float goalTicks = goal*28.6479 ;
+	const float dP = 0.183;//25;//multiplier for velocity controller
+	float goalTicks = goal*86.4211342;
 	while (abs(goalTicks - encoderAvg) > thresh) { //while error > threshold
-		//encoder geared 1:1, circum = 4*pi
+		//encoder geared 3:1, circum = 4*pi
 		//goal / 4pi = number of revolutions
 		//360 ticks per revolution
-		//therefore conversion to ticks is goal / 4pi * 360 => scalar of 28.6479
+		//gear ratio of 1:3, so multiply by 3
+		//therefore conversion to ticks is goal / 4pi * 360 * 3 => scalar of 86.4211342
 		fwds(limitDownTo(15, dP * (goalTicks - encoderAvg)), initDir);
 	}
-	fwds(sgn(goal) * -abs(velocity), initDir);
+	fwds(sgn(goal) * -20, initDir);
 	delay(100);
 	fwds(0, initDir);
 	//settle();
