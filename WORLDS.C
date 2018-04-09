@@ -6,7 +6,7 @@
 #pragma config(Sensor, dgtl3,  LeftEncoder,    sensorQuadEncoder)
 #pragma config(Sensor, dgtl6,  GoliathEnc,     sensorRotation)
 #pragma config(Sensor, dgtl5,  test,           sensorRotation)
-#prag	ma config(Sensor, dgtl9,  SonarR,         sensorSONAR_raw)
+#pragma config(Sensor, dgtl9,  SonarR,         sensorSONAR_raw)
 #pragma config(Sensor, dgtl11, OddLED,         sensorLEDtoVCC)
 #pragma config(Sensor, dgtl12, EvenLED,        sensorLEDtoVCC)
 #pragma config(Motor,  port1,           DiffR,         tmotorVex393_HBridge, openLoop, reversed)
@@ -56,12 +56,12 @@ void initializeOpControl(const bool driver) {
 	//-LIFT---------&reference--TYPE----------sensor-1-----motor-1-----motor-2-------max------min-----isReversed? (opt)
 	initLiftType(   &mainLift,  NORMAL,       LiftPot,     LiftTop,    LiftBottom,   4050,    2000                );//4050,
 	initLiftType(   &MoGo,      DIFFERENTIAL, NONE,        LiftTop,    LiftBottom,   1,       -1                );
-	initLiftType(   &FourBar,   BINARY,       FourBarPot,  DiffL,      DiffR,        2700,    1000                );
+	initLiftType(   &FourBar,   BINARY,       FourBarPot,  DiffL,      DiffR,        2750,    1000                );
 	initLiftType(   &goliat,    HOLD,         GoliathEnc,  goliathM,   NONE,        10,      -10                );
 
 	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)----
-	initPID(    &mainLift.PID,  mainLift.sensor,    30,    0.2,     0.0,    0.01,   rev,        false         );
-	initPID(    &FourBar.PID,   FourBar.sensor,     100,    0.25,   0.0,    0.0,    rev,        false         );//no pid for RVD
+	initPID(    &mainLift.PID,  mainLift.sensor,    30,    0.15,     0.0,    0.1,   rev,        false         );
+	initPID(    &FourBar.PID,   FourBar.sensor,     90,    0.27,   0.0,    0.0,    rev,        false         );//no pid for RVD
 	//initPID(    &gyroBase,      Gyro,               3,      0.525,  0.0,    0.5,    !rev,       false         );
 
 	//-SIDE---------&reference----sensor------------motor-1------motor-2--------motor-3------
@@ -203,8 +203,8 @@ task usercontrol() {//initializes everything
 	initializeOpControl(true);//driver init
 	startTask(LiftControlTask);//individual pid for lift type
 	startTask(MeasureSpeed);//velocity measurer for base
-//	startTask(autoStack);
-	startTask(antiStall);
+	startTask(autoStack);
+	//startTask(antiStall);
 	startTask(killswitch);
 	if(slewRating) startTask(MotorSlewRateTask);
 	startTask(displayLCD);
@@ -216,10 +216,10 @@ task usercontrol() {//initializes everything
 	else playSound(soundUpwardTones);
 	for (;;) {
 		driveCtrlr();
-		if(U7) driveFor(40);//MoGoAndPreload();//autonTest(RIGHTside, TWENTY);//sonarLock();
-		if(D7) rotFor(90, 2);//sonarLock();
-		if(L7) driveFor(20);//sonarLock();
-		if(R7) driveFor(-20);//sonarLock();
+		//if(U7) driveFor(40);//MoGoAndPreload();//autonTest(RIGHTside, TWENTY);//sonarLock();
+		//if(D7) rotFor(90, 2);//sonarLock();
+		//if(L7) driveFor(20);//sonarLock();
+		//if(R7) driveFor(-20);//sonarLock();
 
 		delay(15);
 	}
