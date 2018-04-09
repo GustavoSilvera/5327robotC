@@ -1,11 +1,10 @@
-#pragma config(Sensor, in2,    LiftPot,        sensorPotentiometer)
-#pragma config(Sensor, in3,    FourBarPot,     sensorPotentiometer)
-#pragma config(Sensor, in5,    Gyro,           sensorGyro)
-#pragma config(Sensor, in6,    BATERY_2_PORT,  sensorAnalog)
+#pragma config(Sensor, in1,    LiftPot,        sensorPotentiometer)
+#pragma config(Sensor, in2,    FourBarPot,     sensorPotentiometer)
+#pragma config(Sensor, in3,    Gyro,           sensorGyro)
+#pragma config(Sensor, in4,    BATERY_2_PORT,  sensorAnalog)
 #pragma config(Sensor, dgtl1,  RightEncoder,   sensorQuadEncoder)
-#pragma config(Sensor, dgtl3,  LeftEncoder,    sensorQuadEncoder)
-#pragma config(Sensor, dgtl6,  GoliathEnc,     sensorRotation)
-#pragma config(Sensor, dgtl5,  test,           sensorRotation)
+#pragma config(Sensor, dgtl3,  test,           sensorRotation)
+#pragma config(Sensor, dgtl8,  GoliathEnc,     sensorRotation)
 #pragma config(Sensor, dgtl9,  SonarR,         sensorSONAR_raw)
 #pragma config(Sensor, dgtl11, OddLED,         sensorLEDtoVCC)
 #pragma config(Sensor, dgtl12, EvenLED,        sensorLEDtoVCC)
@@ -65,7 +64,7 @@ void initializeOpControl(const bool driver) {
 	//initPID(    &gyroBase,      Gyro,               3,      0.525,  0.0,    0.5,    !rev,       false         );
 
 	//-SIDE---------&reference----sensor------------motor-1------motor-2--------motor-3------
-	initSideBase(   &Left,        LeftEncoder,      Base_L_F,    Base_L_M,      NONE        );
+	initSideBase(   &Left,        NONE,      Base_L_F,    Base_L_M,      NONE        );
 	initSideBase(   &Right,       RightEncoder,     Base_R_F,    Base_R_M,      NONE        );
 	//initSideBase(   &goliat,      GoliathEnc,  		goliath,     NONE,          NONE       );
 	pastRot = 0;

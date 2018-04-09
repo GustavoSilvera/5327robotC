@@ -39,14 +39,12 @@ void gyroBias(){
     SensorBias[Gyro] = realBias;
 }
 void resetGyros() {
-	//SensorType[in1] = sensorNone;
-	//SensorType[in1] = sensorGyro;//resets gyro sensor, rly sketchy
 	SensorValue[Gyro] = 0;//resets gyro sensor
 	delay(300);
 	scaleGyros();
 }
 void resetEncoders(){
-	SensorValue[LeftEncoder] = 0;
+//	SensorValue[LeftEncoder] = 0;
 	SensorValue[RightEncoder] = 0;
 }
 bool isStalling(const int *motorPower, float currentVelocity){
