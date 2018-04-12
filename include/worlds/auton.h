@@ -69,7 +69,7 @@ void standStack(int cone){
 	if(currentCone < 14) currentCone+=1;
 }
 void stackUp(int cc){
-	startTask(goliatTask);
+	//if(!autonRunning) startTask(goliatTask);
 	autoStacking = true; //controls which stack to go to
 	standStack(currentCone);
 	holdPower = 0;
@@ -80,7 +80,7 @@ void stackUp(int cc){
 
 void stackDown(int cc){
 	autoStacking = true; //controls which stack to go to
-	startTask(goliatTask);
+	//if(!autonRunning) startTask(goliatTask);
 	intakeSpeed = -127;
 	FourBar.PID.isRunning = true;
 	FourBar.PID.goal = FourBar.max + 100;
@@ -93,7 +93,7 @@ void stackDown(int cc){
 	autoStacking = false;
 }
 void matchStack(int cone){
-	startTask(goliatTask);
+	//startTask(goliatTask);
 	autoStacking = true;
 	intakeSpeed = 60;
 	if(currentCone < 3) {
@@ -105,7 +105,7 @@ void matchStack(int cone){
 		mainLift.PID.goal = 2000;
 		delay(100);
 		mainLift.PID.goal = 2600;
-		intakeSpeed = OUTTAKE; //drop cone without lift down
+		intakeSpeed = OUTSPEED; //drop cone without lift down
 		delay(200);
 		DownUntil(&FourBar, FourBar.min, 127);
 		currentCone++;
@@ -118,6 +118,7 @@ void matchStack(int cone){
 	autoStacking = false;
 }
 task autoStack() {
+	startTask(goliatTask);
 	for (;;) {
 		if (U7 ) {
 			stackDown(currentCone);

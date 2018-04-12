@@ -46,11 +46,7 @@
 #define RIGHTside   true
 #define TEN         false
 #define TWENTY      true
-#define STOP 0
-#define UP 1
-#define DOWN 2
-#define INTAKE 3
-#define OUTTAKE 4
+#define OUTTAKE
 
 //other
 const float circum = 12.56;//4*PI;//4 inch wheels

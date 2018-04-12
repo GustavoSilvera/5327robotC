@@ -129,11 +129,16 @@ void driveFor(int goal) {//drives for certain distance in inches
 	return;
 }
 void rotFor(float target, float dP = 2){
+	int power = 0;
+	int push = 0;
 	gyroBase.isRunning = true;
 	SensorValue[Gyro] = 0;//resets gyros
 	SensorScale[Gyro] = 260;
-	while(abs(SensorValue[Gyro]*GyroK - target) > 1){
-		rot(limitDownTo(20, dP*(target - SensorValue[Gyro]*GyroK) ) );
+	clearTimer(T4);
+	while(abs(SensorValue[Gyro]*GyroK - target) > 1 && time1[T4] < abs(target)*20){
+		//if(time1[T4] > 1000) push += 1; //will gradually increase if bot does not turn in time
+		power = limitDownTo(22, dP*(target - SensorValue[Gyro]*GyroK)); //+ push ;
+		rot(power);
 	}
 	rot(-sgn(target)*60);
 	delay(30);

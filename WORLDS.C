@@ -53,18 +53,18 @@ void initializeOpControl(const bool driver) {
 	resetEncoders();
 	velocity = 0.0;
 	//-LIFT---------&reference--TYPE----------sensor-1-----motor-1-----motor-2-------max------min-----isReversed? (opt)
-	initLiftType(   &mainLift,  NORMAL,       LiftPot,     LiftTop,    LiftBottom,   4050,    2000                );//4050,
+	initLiftType(   &mainLift,  NORMAL,       LiftPot,     LiftTop,    LiftBottom,   4050,    2090                );//4050,
 	initLiftType(   &MoGo,      DIFFERENTIAL, NONE,        LiftTop,    LiftBottom,   1,       -1                );
-	initLiftType(   &FourBar,   BINARY,       FourBarPot,  DiffL,      DiffR,        2750,    1000                );
-	initLiftType(   &goliat,    HOLD,         GoliathEnc,  goliathM,   NONE,        10,      -10                );
+	initLiftType(   &FourBar,   BINARY,       FourBarPot,  DiffL,      DiffR,        3000,    1030                );//1340 90deg, 80 LL
+	initLiftType(   &goliat,    HOLD,         GoliathEnc,  goliathM,   NONE,        100000,      -100000          );
 
 	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)----
 	initPID(    &mainLift.PID,  mainLift.sensor,    30,    0.15,     0.0,    0.1,   rev,        false         );
-	initPID(    &FourBar.PID,   FourBar.sensor,     90,    0.27,   0.0,    0.0,    rev,        false         );//no pid for RVD
+	initPID(    &FourBar.PID,   FourBar.sensor,     90,    0.15,   0.0,    0.0,    rev,        false         );
 	//initPID(    &gyroBase,      Gyro,               3,      0.525,  0.0,    0.5,    !rev,       false         );
 
 	//-SIDE---------&reference----sensor------------motor-1------motor-2--------motor-3------
-	initSideBase(   &Left,        NONE,      Base_L_F,    Base_L_M,      NONE        );
+	initSideBase(   &Left,        RightEncoder,      Base_L_F,    Base_L_M,      NONE        );
 	initSideBase(   &Right,       RightEncoder,     Base_R_F,    Base_R_M,      NONE        );
 	//initSideBase(   &goliat,      GoliathEnc,  		goliath,     NONE,          NONE       );
 	pastRot = 0;
@@ -83,11 +83,9 @@ void pre_auton() {//dont care
 }
 
 task MoGoOut(){
-	autonRunning = true;
-	intakeSpeed = INTAKE;
-	FourBar.PID.goal = FourBar.min;
-	UpUntil(&mainLift, SensorValue[mainLift.sensor] + 300);
-	mainLift.PID.goal = SensorValue[mainLift.sensor] + 300;
+	intakeSpeed = INSPEED/2;//keeps cone intaken
+	UpUntil(&mainLift, SensorValue[mainLift.sensor] + 400);
+	mainLift.PID.goal = SensorValue[mainLift.sensor] + 400;
 	clearTimer(T4);
 	while(time1[T4] < 700){
 		liftDiff(&MoGo, 127);
@@ -96,26 +94,24 @@ task MoGoOut(){
 	return;
 }
 void MoGoAndPreload(){
+	autonRunning = true;
 	startTask(goliatTask);
 	startTask(MoGoOut);
-	//FourBar.PID.goal = FourBar.min;
+	FourBar.PID.goal = FourBar.min;
 	FourBar.PID.isRunning = true;
-	intakeSpeed = INTAKE/2;//keeps cone intaken
-	driveFor(45);//48
+	driveFor(44);
 	stopTask(MoGoOut);
-	fwds(0);
-	intakeSpeed = OUTTAKE;
+	intakeSpeed = OUTSPEED;
 	delay(200);
 	clearTimer(T4);
 	while(time1[T4] < 600) liftDiff(&MoGo, -127);
 	liftMove(&MoGo, 0);
-	intakeSpeed = INTAKE;
-	currentCone++;//added  1 to MoGo
+	intakeSpeed = INSPEED;
+	currentCone = 1;//added  1 to MoGo
 	return;
 }
 task stackTask(){
-	stackUp(currentCone + 1);
-	stackDown(currentCone + 1);
+	standStack(2);
 	intakeSpeed = 0;
 	FourBar.PID.isRunning = false;
 	return;
@@ -125,38 +121,37 @@ void autonTest(bool isRight, bool isTwenty){
 	if(!isRight) dir = -1;
 	MoGoAndPreload();
 	fwds(127);
-	delay(180);
-	fwds(0);
-	FourBar.PID.goal = FourBar.min-200;
-	DownUntil(&mainLift, mainLift.min, 127); //go for next cone
-	mainLift.PID.goal = mainLift.min - 400;
-	mainLift.PID.isRunning = true;
-	intakeSpeed = INTAKE;
 	delay(300);
-	stackUp(currentCone + 1);
-	stackDown(currentCone + 1);
-	fwds(127);
-	delay(180);
 	fwds(0);
-	FourBar.PID.goal = FourBar.min-200;
-	DownUntil(&mainLift, mainLift.min, 127); //go for next cone
-	mainLift.PID.goal = mainLift.min - 400;
+	FourBar.PID.goal = FourBar.min;
+	DownUntil(&mainLift, mainLift.min+20, 127); //go for next cone
+	mainLift.PID.goal = mainLift.min;
 	mainLift.PID.isRunning = true;
-	intakeSpeed = INTAKE;
+	intakeSpeed = INSPEED;
+	delay(300);
+	standStack(1);
+	intakeSpeed = OUTSPEED;
+	FourBar.PID.goal = FourBar.min;
+	fwds(127);
+	delay(200);
+	fwds(0);
+	mainLift.PID.goal = mainLift.min;
+	mainLift.PID.isRunning = true;
+	intakeSpeed = INSPEED;
 	delay(300);
 	startTask(stackTask);
 	if(isTwenty){ //score in 20pt
-		driveFor(-52.5);//drive back
+		driveFor(-58);//drive back
 		if (isRight) RSwingFor(-45);
 		else LSwingFor(45);
 		mainLift.PID.goal = avg2(mainLift.max, mainLift.min); //lift lift
 		mainLift.PID.isRunning = true;
 		if(!isRight)	driveFor(-18); //drive to center of zone (-11)
 		else driveFor(-12);
-		rotFor(-dir * 90, 2.2);
+		rotFor(-dir * 90, 1.8);
 		mainLift.PID.isRunning = false;
 		fwds(127);//enter 20pt zone
-		delay(550);//drive fwds first for a lil bit
+		delay(850);//drive fwds first for a lil bit
 		liftDiff(&MoGo, 127);//MoGo out
 		fwds(127);//whilst driving
 		delay(950);
@@ -167,12 +162,12 @@ void autonTest(bool isRight, bool isTwenty){
 		driveFor(-17);//exit zones
 	}
 	else { //score in 10 pt
-		driveFor(-42);//drive back
+		driveFor(-40);//drive back
 		mainLift.PID.goal = avg2(mainLift.max, mainLift.min); //lift lift
 		mainLift.PID.isRunning = true;
 		if (isRight) RSwingFor(-45);//swing out
 		else LSwingFor(45);
-		rotFor(dir * -90, 2); //rotate perp to 10pt pole
+		rotFor(dir * -90, 1.8); //rotate perp to 10pt pole
 		delay(100);
 		driveFor(4); //drive to 10pt
 		//mainLift.PID.isRunning = false;
@@ -202,7 +197,7 @@ task usercontrol() {//initializes everything
 	initializeOpControl(true);//driver init
 	startTask(LiftControlTask);//individual pid for lift type
 	startTask(MeasureSpeed);//velocity measurer for base
-	startTask(autoStack);
+	//startTask(autoStack);
 	//startTask(antiStall);
 	startTask(killswitch);
 	if(slewRating) startTask(MotorSlewRateTask);
@@ -215,11 +210,15 @@ task usercontrol() {//initializes everything
 	else playSound(soundUpwardTones);
 	for (;;) {
 		driveCtrlr();
-		//if(U7) driveFor(40);//MoGoAndPreload();//autonTest(RIGHTside, TWENTY);//sonarLock();
-		//if(D7) rotFor(90, 2);//sonarLock();
-		//if(L7) driveFor(20);//sonarLock();
-		//if(R7) driveFor(-20);//sonarLock();
-
+		/*
+		if(U7) FourBar.PID.goal = FourBar.max;
+		if(D7) FourBar.PID.goal = FourBar.min;
+		if(L7) autonRunning = true;
+		if(R7) autonRunning = false;*/
+		if(U7) autonTest(LEFTside, TWENTY);//sonarLock();
+		if(D7) standStack(1);//sonarLock();
+		if(L7) standStack(2);//sonarLock();
+		if(R7) standStack(currentCone);//sonarLock();
 		delay(15);
 	}
 }//function for operator control
