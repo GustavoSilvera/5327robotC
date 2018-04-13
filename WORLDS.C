@@ -55,12 +55,12 @@ void initializeOpControl(const bool driver) {
 	//-LIFT---------&reference--TYPE----------sensor-1-----motor-1-----motor-2-------max------min-----isReversed? (opt)
 	initLiftType(   &mainLift,  NORMAL,       LiftPot,     LiftTop,    LiftBottom,   4050,    2090                );//4050,
 	initLiftType(   &MoGo,      DIFFERENTIAL, NONE,        LiftTop,    LiftBottom,   1,       -1                );
-	initLiftType(   &FourBar,   BINARY,       FourBarPot,  DiffL,      DiffR,        3000,    1030                );//1340 90deg, 80 LL
+	initLiftType(   &FourBar,   BINARY,       FourBarPot,  DiffL,      DiffR,        3830,        3397           );//3000, 1030
 	initLiftType(   &goliat,    HOLD,         GoliathEnc,  goliathM,   NONE,        100000,      -100000          );
 
 	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)----
 	initPID(    &mainLift.PID,  mainLift.sensor,    30,    0.15,     0.0,    0.1,   rev,        false         );
-	initPID(    &FourBar.PID,   FourBar.sensor,     90,    0.15,   0.0,    0.0,    rev,        false         );
+	initPID(    &FourBar.PID,   FourBar.sensor,     90,    0.27,   0.0,    0.0,    rev,        false         );
 	//initPID(    &gyroBase,      Gyro,               3,      0.525,  0.0,    0.5,    !rev,       false         );
 
 	//-SIDE---------&reference----sensor------------motor-1------motor-2--------motor-3------
@@ -197,7 +197,7 @@ task usercontrol() {//initializes everything
 	initializeOpControl(true);//driver init
 	startTask(LiftControlTask);//individual pid for lift type
 	startTask(MeasureSpeed);//velocity measurer for base
-	//startTask(autoStack);
+	startTask(autoStack);
 	//startTask(antiStall);
 	startTask(killswitch);
 	if(slewRating) startTask(MotorSlewRateTask);
@@ -215,10 +215,10 @@ task usercontrol() {//initializes everything
 		if(D7) FourBar.PID.goal = FourBar.min;
 		if(L7) autonRunning = true;
 		if(R7) autonRunning = false;*/
-		if(U7) autonTest(LEFTside, TWENTY);//sonarLock();
+		/*if(U7) autonTest(LEFTside, TWENTY);//sonarLock();
 		if(D7) standStack(1);//sonarLock();
 		if(L7) standStack(2);//sonarLock();
-		if(R7) standStack(currentCone);//sonarLock();
+		if(R7) standStack(currentCone);//sonarLock();*/
 		delay(15);
 	}
 }//function for operator control

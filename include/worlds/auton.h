@@ -80,7 +80,7 @@ void stackUp(int cc){
 
 void stackDown(int cc){
 	autoStacking = true; //controls which stack to go to
-	//if(!autonRunning) startTask(goliatTask);
+	if(!autonRunning) startTask(goliatTask);
 	intakeSpeed = -127;
 	FourBar.PID.isRunning = true;
 	FourBar.PID.goal = FourBar.max + 100;

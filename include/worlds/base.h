@@ -88,15 +88,15 @@ void driveCtrlr() {
 	//scale for joystick
 	const float partner = 0.8;
 	const float primary = 1;
-	//driveLR(//truspeed taking both controllers
-	//TruSpeed(limitUpTo(127, primary*vexRT[Ch2] + partner*vexRT[Ch2Xmtr2]), 3),
-	//TruSpeed(limitUpTo(127, primary*vexRT[Ch3] + partner*vexRT[Ch3Xmtr2]), 3)
-	//	);
-	driveLR(//NO truspeed taking both controllers
-		primary * vexRT[Ch2] + partner * vexRT[Ch2Xmtr2],
-		primary * vexRT[Ch3] + partner * vexRT[Ch3Xmtr2]
-	);
-	if(sgn(vexRT[Ch2]) == sgn(vexRT[Ch3]) && abs(vexRT[Ch2]) > 15 && abs(vexRT[Ch3]) > 15 ) motor[Base_B] = avg2(vexRT[Ch2], vexRT[Ch3]);
+	driveLR(//truspeed taking both controllers
+	TruSpeed(limitUpTo(127, primary*vexRT[Ch2] + partner*vexRT[Ch2Xmtr2]), 3),
+	TruSpeed(limitUpTo(127, primary*vexRT[Ch3] + partner*vexRT[Ch3Xmtr2]), 3)
+		);
+	//driveLR(//NO truspeed taking both controllers
+	//	primary * vexRT[Ch2] + partner * vexRT[Ch2Xmtr2],
+	//	primary * vexRT[Ch3] + partner * vexRT[Ch3Xmtr2]
+	//);
+	if(sgn(vexRT[Ch2]) == sgn(vexRT[Ch3]) && abs(vexRT[Ch2]) > 15 && abs(vexRT[Ch3]) > 15 ) motor[Base_B] = TruSpeed(avg2(vexRT[Ch2], vexRT[Ch3]), 3);
 	else motor[Base_B] = 0;
 }
 void fwds(const int power, const float angle = SensorValue[Gyro]*GyroK) {//drive base forwards

@@ -168,6 +168,44 @@ void LiftLift(const struct liftMech* lift, int up1, int up2, int dwn1, int dwn2,
 	}
 	else return;
 }
+int fourBarDir = 0;
+void fourBarLift(int up1, int up2, int dwn1, int dwn2){
+	if((up1 || up2)&&SensorValue[FourBarPot] < FourBar.max){
+		liftMove(&FourBar, 127);
+		fourBarDir = 1;
+	}
+	else if((dwn1 || dwn2)&&SensorValue[FourBarPot] > FourBar.min){
+		liftMove(&FourBar, -127);
+		fourBarDir = -1;
+	}
+	else{
+		liftMove(&FourBar, fourBarDir*10);
+	}
+}
+void mainLiftLift(int up1, int up2, int dwn1, int dwn2){
+	if((up1 || up2)&&SensorValue[LiftPot] < mainLift.max){
+		liftMove(&mainLift, 127);
+	}
+	else if((dwn1 || dwn2)&&SensorValue[LiftPot] > mainLift.min){
+		liftMove(&mainLift, -127);
+	}
+	else{
+		liftMove(&mainLift, 0);
+	}
+}
+void intakeLift(int up1, int up2, int dwn1, int dwn2){
+	if(up1 || up2){
+		liftMove(&goliat, 127);
+	}
+	else if(dwn1 || dwn2){
+		clearTimer(T4);
+		liftMove(&goliat, -127);
+	}
+	else if(time1[T4] > 400){
+		liftMove(&goliat, 40);
+
+	}
+}
 bool notButtons(int u1, int u2, int d1, int d2){
 	if(!u1 && !u2 && !d1 && !d2)	return true;
 	else return false;
@@ -180,10 +218,13 @@ task LiftControlTask() {
 	#define intkBtns L8, L8_2, R8, R8_2
 	for (;;) {//while true
 		if(!autonRunning){
-			if(notButtons(MoGoBtns)) 	LiftLift(&mainLift, LiftBtns, 400);
+			if(notButtons(MoGoBtns)) 	mainLiftLift(LiftBtns);
+				//LiftLift(&mainLift, LiftBtns, 400);
 			else  					      LiftLift(&MoGo,     MoGoBtns     );
-			LiftLift(&FourBar,  VBarBtns, 5000);
-			LiftLift(&goliat,   intkBtns     );
+			//LiftLift(&FourBar,  VBarBtns, 5000);
+			fourBarLift(VBarBtns);
+			//LiftLift(&goliat,   intkBtns     );
+			intakeLift(intkBtns);
 		}
 		else {
 			PIDLift(&mainLift);//calls the pid function for the lifts
