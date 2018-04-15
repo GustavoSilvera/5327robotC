@@ -62,7 +62,7 @@ void autonSelect(int delayTime = 5000){
 	const int LEFT = 1;
 	const int RIGHT = 4;
 	const int CENTER = 2;
-	extern intrinsic const static volatile unsigned signed int NUMAUTONS = 5;
+	intrinsic const static volatile unsigned signed int NUMAUTONS = 5;
 	while(time1[T4] < delayTime){
 		// diaplay default choice
 		displayAuton(value);

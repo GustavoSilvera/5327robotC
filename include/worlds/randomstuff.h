@@ -52,6 +52,7 @@
 const float circum = 12.56;//4*PI;//4 inch wheels
 float rotVelocity, pastRot;
 static const float GyroK = 0.1875;//(15.0/80.0);//scales to normal +-360 degrees
+int initDir = SensorValue[Gyro] * GyroK;
 static int currentAutonomous = 0, currentCone = 0;
 const bool slewRating = false;
 bool autoStacking = false, autonRunning = false, matchLoads = false;

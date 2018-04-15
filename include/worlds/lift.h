@@ -85,10 +85,13 @@ void liftMoveT(struct liftMech* lift, int power, int delayTime){//time based lif
 	return;
 }
 void UpUntilW4Bar(int goal, float prop, int speed, bool FourBarToMax) {
-	mainLift.PID.isRunning = false;
+	//mainLift.PID.isRunning = false;
+	mainLift.PID.isRunning = true;
 	int offset = 0;
 	if(currentCone >= 13) offset = 100;
+	playSound(soundBeepBeep);
 	while (SensorValue[mainLift.sensor] < goal){ //brings lift up to goal
+		playSound(soundShortBlip);
 		liftMove(mainLift, abs(speed));
 		if(SensorValue[mainLift.sensor] > goal * prop){
 			if(FourBarToMax) FourBar.PID.goal = FourBar.max - offset;
@@ -104,6 +107,8 @@ void UpUntilW4Bar(int goal, float prop, int speed, bool FourBarToMax) {
 		}
 		else liftDiff(&goliat, 127);//if not moving 4bar, hold the cone more
 	}
+	liftMove(mainLift, 0);
+	//mainLift.PID.isRunning = true;
 	return;
 }
 void DownUntil(struct liftMech* lift, int goal, int speed = 127) {
@@ -135,8 +140,16 @@ void manualLiftControl(const struct liftMech* lift, int up1, int up2, int dwn1, 
 	}
 	else if(lift->type == BINARY){
 		lift->PID.isRunning = true;
-		if(power > 0) lift->PID.goal = lift->max;//holdTo(lift, true);//go to max
-		else if (power < 0) lift->PID.goal = lift->min;//holdTo(lift, false);//go to min
+		if(power > 0) {
+			//change PID value
+			lift->PID.kP =0.15;
+			lift->PID.goal = lift->max;//holdTo(lift, true);//go to max
+		}
+		else if (power < 0) {
+			//change PID value
+		lift-> PID.kP = 0.20;
+			lift->PID.goal = lift->min;//holdTo(lift, false);//go to min
+		}
 		else lift->PID.goal = SensorValue[lift->sensor];
 		liftMove(lift, dir * power);
 	}
@@ -168,42 +181,63 @@ void LiftLift(const struct liftMech* lift, int up1, int up2, int dwn1, int dwn2,
 	}
 	else return;
 }
-int fourBarDir = 0;
-void fourBarLift(int up1, int up2, int dwn1, int dwn2){
-	if((up1 || up2)&&SensorValue[FourBarPot] < FourBar.max){
+int vBarDir = 0;
+int vBarPower = 0;
+void vBarLift(int up1, int up2, int dwn1, int dwn2){
+	//add limit switches?
+	//try to keep pot
+	if((up1 || up2)){ //btn control up
 		liftMove(&FourBar, 127);
-		fourBarDir = 1;
+		vBarDir = 1;
 	}
-	else if((dwn1 || dwn2)&&SensorValue[FourBarPot] > FourBar.min){
+	else if((dwn1 || dwn2)){ //btn control down
 		liftMove(&FourBar, -127);
-		fourBarDir = -1;
+		vBarDir = -1;
 	}
-	else{
-		liftMove(&FourBar, fourBarDir*10);
+	else if(abs(vexRT[Ch3Xmtr2]) > 20){ //joystick control
+		vBarPower = TruSpeed(vexRT[Ch3Xmtr2], 3);
+		liftMove(&FourBar, vBarPower);
+		vBarDir = sgn(vBarPower);
+	}
+	else{ //hold power
+		vBarPower = vBarDir*20;
+		liftMove(&FourBar, vBarPower);
 	}
 }
 void mainLiftLift(int up1, int up2, int dwn1, int dwn2){
-	if((up1 || up2)&&SensorValue[LiftPot] < mainLift.max){
+	if((up1 || up2) && SensorValue[LiftPot] < mainLift.max){
 		liftMove(&mainLift, 127);
 	}
-	else if((dwn1 || dwn2)&&SensorValue[LiftPot] > mainLift.min){
+	else if((dwn1 || dwn2) && SensorValue[LiftPot] > mainLift.min){
 		liftMove(&mainLift, -127);
+		//slow down when velocity is high and dist from min is low
+		//mainlift velocity range:
+		/*
+		if(mainLift.velocity > 100 && SensorValue[LiftPot]-mainLift.min){
+			liftMove(&mainLift, 127 - velocity * (mainLift.max - SensorValue[LiftPot]) * 0.01);
+		}
+		else{
+			liftMove(&mainLift, -127);
+		}*/
 	}
-	else{
-		liftMove(&mainLift, 0);
+	else{ //with joystick control
+		liftMove(&mainLift, TruSpeed(vexRT[Ch2Xmtr2],3));
+		//liftMove(&mainLift, 0);
 	}
 }
 void intakeLift(int up1, int up2, int dwn1, int dwn2){
-	if(up1 || up2){
-		liftMove(&goliat, 127);
-	}
-	else if(dwn1 || dwn2){
-		clearTimer(T4);
+	//up button does not actually do anything!!!
+	if(dwn1 || dwn2){
 		liftMove(&goliat, -127);
+		clearTimer(T4);
 	}
-	else if(time1[T4] > 400){
-		liftMove(&goliat, 40);
-
+	else if(goliat.velocity < 30){
+		//if cone intaken, reduce intake power
+		liftMove(&goliat, 30);
+	}
+	else if(time1[T4] > 500){
+		//timer will keep going for .5sec after button release
+		liftMove(&goliat, 127);
 	}
 }
 bool notButtons(int u1, int u2, int d1, int d2){
@@ -213,18 +247,22 @@ bool notButtons(int u1, int u2, int d1, int d2){
 task LiftControlTask() {
 	//startTask(fourBarPID);
 	#define VBarBtns U5, U5_2, D5, D5_2
-	#define LiftBtns U6, U6_2, D6, D6_2
+	//#define LiftBtns U6, U6_2, D6, D6_2
+	#define LiftBtns U6, false, D6, false
 	#define MoGoBtns U8, U8_2, D8, D8_2
-	#define intkBtns L8, L8_2, R8, R8_2
+	//#define intkBtns L8, L8_2, R8, R8_2
+	#define intkBtns L8, U6_2, R8, D6_2
+
 	for (;;) {//while true
 		if(!autonRunning){
 			if(notButtons(MoGoBtns)) 	mainLiftLift(LiftBtns);
 				//LiftLift(&mainLift, LiftBtns, 400);
-			else  					      LiftLift(&MoGo,     MoGoBtns     );
-			//LiftLift(&FourBar,  VBarBtns, 5000);
-			fourBarLift(VBarBtns);
-			//LiftLift(&goliat,   intkBtns     );
-			intakeLift(intkBtns);
+			else
+				LiftLift(&MoGo,     MoGoBtns     );
+				LiftLift(&FourBar,  VBarBtns, 5000);
+				//vBarLift(VBarBtns);
+				//LiftLift(&goliat,   intkBtns     );
+				intakeLift(intkBtns);
 		}
 		else {
 			PIDLift(&mainLift);//calls the pid function for the lifts

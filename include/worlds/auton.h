@@ -16,9 +16,9 @@
 const int INSPEED = 100;//for roller hold
 const int OUTSPEED = -127;
 const int heightValues[16] = {
-	2050, 2100, 2150, 2220, 2300, 2380,
-	2490, 2590, 2700, 2800, 2920, 2990,
-	3050, 3110, 3270, 3500 };//values for where the lift should go to when autoStacking
+	1830, 1940, 2070, 2100, 2190, 2280,
+	2420, 2530, 2690, 2780, 2960, 3000,
+	3140, 3230, 3350, 3370 };//values for where the lift should go to when autoStacking
 const int heightFourBar[15] = {
 	FourBar.max, FourBar.max, FourBar.max, FourBar.max, FourBar.max,
 	FourBar.max, FourBar.max, FourBar.max, FourBar.max, FourBar.max,
@@ -54,21 +54,24 @@ task goliatTask(){
 }
 volatile bool finalCone = false;//used if dont want autostack to complete the loop
 void standStack(int cone){
-	intakeSpeed = 60;
+	intakeSpeed = 40;
 	UpUntilW4Bar(heightValues[cone], 0.89, 127, true);
+	playSound(soundBeepBeep);
+	delay(500);
 	FourBar.PID.goal = FourBar.max;//keeps them there
+	FourBar.PID.isRunning = true;
 	waitTill(&FourBar, FourBar.max, 100);
 	FourBar.PID.isRunning = false;
 	delay(delayValues[cone]);
 	intakeSpeed = -127;
 	liftMoveT(&mainLift, -80, 130);
 	delay(100);
-	liftMoveT(mainLift, 127, 80);
+	liftMoveT(&mainLift, 127, 80);
 	intakeSpeed = 0;
 	switchLEDs();
-	if(currentCone < 14) currentCone+=1;
+	if(currentCone < 15) currentCone+=1;
 }
-void stackUp(int cc){
+void stackUp(){
 	//if(!autonRunning) startTask(goliatTask);
 	autoStacking = true; //controls which stack to go to
 	standStack(currentCone);
@@ -78,9 +81,9 @@ void stackUp(int cc){
 	autoStacking = false;
 }
 
-void stackDown(int cc){
+void stackDown(){
 	autoStacking = true; //controls which stack to go to
-	if(!autonRunning) startTask(goliatTask);
+	//if(!autonRunning) startTask(goliatTask);
 	intakeSpeed = -127;
 	FourBar.PID.isRunning = true;
 	FourBar.PID.goal = FourBar.max + 100;
@@ -111,8 +114,8 @@ void matchStack(int cone){
 		currentCone++;
 	}
 	else {
-		stackUp(cone);
-		stackDown(cone);
+		stackUp();
+		stackDown();
 	};
 	matchLoads = false;
 	autoStacking = false;
@@ -121,7 +124,7 @@ task autoStack() {
 	startTask(goliatTask);
 	for (;;) {
 		if (U7 ) {
-			stackDown(currentCone);
+			stackDown();
 		}
 		/*if(U7){
 			autoStacking = true;

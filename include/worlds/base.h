@@ -89,8 +89,8 @@ void driveCtrlr() {
 	const float partner = 0.8;
 	const float primary = 1;
 	driveLR(//truspeed taking both controllers
-	TruSpeed(limitUpTo(127, primary*vexRT[Ch2] + partner*vexRT[Ch2Xmtr2]), 3),
-	TruSpeed(limitUpTo(127, primary*vexRT[Ch3] + partner*vexRT[Ch3Xmtr2]), 3)
+	TruSpeed(limitUpTo(127, primary*vexRT[Ch2]),3),// + partner*vexRT[Ch2Xmtr2]), 3),
+	TruSpeed(limitUpTo(127, primary*vexRT[Ch3]),3)// + partner*vexRT[Ch3Xmtr2]), 3)
 		);
 	//driveLR(//NO truspeed taking both controllers
 	//	primary * vexRT[Ch2] + partner * vexRT[Ch2Xmtr2],
@@ -108,23 +108,24 @@ void fwds(const int power, const float angle = SensorValue[Gyro]*GyroK) {//drive
 void rot(const float speed) {//rotates base
 	driveLR(speed, -speed);
 }
-void driveFor(int goal) {//drives for certain distance in inches
-	resetEncoders();
+void driveFor(int goal, int dir = SensorValue[Gyro]*GyroK) {//drives for certain distance in inches
+	SensorValue[RightEncoder] = 0;
+	//delay(1000);//for debugging purposes
 	const int thresh = 60;
-	const int initDir = SensorValue[Gyro]*GyroK;
 	const float dP = 0.183;//25;//multiplier for velocity controller
 	float goalTicks = goal*86.4211342;
-	while (abs(goalTicks - encoderAvg) > thresh) { //while error > threshold
+	while (abs(goalTicks - SensorValue[RightEncoder]) > thresh) { //while error > threshold
+		playSound(soundBlip);
 		//encoder geared 3:1, circum = 4*pi
 		//goal / 4pi = number of revolutions
 		//360 ticks per revolution
 		//gear ratio of 1:3, so multiply by 3
 		//therefore conversion to ticks is goal / 4pi * 360 * 3 => scalar of 86.4211342
-		fwds(limitDownTo(15, dP * (goalTicks - encoderAvg)), initDir);
+		fwds(limitDownTo(15, dP * (goalTicks - encoderAvg)), dir);
 	}
-	fwds(sgn(goal) * -20, initDir);
+	fwds(sgn(goal) * -20, dir);
 	delay(100);
-	fwds(0, initDir);
+	fwds(0, dir);
 	//settle();
 	return;
 }
@@ -142,6 +143,21 @@ void rotFor(float target, float dP = 2){
 	}
 	rot(-sgn(target)*60);
 	delay(30);
+	rot(0);
+	return;
+}
+void curveFor(float target, float dP=0.1){
+	int power = 0;
+	gyroBase.isRunning =true;
+	SensorValue[Gyro] = 0;//resets gyros
+	SensorScale[Gyro] = 260;
+	clearTimer(T4);
+	while(abs(SensorValue[Gyro]*GyroK - target) > 1 && time1[T4] < abs(target)*20){
+		//if(time1[T4] > 1000) push += 1; //will gradually increase if bot does not turn in time
+		power = limitDownTo(22, dP*(target - SensorValue[Gyro]*GyroK)); //+ push ;
+		baseMove(&Right, power);
+		baseMove(&Left, power);
+	}
 	rot(0);
 	return;
 }

@@ -13,6 +13,12 @@
 | '--------------' || '--------------' || '--------------' || '--------------' || '--------------' || '--------------' |
  '----------------'  '----------------'  '----------------'  '----------------'  '----------------'  '----------------'
 */
+// Timers Being used:
+// T1: checkStalling
+// T2: autostack manual control loop,
+// T3: waitTill
+// T4: rotFor, curveFor, auton, auton select, manual goliath, liftMoveT (autostack)
+
 void scaleGyros(){
 	SensorScale[Gyro] = 260;
 	SensorFullCount[Gyro] = 3600;
@@ -75,7 +81,7 @@ void checkStalling(struct liftMech* lift, int delayThresh){
 	if(isStalling(lift->motors, lift->velocity)){
 		clearTimer(T1);
 		bool currentlyisStalling = true;
-		while(time1[T1] < delayThresh){//checkingn for continuous isStalling (else instantanious refresh)
+		while(time1[T1] < delayThresh){//checking for continuous isStalling (else instantanious refresh)
 			currentlyisStalling = isStalling(lift->motors, lift->velocity);//still isStalling
 			if(currentlyisStalling) continue;//keep going until time limit
 			else break;
@@ -92,7 +98,7 @@ void checkStalling(struct liftMech* lift, int delayThresh){
 task antiStall(){
 	for(;;){
 		return;
-		checkStalling(&Right, 200);
+		//checkStalling(&Right, 200);
 		checkStalling(&Left, 200);
 	//	checkStalling(&mainLift, 200);
 	//	checkStalling(&FourBar, 200);
@@ -134,7 +140,7 @@ task MeasureSpeed() {
 	const float dist = 1.125*PI;
 	const float delayAmount = 50;
 	for (;;) {
-		encoderAvg = SensorValue[Right.sensor];//avg2(SensorValue[Right.sensor], SensorValue[Left.sensor]);
+		//encoderAvg = SensorValue[RightEncoder];//avg2(SensorValue[Right.sensor], SensorValue[Left.sensor]);
 		//base velocity
 		Right.velocity = calcVel(&Right, circum, delayAmount);
 		Left.velocity = calcVel(&Left, circum, delayAmount);
