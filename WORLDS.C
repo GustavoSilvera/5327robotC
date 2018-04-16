@@ -55,14 +55,14 @@ void initializeOpControl(const bool driver) {
 	resetEncoders();
 	velocity = 0.0;
 	//-LIFT---------&reference--TYPE----------sensor-1-----motor-1-----motor-2-------max------min-----isReversed? (opt)
-	initLiftType(   &mainLift,  NORMAL,       LiftPot,     LiftTop,    LiftBottom,   3365,    1700                );
+	initLiftType(   &mainLift,  NOPID,       LiftPot,     LiftTop,    LiftBottom,   3365,    1700                );
 	initLiftType(   &MoGo,      DIFFERENTIAL, NONE,        LiftTop,    LiftBottom,   1,       -1                );
-	initLiftType(   &FourBar,   BINARY,       FourBarPot,  DiffL,      DiffR,        3000,        1160           );
-	initLiftType(   &goliat,    HOLD,         GoliathEnc,  goliathM,   goliathM,        100000,      -100000          );
+	initLiftType(   &FourBar,   BINARY,       FourBarPot,  DiffL,      DiffR,        3000,    1160           );
+	initLiftType(   &goliat,    HOLD,         GoliathEnc,  goliathM,   goliathM,     100000,  -100000          );
 
 	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)----
-	initPID(    &mainLift.PID,  mainLift.sensor,    10,    0.15,     0.0,    0.1,   rev,        false         );
-	initPID(    &FourBar.PID,   FourBar.sensor,     90,    0.27,   0.0,    0.0,    rev,        false         );
+	initPID(    &mainLift.PID,  mainLift.sensor,    40,    0.15,    0.0,    0.1,   rev,        false         );
+	initPID(    &FourBar.PID,   FourBar.sensor,     100,    0.1,     0.0,    0.0,    rev,        false         );
 	//initPID(    &gyroBase,      Gyro,               3,      0.525,  0.0,    0.5,    !rev,       false         );
 
 	//-SIDE---------&reference----sensor------------motor-1------motor-2--------motor-3------
@@ -101,7 +101,7 @@ task MoGoOut(){
 	return;
 }
 void MoGoAndPreload(){
-	startTask(goliatTask);
+	//startTask(goliatTask);
 	startTask(MoGoOut);
 	FourBar.PID.goal = FourBar.min;
 	FourBar.PID.isRunning = true;
@@ -233,7 +233,7 @@ task autonomous() {
 	startTask(LiftControlTask);//individual pid for lift type
 	startTask(MeasureSpeed);//velocity measurer for base
 	startTask(displayLCD);
-	startTask(goliatTask);
+	//startTask(goliatTask);
 	currentCone = 0;
 	if(currentAutonomous == 0) testing(); //autonTest(1, RIGHTside, TWENTY);
 	else if(currentAutonomous == 1) stackAuton(false, 1, LEFTside, TWENTY);
@@ -242,13 +242,14 @@ task autonomous() {
 	autonRunning = false;
 	return;
 }
-task usercontrol() {//initializes everything
+task usercontrol() {//initializes everything~
 	initializeOpControl(true);//driver init
 	startTask(LiftControlTask);//individual pid for lift type
 	startTask(MeasureSpeed);//velocity measurer for base
-	//startTask(autoStack);
-	startTask(antiStall);
-	startTask(killswitch);
+//	startTask(autoStack);
+//s	startTask(antiStall);
+	startTask(manualGoliath);//controls goliath
+	//startTask(killswitch);
 	if(slewRating) startTask(MotorSlewRateTask);
 	startTask(displayLCD);
 	autonRunning = false;
@@ -259,10 +260,11 @@ task usercontrol() {//initializes everything
 	else playSound(soundUpwardTones);
 	for (;;) {
 		driveCtrlr();
-		if(U7) testing();//stackAuton(1, LEFTside, TWENTY);//sonarLock();
-		if(D7) testing();//MoGoAndPreload();//sonarLock();
-		if(L7) stackUp();//sonarLock();
-		if(R7) standStack(currentCone);//sonarLock();
+		if (U7 || D7) stackDown();
+		//if(U7) testing();//stackAuton(1, LEFTside, TWENTY);//sonarLock();
+		//if(D7) testing();//MoGoAndPreload();//sonarLock();
+		//if(L7) stackUp();//sonarLock();
+		//if(R7) standStack(currentCone);//sonarLock();
 		delay(15);
 	}
 }//function for operator control

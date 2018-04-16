@@ -127,8 +127,8 @@ void manualLiftControl(const struct liftMech* lift, int up1, int up2, int dwn1, 
 	bool downButton 	=	(dwn1 || dwn2 );//defining what is down button
 	bool withinUpper 	=	(SensorValue[lift->sensor] <= lift->max || lift->type == DIFFERENTIAL || lift->type == NOSENSOR);//within upper bound
 	bool withinLower 	=	(SensorValue[lift->sensor] >= lift->min || lift->type == DIFFERENTIAL || lift->type == NOSENSOR);//within lower bound
-	if(upButton && withinUpper) power = maxSpeed;
-	else if (downButton && withinLower) power = -maxSpeed;
+	if(upButton && withinUpper) power = up1*maxSpeed + up2*0.5*maxSpeed;
+	else if (downButton && withinLower) power = -(dwn1*maxSpeed + dwn2*0.5*maxSpeed);
 	else power = 0;
 	if(lift->type == DIFFERENTIAL){
 		if(power != 0) {
@@ -225,19 +225,44 @@ void mainLiftLift(int up1, int up2, int dwn1, int dwn2){
 		//liftMove(&mainLift, 0);
 	}
 }
-void intakeLift(int up1, int up2, int dwn1, int dwn2){
-	//up button does not actually do anything!!!
-	if(dwn1 || dwn2){
-		liftMove(&goliat, -127);
-		clearTimer(T4);
-	}
-	else if(goliat.velocity < 30){
-		//if cone intaken, reduce intake power
-		liftMove(&goliat, 30);
-	}
-	else if(time1[T4] > 500){
-		//timer will keep going for .5sec after button release
-		liftMove(&goliat, 127);
+task manualGoliath(){
+	for(;;){
+	bool in = (L8 || U6_2);
+	bool out= (R8 || D6_2);
+		if(autoStacking){
+			liftMove(&goliat, intakeSpeed);
+			hasCone = false;
+		}
+		else if(out){
+			clearTimer(T4);
+			while(time1[T4] < 500){
+				liftMove(&goliat, -100);
+				hasCone = false;
+			}
+		}
+		else if(goliat.velocity < 30){
+			//if cone intaken, reduce intake power
+			if(!hasCone) {
+				playSound(soundFastUpwardTones);//detection noise
+				clearTimer(T4);
+				while(time1[T4] < 200){
+					liftMove(&goliat, 127);
+				}
+			}
+			liftMove(&goliat, 30);
+			hasCone = true;
+			flash();
+		}
+		else if(in){
+			//if told, full power
+			liftMove(&goliat, 127);
+		}
+		else {
+			hasCone = false;
+			//timer will keep going for .5sec after button release
+			liftMove(&goliat, 100);
+		}
+		delay(30);
 	}
 }
 bool notButtons(int u1, int u2, int d1, int d2){
@@ -251,18 +276,14 @@ task LiftControlTask() {
 	#define LiftBtns U6, false, D6, false
 	#define MoGoBtns U8, U8_2, D8, D8_2
 	//#define intkBtns L8, L8_2, R8, R8_2
-	#define intkBtns L8, U6_2, R8, D6_2
 
 	for (;;) {//while true
 		if(!autonRunning){
-			if(notButtons(MoGoBtns)) 	mainLiftLift(LiftBtns);
-				//LiftLift(&mainLift, LiftBtns, 400);
-			else
-				LiftLift(&MoGo,     MoGoBtns     );
+			if(notButtons(MoGoBtns)) 	mainLiftLift(LiftBtns);//LiftLift(&mainLift, LiftBtns, 300);
+			else 								LiftLift(&MoGo,     MoGoBtns     );
 				LiftLift(&FourBar,  VBarBtns, 5000);
 				//vBarLift(VBarBtns);
 				//LiftLift(&goliat,   intkBtns     );
-				intakeLift(intkBtns);
 		}
 		else {
 			PIDLift(&mainLift);//calls the pid function for the lifts

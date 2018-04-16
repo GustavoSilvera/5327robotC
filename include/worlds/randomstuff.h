@@ -59,6 +59,8 @@ bool autoStacking = false, autonRunning = false, matchLoads = false;
 string mainBattery, powerExpander, currCone, gyroRead;
 volatile float encoderAvg = 0, velocity = 0;//used only for straight fwds and bkwds direction
 int holdPower = 0;//for goliath hold
+bool hasCone = false;
+int intakeSpeed = 0;
 //MISC FUNCTIONS
 //use macros!!! :)
 float limitUpTo(const float max, float val) {

@@ -18,6 +18,24 @@
 // T2: autostack manual control loop,
 // T3: waitTill
 // T4: rotFor, curveFor, auton, auton select, manual goliath, liftMoveT (autostack)
+void switchLEDs(){
+	if(SensorValue[OddLED]){
+		SensorValue[OddLED] = 0;
+		SensorValue[EvenLED] = 1;
+	}
+	else {
+		SensorValue[OddLED] = 1;
+		SensorValue[EvenLED] = 0;
+	}
+}
+void flash(){
+	SensorValue[OddLED] = 1;
+	SensorValue[EvenLED] = 1;
+	delay(50);
+	SensorValue[OddLED] = 0;
+	SensorValue[EvenLED] = 0;
+	delay(50);
+}
 
 void scaleGyros(){
 	SensorScale[Gyro] = 260;
@@ -148,7 +166,7 @@ task MeasureSpeed() {
 		rotVelocity = calcRotVel();//calculates rotational velocity
 		//lift velocities
 		mainLift.velocity = calcVel(&mainLift, dist, delayAmount);
-		FourBar.velocity = calcVel(&FourBar, dist, delayAmount);
+//		FourBar.velocity = calcVel(&FourBar, dist, delayAmount);
 		goliat.velocity = calcVel(&goliat, dist, delayAmount);
 		//does the waitings
 		delay(delayAmount);

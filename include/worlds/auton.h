@@ -31,25 +31,9 @@ const int heightStago[9] = {
 	3540, 3750, 3900
 };//values for where the lift should go to when autoStacking
 const int delayValues[15] = {50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 150, 150, 150};//values for individual delays when autostacking
-void switchLEDs(){
-	if(SensorValue[OddLED] == 1){
-		SensorValue[OddLED] = 0;
-		SensorValue[EvenLED] = 1;
-	}
-	else {
-		SensorValue[OddLED] = 1;
-		SensorValue[EvenLED] = 0;
-	}
-}
 void waitTill(struct liftMech *lift, int goal, int thresh){
 	clearTimer(T3);
 	while(abs(SensorValue[lift->sensor] - goal) > thresh && time1[T3] < 1000){continue;}//wait until success
-	return;
-}
-int intakeSpeed = 0;
-task goliatTask(){
-	while(autoStacking || autonRunning) liftMove(&goliat, intakeSpeed);
-	liftMove(&goliat, 0);
 	return;
 }
 volatile bool finalCone = false;//used if dont want autostack to complete the loop
@@ -85,8 +69,10 @@ void stackDown(){
 	autoStacking = true; //controls which stack to go to
 	//if(!autonRunning) startTask(goliatTask);
 	intakeSpeed = -127;
+	hasCone = false;
 	FourBar.PID.isRunning = true;
 	FourBar.PID.goal = FourBar.max + 100;
+	delay(200);
 	liftMoveT(&mainLift, 90, 200);
 	FourBar.PID.isRunning = true;
 	FourBar.PID.goal = FourBar.min;
@@ -121,7 +107,7 @@ void matchStack(int cone){
 	autoStacking = false;
 }
 task autoStack() {
-	startTask(goliatTask);
+	//startTask(goliatTask);
 	for (;;) {
 		if (U7 ) {
 			stackDown();
@@ -157,18 +143,4 @@ task autoStack() {
 		delay(30);
 	}
 }
-task killswitch(){
-	for(;;){
-		if(R7 && autonRunning) stopAllTasks();
-		if((R7) && autoStacking ) {//autostack killswitch
-			stopTask(autoStack);
-			autoStacking = false;
-			playSound(soundBeepBeep);//killed autostack
-			startTask(autoStack);
-			delay(300);
-		}
-		delay(50);
-	}
-}
-
 #endif
