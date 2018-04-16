@@ -62,7 +62,7 @@ void initializeOpControl(const bool driver) {
 
 	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)----
 	initPID(    &mainLift.PID,  mainLift.sensor,    40,    0.15,    0.0,    0.1,   rev,        false         );
-	initPID(    &FourBar.PID,   FourBar.sensor,     100,    0.1,     0.0,    0.0,    rev,        false         );
+	initPID(    &FourBar.PID,   FourBar.sensor,     100,   	0.15,     0.0,    0.0,    rev,        false         );
 	//initPID(    &gyroBase,      Gyro,               3,      0.525,  0.0,    0.5,    !rev,       false         );
 
 	//-SIDE---------&reference----sensor------------motor-1------motor-2--------motor-3------
@@ -246,7 +246,7 @@ task usercontrol() {//initializes everything~
 	initializeOpControl(true);//driver init
 	startTask(LiftControlTask);//individual pid for lift type
 	startTask(MeasureSpeed);//velocity measurer for base
-//	startTask(autoStack);
+	startTask(autoStack);
 //s	startTask(antiStall);
 	startTask(manualGoliath);//controls goliath
 	//startTask(killswitch);
@@ -260,7 +260,6 @@ task usercontrol() {//initializes everything~
 	else playSound(soundUpwardTones);
 	for (;;) {
 		driveCtrlr();
-		if (U7 || D7) stackDown();
 		//if(U7) testing();//stackAuton(1, LEFTside, TWENTY);//sonarLock();
 		//if(D7) testing();//MoGoAndPreload();//sonarLock();
 		//if(L7) stackUp();//sonarLock();

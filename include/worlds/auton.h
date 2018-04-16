@@ -109,9 +109,7 @@ void matchStack(int cone){
 task autoStack() {
 	//startTask(goliatTask);
 	for (;;) {
-		if (U7 ) {
-			stackDown();
-		}
+		if (U7 || U7_2) stackDown();
 		/*if(U7){
 			autoStacking = true;
 			matchStack(currentCone);
