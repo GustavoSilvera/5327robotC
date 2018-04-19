@@ -38,20 +38,20 @@ void waitTill(struct liftMech *lift, int goal, int thresh){
 }
 volatile bool finalCone = false;//used if dont want autostack to complete the loop
 void standStack(int cone){
-	intakeSpeed = 40;
+	intakeSpeed = 127;
 	UpUntilW4Bar(heightValues[cone], 0.89, 127, true);
 	playSound(soundBeepBeep);
-	delay(500);
+	delay(100);
 	FourBar.PID.goal = FourBar.max;//keeps them there
 	FourBar.PID.isRunning = true;
 	waitTill(&FourBar, FourBar.max, 100);
 	FourBar.PID.isRunning = false;
-	delay(delayValues[cone]);
+	/*delay(delayValues[cone]);
 	intakeSpeed = -127;
 	liftMoveT(&mainLift, -80, 130);
 	delay(100);
 	liftMoveT(&mainLift, 127, 80);
-	intakeSpeed = 0;
+	intakeSpeed = 0;*/
 	switchLEDs();
 	if(currentCone < 15) currentCone+=1;
 }
@@ -59,9 +59,6 @@ void stackUp(){
 	//if(!autonRunning) startTask(goliatTask);
 	autoStacking = true; //controls which stack to go to
 	standStack(currentCone);
-	holdPower = 0;
-	//if(cc < 10 || cc == 14) standStack(currentCone);
-	//else quickStack(currentCone);
 	autoStacking = false;
 }
 
@@ -74,6 +71,7 @@ void stackDown(){
 	FourBar.PID.goal = FourBar.max + 100;
 	delay(200);
 	liftMoveT(&mainLift, 90, 200);
+
 	FourBar.PID.isRunning = true;
 	FourBar.PID.goal = FourBar.min;
 	waitTill(&FourBar, FourBar.min + 300, 100);//waits till 4bar gets away from stack
@@ -120,25 +118,6 @@ task autoStack() {
 			stackDown(currentCone);
 		}*/
 		//if (goliat.stalling && !autoStacking) stack(currentCone);
-		if ((D7 || L7_2) && time1[T2]>200) {
-			currentCone = 0;//reset
-			SensorValue[OddLED] = 0;
-			SensorValue[EvenLED] = 0;
-			playSound(soundException);
-			clearTimer(T2);
-		}
-		if ((R7 || D7_2) && time1[T2]>200 && currentCone > 0) {
-			currentCone -= 1; //subtract one cone if autostack missed
-			switchLEDs();
-			playSound(soundDownwardTones);
-			clearTimer(T2);
-		}
-		if ((L7 || U7_2) && time1[T2]>200 && currentCone < 14) {
-			currentCone += 1; //add one cone
-			switchLEDs();
-			playSound(soundFastUpwardTones);
-			clearTimer(T2);
-		}
 		delay(30);
 	}
 }

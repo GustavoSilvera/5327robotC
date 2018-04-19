@@ -86,11 +86,11 @@ void driveLR(const int powerR, const int powerL) {
 }
 void driveCtrlr() {
 	//scale for joystick
-	const float partner = 0.8;
 	const float primary = 1;
+	int rotAxis = TruSpeed(vexRT[Ch4Xmtr2], 3);
 	driveLR(//truspeed taking both controllers
-	TruSpeed(limitUpTo(127, primary*vexRT[Ch2]),3),// + partner*vexRT[Ch2Xmtr2]), 3),
-	TruSpeed(limitUpTo(127, primary*vexRT[Ch3]),3)// + partner*vexRT[Ch3Xmtr2]), 3)
+			TruSpeed(limitUpTo(127, primary*vexRT[Ch2]),3) + rotAxis,// + partner*vexRT[Ch2Xmtr2]), 3),
+			TruSpeed(limitUpTo(127, primary*vexRT[Ch3]),3) - rotAxis// + partner*vexRT[Ch3Xmtr2]), 3)
 		);
 	//driveLR(//NO truspeed taking both controllers
 	//	primary * vexRT[Ch2] + partner * vexRT[Ch2Xmtr2],
@@ -115,7 +115,6 @@ void driveFor(int goal, int dir = SensorValue[Gyro]*GyroK) {//drives for certain
 	const float dP = 0.183;//25;//multiplier for velocity controller
 	float goalTicks = goal*86.4211342;
 	while (abs(goalTicks - SensorValue[RightEncoder]) > thresh) { //while error > threshold
-		playSound(soundBlip);
 		//encoder geared 3:1, circum = 4*pi
 		//goal / 4pi = number of revolutions
 		//360 ticks per revolution
