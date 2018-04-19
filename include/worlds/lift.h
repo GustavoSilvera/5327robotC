@@ -71,8 +71,10 @@ void PIDLift(const struct liftMech* lift) {
 }
 void UpUntil(const struct liftMech* lift, int goal, int speed = 127) {
 	lift->PID.isRunning = false;
-	while (SensorValue[lift->sensor] < goal) //brings lift up to goal
-		liftMove(lift, abs(speed));
+	while (SensorValue[lift->sensor] < goal){ //brings lift up to goal
+		if(lift->type == DIFFERENTIAL) liftDiff(lift, abs(speed));
+		else liftMove(lift, abs(speed));
+	}
 	liftMove(lift, -abs(speed));
 	delay(10);
 	enablePID(lift);
@@ -113,8 +115,10 @@ void UpUntilW4Bar(int goal, float prop, int speed, bool FourBarToMax) {
 }
 void DownUntil(struct liftMech* lift, int goal, int speed = 127) {
 	lift->PID.isRunning = false;
-	while (SensorValue[lift->sensor] > goal )//brings lift down to goal
-		liftMove(lift, -abs(speed));
+	while (SensorValue[lift->sensor] > goal ){//brings lift down to goal
+		if(lift->type == DIFFERENTIAL) liftDiff(lift, -abs(speed));
+		else liftMove(lift, -abs(speed));
+	}
 	enablePID(lift);
 	return;
 }
@@ -287,6 +291,7 @@ task LiftControlTask() {
 				//LiftLift(&goliat,   intkBtns     );
 		}
 		else {
+			PIDLift(&MoGo);
 			PIDLift(&mainLift);//calls the pid function for the lifts
 			PIDLift(&FourBar);//calls the pid function for the lifts
 		}

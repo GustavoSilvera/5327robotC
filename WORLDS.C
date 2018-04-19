@@ -2,6 +2,7 @@
 #pragma config(Sensor, in2,    FourBarPot,     sensorPotentiometer)
 #pragma config(Sensor, in3,    Gyro,           sensorGyro)
 #pragma config(Sensor, in4,    BATERY_2_PORT,  sensorAnalog)
+#pragma config(Sensor, in5,    MoGoPot,     sensorPotentiometer)
 #pragma config(Sensor, dgtl1,  RightEncoder,   sensorQuadEncoder)
 #pragma config(Sensor, dgtl3,  test,           sensorRotation)
 #pragma config(Sensor, dgtl8, OddLED,         sensorLEDtoVCC)
@@ -56,13 +57,14 @@ void initializeOpControl(const bool driver) {
 	velocity = 0.0;
 	//-LIFT---------&reference--TYPE----------sensor-1-----motor-1-----motor-2-------max------min-----isReversed? (opt)
 	initLiftType(   &mainLift,  NORMAL,       LiftPot,     LiftTop,    LiftBottom,   3365,    1700                );
-	initLiftType(   &MoGo,      DIFFERENTIAL, NONE,        LiftTop,    LiftBottom,   1,       -1                );
+	initLiftType(   &MoGo,      DIFFERENTIAL, MoGoPot,     LiftTop,    LiftBottom,   2220,    380   );
 	initLiftType(   &FourBar,   BINARY,       FourBarPot,  DiffL,      DiffR,        3000,    1160           );
 	initLiftType(   &goliat,    HOLD,         GoliathEnc,  goliathM,   goliathM,     100000,  -100000          );
 
 	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)----
 	initPID(    &mainLift.PID,  mainLift.sensor,    40,    0.15,    0.0,    0.1,   rev,        false         );
 	initPID(    &FourBar.PID,   FourBar.sensor,     100,   	0.2,     0.0,    0.0,    rev,        false         );
+	initPID(		&MoGo.PID,			MoGo.sensor,				50,			0.3,		0.0,		0.0,		!rev,				false					);
 	//initPID(    &gyroBase,      Gyro,               3,      0.525,  0.0,    0.5,    !rev,       false         );
 
 	//-SIDE---------&reference----sensor------------motor-1------motor-2--------motor-3------
@@ -95,30 +97,41 @@ task autonGoliath(){
 }
 task MoGoOut(){
 	intakeSpeed = INSPEED/2;//keeps cone intaken
+	MoGo.PID.isRunning = false;
 	UpUntil(&mainLift, SensorValue[mainLift.sensor] + 300);
 	mainLift.PID.goal = SensorValue[mainLift.sensor] + 300;
 	FourBar.PID.goal = FourBar.min;
-	clearTimer(T2);
-	while(time1[T2] < 600){
+	//clearTimer(T2);
+	//MoGo.PID.goal = MoGo.min;
+	mainLift.PID.isRunning = false;
+	//MoGo.PID.isRunning = true;
+	DownUntil(&MoGo, MoGo.min);
+	/*while(time1[T2] < 600){
 		liftDiff(&MoGo, 127);
-	}
+	}*/
 	return;
 }
 void MoGoAndPreload(){
-	startTask(MoGoOut);
 	autonRunning = true;
+	startTask(MoGoOut);
 	intakeSpeed = 60;
 	FourBar.PID.goal = FourBar.min;
 	FourBar.PID.isRunning = true;
 	driveFor(44);
 	stopTask(MoGoOut);
+	MoGo.PID.isRunning = false;
 	mainLift.PID.goal = mainLift.min;
 	intakeSpeed = -127;
 	delay(200);
 	mainLift.PID.goal = mainLift.min + 300;
-	clearTimer(T4);
-	while(time1[T4] < 900) liftDiff(&MoGo, -127);
-	liftMove(&MoGo, 0);
+	delay(300);//wait for lift to come down
+	//MoGo.PID.goal = MoGo.max;
+	mainLift.PID.isRunning = false;
+	//MoGo.PID.isRunning = true;
+	UpUntil(&MoGo, MoGo.max);
+	//clearTimer(T4);
+	//while(time1[T4] < 900) liftDiff(&MoGo, -127);
+	//liftMove(&MoGo, 0);
 	intakeSpeed = INSPEED;
 	currentCone = 1;//added  1 to MoGo
 	return;
@@ -135,6 +148,7 @@ task stackTask(){
 	return;
 }
 void stackCones(int coneNum){
+	MoGo.PID.isRunning = false;
 	for(int j=0; j<coneNum-1; j++){ //do one less
 		driveFor(5, initDir);
 		FourBar.PID.goal = FourBar.min-100;
