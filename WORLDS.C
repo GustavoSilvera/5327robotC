@@ -62,7 +62,7 @@ void initializeOpControl(const bool driver) {
 
 	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)----
 	initPID(    &mainLift.PID,  mainLift.sensor,    40,    0.15,    0.0,    0.1,   rev,        false         );
-	initPID(    &FourBar.PID,   FourBar.sensor,     100,   	0.15,     0.0,    0.0,    rev,        false         );
+	initPID(    &FourBar.PID,   FourBar.sensor,     100,   	0.2,     0.0,    0.0,    rev,        false         );
 	//initPID(    &gyroBase,      Gyro,               3,      0.525,  0.0,    0.5,    !rev,       false         );
 
 	//-SIDE---------&reference----sensor------------motor-1------motor-2--------motor-3------

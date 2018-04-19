@@ -147,7 +147,7 @@ void manualLiftControl(const struct liftMech* lift, int up1, int up2, int dwn1, 
 		}
 		else if (power < 0) {
 			//change PID value
-		lift-> PID.kP = 0.20;
+			lift-> PID.kP = 0.20;
 			lift->PID.goal = lift->min;//holdTo(lift, false);//go to min
 		}
 		else lift->PID.goal = SensorValue[lift->sensor];
@@ -233,6 +233,10 @@ task manualGoliath(){
 			liftMove(&goliat, intakeSpeed);
 			hasCone = false;
 		}
+		else if(in){
+			//if told, full power
+			liftMove(&goliat, 127);
+		}
 		else if(out){
 			clearTimer(T4);
 			while(time1[T4] < 500){
@@ -252,10 +256,6 @@ task manualGoliath(){
 			liftMove(&goliat, 30);
 			hasCone = true;
 			flash();
-		}
-		else if(in){
-			//if told, full power
-			liftMove(&goliat, 127);
 		}
 		else {
 			hasCone = false;
