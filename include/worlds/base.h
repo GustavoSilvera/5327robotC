@@ -148,19 +148,27 @@ void rotFor(float target, float dP = 2){
 	rot(0);
 	return;
 }
-void curveFor(float target, float dP=0.1){
+void curveFor(int dir, int target, float prop = 0.5){
 	int power = 0;
 	gyroBase.isRunning =true;
 	SensorValue[Gyro] = 0;//resets gyros
 	SensorScale[Gyro] = 260;
 	clearTimer(T4);
-	while(abs(SensorValue[Gyro]*GyroK - target) > 1 && time1[T4] < abs(target)*20){
-		//if(time1[T4] > 1000) push += 1; //will gradually increase if bot does not turn in time
-		power = limitDownTo(22, dP*(target - SensorValue[Gyro]*GyroK)); //+ push ;
-		baseMove(&Right, power);
-		baseMove(&Left, power);
+	while(abs(SensorValue[Gyro]*GyroK - target) > 1 && time1[T4] < abs(target)*40){
+		power = limitDownTo(22, dP*(target - SensorValue[Gyro]*GyroK));
+		if(target > 0){ //anti-clockwise
+			baseMove(&Right, dir * power);
+			baseMove(&Left, -dir * power * prop);
+		}
+		else{ //clockwise
+			baseMove(&Left, dir * power);
+			baseMove(&Right, -dir * power * prop);
+		}
+		motor[Base_B] = dir * power * prop;//back motor moves with dir regardless of target angle
 	}
-	rot(0);
+	baseMove(&Left, 0);
+	baseMove(&Right, 0);
+	motor[Base_B] = 0;
 	return;
 }
 void RSwingFor(int target){

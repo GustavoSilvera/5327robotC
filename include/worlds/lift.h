@@ -142,7 +142,7 @@ void manualLiftControl(const struct liftMech* lift, int up1, int up2, int dwn1, 
 		lift->PID.isRunning = true;
 		if(power > 0) {
 			//change PID value
-			lift->PID.kP =0.05;
+			lift->PID.kP =0.10;
 			liftMove(lift, 127);
 			lift->PID.goal = lift->max;//holdTo(lift, true);//go to max
 		}

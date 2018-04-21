@@ -208,11 +208,18 @@ void loaderAuton(bool isRight, bool isScored) {
 	int dir  = 1;
 	if(!isRight) dir = -1;
 	MoGoAndPreload();
-	mainLift.PID.goal = mainLift.min+500;
+	mainLift.PID.goal = mainLift.min+500; //go to loader height
 	mainLift.PID.isRunning = true;
 	driveFor(-27);
 	curveFor(45, 2); //curve into position
 	intakeSpeed = INSPEED;
+	repeat(4){
+		stackUp();
+		stackDown();
+	}
+	if(isScored){
+		driveFor(-1);
+	}
 }
 task autonomous() {
 	autonRunning = true;
@@ -222,7 +229,7 @@ task autonomous() {
 	startTask(displayLCD);
 	startTask(autonGoliath);
 	currentCone = 0;
-	if(currentAutonomous == 0) stackAuton(false, 2, RIGHTside, TWENTY);//testing(); //autonTest(1, RIGHTside, TWENTY);
+	if(currentAutonomous == 0) stackAuton(false, 2, RIGHTside, TWENTY);
 	else if(currentAutonomous == 1) stackAuton(false, 2, RIGHTside, TWENTY);
 	else if(currentAutonomous == 2) stackAuton(false, 2, RIGHTside, TEN);
 	else if(currentAutonomous == 3) stackAuton(false, 2, LEFTside, TEN);
@@ -247,7 +254,7 @@ task usercontrol() {//initializes everything~
 	else playSound(soundUpwardTones);
 	for (;;) {
 		driveCtrlr();
-		if(L7) MoGoAndPreload();
+		if(L7) stackAuton(false, 3, false, true);//MoGoAndPreload();
 		/*if(U7) {
 			autonRunning = true;
 			/*while (SensorValue[MoGo.sensor] > MoGo.min){
