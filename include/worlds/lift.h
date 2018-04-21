@@ -23,10 +23,6 @@ void liftDiff(const struct liftMech* lift, const float speed) {
 	motor[lift->motors[0]] = power;//full speed
 	motor[lift->motors[1]] = -power;//isReversed for differential
 }
-void liftDiffStrange(const struct liftMech* lift, const float speed1, const float speed2) {
-	motor[lift->motors[0]] = speed1;//full speed
-	motor[lift->motors[1]] = -speed2;//isReversed for differential
-}
 void resetPIDVals(const struct PIDs* pid) {
 	pid->Last = 0;
 	pid->Integral = 0;
@@ -72,8 +68,8 @@ void PIDLift(const struct liftMech* lift) {
 void UpUntil(const struct liftMech* lift, int goal, int speed = 127) {
 	lift->PID.isRunning = false;
 	while (SensorValue[lift->sensor] < goal){ //brings lift up to goal
-		if(lift->type == DIFFERENTIAL) liftDiff(lift, abs(-speed));
-		else liftMove(lift, abs(speed));
+		if(lift->type == DIFFERENTIAL) liftDiff(lift, -speed);
+		else liftMove(lift, speed);
 	}
 	liftMove(lift, -abs(speed));
 	delay(10);
@@ -115,11 +111,8 @@ void UpUntilW4Bar(int goal, float prop, int speed, bool FourBarToMax) {
 }
 void DownUntil(struct liftMech* lift, int goal, int speed = 127) {
 	lift->PID.isRunning = false;
-	MOGOVALUE = SensorValue[lift->sensor];
-	GOALVALUE = goal;
-	if(SensorValue[lift->sensor] > goal) playSound(soundBeepBeep);
 	while (SensorValue[lift->sensor] > goal ){//brings lift down to goal
-		if(lift->type == DIFFERENTIAL) liftDiff(lift, abs(speed));
+		if(lift->type == DIFFERENTIAL) liftDiff(lift, speed);
 		else liftMove(lift, -abs(speed));
 	}
 	enablePID(lift);
@@ -149,12 +142,14 @@ void manualLiftControl(const struct liftMech* lift, int up1, int up2, int dwn1, 
 		lift->PID.isRunning = true;
 		if(power > 0) {
 			//change PID value
-			lift->PID.kP =0.15;
+			lift->PID.kP =0.05;
+			liftMove(lift, 127);
 			lift->PID.goal = lift->max;//holdTo(lift, true);//go to max
 		}
 		else if (power < 0) {
 			//change PID value
 			lift-> PID.kP = 0.20;
+			liftMove(lift, -127);
 			lift->PID.goal = lift->min;//holdTo(lift, false);//go to min
 		}
 		else lift->PID.goal = SensorValue[lift->sensor];
@@ -166,8 +161,6 @@ void manualLiftControl(const struct liftMech* lift, int up1, int up2, int dwn1, 
 void LiftLift(const struct liftMech* lift, int up1, int up2, int dwn1, int dwn2, float velLimit = 100) {
 	if (up1 || up2 || dwn1 || dwn2){
 		manualLiftControl(lift, up1, up2, dwn1, dwn2);
-		if(lift->type == HOLD && (up1 || up2 )) holdPower = 30;
-		else if(lift->type == HOLD && (dwn1 || dwn2 || U7)) holdPower = 0;
 	}
 	else if(lift->type != NOPID && lift->type != DIFFERENTIAL && lift->type != HOLD){//INTAKE & DIFFERENTIAL is only type without PID
 		if (abs(lift->velocity) < velLimit) {
@@ -178,6 +171,7 @@ void LiftLift(const struct liftMech* lift, int up1, int up2, int dwn1, int dwn2,
 			lift->PID.isRunning = false;
 			liftMove(lift, 0);//decelerate by turning off motors
 		}
+		if( abs(SensorValue[lift->sensor] - lift->PID.goal) < 80) lift->PID.kP = 0.2;
 		PIDLift(lift);//calls the pid function for the lifts
 	}
 	else if (lift->type == NOPID) liftMove(lift, 0);
@@ -188,44 +182,13 @@ void LiftLift(const struct liftMech* lift, int up1, int up2, int dwn1, int dwn2,
 	}
 	else return;
 }
-int vBarDir = 0;
-int vBarPower = 0;
-void vBarLift(int up1, int up2, int dwn1, int dwn2){
-	//add limit switches?
-	//try to keep pot
-	if((up1 || up2)){ //btn control up
-		liftMove(&FourBar, 127);
-		vBarDir = 1;
-	}
-	else if((dwn1 || dwn2)){ //btn control down
-		liftMove(&FourBar, -127);
-		vBarDir = -1;
-	}
-	else if(abs(vexRT[Ch3Xmtr2]) > 20){ //joystick control
-		vBarPower = TruSpeed(vexRT[Ch3Xmtr2], 3);
-		liftMove(&FourBar, vBarPower);
-		vBarDir = sgn(vBarPower);
-	}
-	else{ //hold power
-		vBarPower = vBarDir*20;
-		liftMove(&FourBar, vBarPower);
-	}
-}
+
 void mainLiftLift(int up1, int up2, int dwn1, int dwn2){
 	if((up1 || up2) && SensorValue[LiftPot] < mainLift.max){
 		liftMove(&mainLift, 127);
 	}
 	else if((dwn1 || dwn2) && SensorValue[LiftPot] > mainLift.min){
 		liftMove(&mainLift, -127);
-		//slow down when velocity is high and dist from min is low
-		//mainlift velocity range:
-		/*
-		if(mainLift.velocity > 100 && SensorValue[LiftPot]-mainLift.min){
-			liftMove(&mainLift, 127 - velocity * (mainLift.max - SensorValue[LiftPot]) * 0.01);
-		}
-		else{
-			liftMove(&mainLift, -127);
-		}*/
 	}
 	else{ //with joystick control
 		liftMove(&mainLift, TruSpeed(vexRT[Ch2Xmtr2],3));
@@ -246,11 +209,9 @@ task manualGoliath(){
 				liftMove(&goliat, 127);
 			}
 			else if(out){
-				clearTimer(T4);
-				while(time1[T4] < 500){
-					liftMove(&goliat, -100);
-					hasCone = false;
-				}
+				liftMove(&goliat, -127);
+				hasCone = false;
+				delay(500);
 			}
 			else if(goliat.velocity < 30){
 				//if cone intaken, reduce intake power
@@ -266,12 +227,11 @@ task manualGoliath(){
 				flash();
 			}
 			else {
-				hasCone = false;
-				//timer will keep going for .5sec after button release
-				liftMove(&goliat, 100);
+				hasCone = false;//timer will keep going for .5sec after button release
+				liftMove(&goliat, 127);
 			}
 		}
-		delay(30);
+		delay(5);
 	}
 }
 bool notButtons(int u1, int u2, int d1, int d2){
@@ -279,22 +239,16 @@ bool notButtons(int u1, int u2, int d1, int d2){
 	else return false;
 }
 task LiftControlTask() {
-	//startTask(fourBarPID);
 	#define VBarBtns U5, U5_2, D5, D5_2
-	//#define LiftBtns U6, U6_2, D6, D6_2
 	#define LiftBtns U6, false, D6, false
 	#define MoGoBtns U8, U8_2, D8, D8_2
-	//#define intkBtns L8, L8_2, R8, R8_2
 	for (;;) {//while true
 		if(!autonRunning){
 			if(notButtons(MoGoBtns)) 	mainLiftLift(LiftBtns);//LiftLift(&mainLift, LiftBtns, 300);
-			else 								LiftLift(&MoGo,     MoGoBtns     );
-				LiftLift(&FourBar,  VBarBtns, 5000);
-				//vBarLift(VBarBtns);
-				//LiftLift(&goliat,   intkBtns     );
+			else LiftLift(&MoGo, MoGoBtns);
+			LiftLift(&FourBar,  VBarBtns, 5000);
 		}
 		else {
-			PIDLift(&MoGo);
 			PIDLift(&mainLift);//calls the pid function for the lifts
 			PIDLift(&FourBar);//calls the pid function for the lifts
 		}

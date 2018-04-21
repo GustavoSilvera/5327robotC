@@ -46,12 +46,12 @@ void standStack(int cone){
 	FourBar.PID.isRunning = true;
 	waitTill(&FourBar, FourBar.max, 100);
 	FourBar.PID.isRunning = false;
-	/*delay(delayValues[cone]);
+	delay(delayValues[cone]);
 	intakeSpeed = -127;
 	liftMoveT(&mainLift, -80, 130);
 	delay(100);
 	liftMoveT(&mainLift, 127, 80);
-	intakeSpeed = 0;*/
+	intakeSpeed = 0;
 	switchLEDs();
 	if(currentCone < 15) currentCone+=1;
 }
@@ -69,10 +69,10 @@ void stackDown(){
 	hasCone = false;
 	FourBar.PID.isRunning = true;
 	FourBar.PID.goal = FourBar.max + 100;
-	delay(200);
-	liftMoveT(&mainLift, 90, 200);
-
+	delay(100);
+	liftMoveT(&mainLift, 127, 200);
 	FourBar.PID.isRunning = true;
+	DownUntil(&FourBar, FourBar.min, 127);
 	FourBar.PID.goal = FourBar.min;
 	waitTill(&FourBar, FourBar.min + 300, 100);//waits till 4bar gets away from stack
 	intakeSpeed = 0;
@@ -108,16 +108,6 @@ task autoStack() {
 	//startTask(goliatTask);
 	for (;;) {
 		if ((U7 || U7_2)) stackDown();
-
-		/*if(U7){
-			autoStacking = true;
-			matchStack(currentCone);
-			autoStacking = false;
-		}*/
-		/*if (D7 ) {
-			stackDown(currentCone);
-		}*/
-		//if (goliat.stalling && !autoStacking) stack(currentCone);
 		delay(30);
 	}
 }

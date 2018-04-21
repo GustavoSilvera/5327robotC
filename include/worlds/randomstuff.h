@@ -46,11 +46,6 @@
 #define RIGHTside   true
 #define TEN         false
 #define TWENTY      true
-#define OUTTAKE
-
-//todelete
-int MOGOVALUE;
-int GOALVALUE;
 
 //other
 const float circum = 12.56;//4*PI;//4 inch wheels
