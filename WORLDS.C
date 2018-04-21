@@ -64,7 +64,7 @@ void initializeOpControl(const bool driver) {
 	//-PID------&reference------sensor--------------thresh--kP------kI------kD------reversed----running(opt)----
 	initPID(    &mainLift.PID,  mainLift.sensor,    40,    0.15,    0.0,    0.1,   rev,        false         );
 	initPID(    &FourBar.PID,   FourBar.sensor,     100,   	0.2,     0.0,    0.0,    rev,        false         );
-	initPID(		&MoGo.PID,			MoGo.sensor,				50,			0.3,		0.0,		0.0,		!rev,				false					);
+	initPID(		&MoGo.PID,			MoGo.sensor,				50,			0.3,		0.0,		0.0,		rev,				false					);
 	//initPID(    &gyroBase,      Gyro,               3,      0.525,  0.0,    0.5,    !rev,       false         );
 
 	//-SIDE---------&reference----sensor------------motor-1------motor-2--------motor-3------
@@ -105,7 +105,12 @@ task MoGoOut(){
 	//MoGo.PID.goal = MoGo.min;
 	mainLift.PID.isRunning = false;
 	//MoGo.PID.isRunning = true;
-	DownUntil(&MoGo, MoGo.min);
+	//DownUntil(&MoGo, MoGo.min);
+	//playSound(soundBeepBeep);
+	while (SensorValue[MoGo.sensor] > MoGo.min){
+			liftDiff(&MoGo, 127);
+	}
+	liftDiff(&MoGo, 0);
 	/*while(time1[T2] < 600){
 		liftDiff(&MoGo, 127);
 	}*/
@@ -128,7 +133,12 @@ void MoGoAndPreload(){
 	//MoGo.PID.goal = MoGo.max;
 	mainLift.PID.isRunning = false;
 	//MoGo.PID.isRunning = true;
-	UpUntil(&MoGo, MoGo.max);
+	//UpUntil(&MoGo, MoGo.max);
+	while (SensorValue[MoGo.sensor] < MoGo.max){
+			liftDiff(&MoGo, -127);
+	}
+	liftDiff(&MoGo, 0);
+	playSound(soundBeepBeep);
 	//clearTimer(T4);
 	//while(time1[T4] < 900) liftDiff(&MoGo, -127);
 	//liftMove(&MoGo, 0);
@@ -246,8 +256,8 @@ task usercontrol() {//initializes everything~
 	initializeOpControl(true);//driver init
 	startTask(LiftControlTask);//individual pid for lift type
 	startTask(MeasureSpeed);//velocity measurer for base
-	startTask(autoStack);
-//s	startTask(antiStall);
+	//startTask(autoStack); there are buttons double mapped in main
+	//startTask(antiStall);
 	startTask(manualGoliath);//controls goliath
 	//startTask(killswitch);
 	if(slewRating) startTask(MotorSlewRateTask);
@@ -260,10 +270,38 @@ task usercontrol() {//initializes everything~
 	else playSound(soundUpwardTones);
 	for (;;) {
 		driveCtrlr();
-		//if(U7) testing();//stackAuton(1, LEFTside, TWENTY);//sonarLock();
+
+		if(R7 && time1[T2] > 300){
+			preciseBase = !preciseBase;
+			playSound(soundBeepBeep);
+			clearTimer(T2);
+		}
+		/*if(U7) {
+			autonRunning = true;
+			/*while (SensorValue[MoGo.sensor] > MoGo.min){
+				liftDiff(&MoGo, 127);
+			}
+			liftDiff(&MoGo, 0);*/ //works
+			//mainLift.PID.isRunning = false;
+			/*
+			while(time1[T2] <500){
+				DownUntil(&MoGo, MoGo.min);
+			}
+			MoGo.PID.isRunning = false;
+		}
+		if(D7) {
+			playSound(soundBeepBeep);
+			autonRunning = true;
+			while(SensorValue[MoGoPot] < MoGo.max){
+				liftDiff(&MoGo, -60);
+			}
+			liftDiff(&MoGo, 0);
+			MoGo.PID.isRunning = false;
+			playSound(soundBeepBeep);
+		}
 		//if(D7) testing();//MoGoAndPreload();//sonarLock();
-		if(R7) stackAuton(false, 3, true, true);
-		if(L7) MoGoAndPreload();//standStack(currentCone);//sonarLock();
+		//if(R7) stackAuton(false, 3, true, true);
+		if(L7) MoGoAndPreload();//standStack(currentCone);//sonarLock();*/
 		delay(15);
 	}
 }//function for operator control

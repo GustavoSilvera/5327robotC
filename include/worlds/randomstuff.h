@@ -48,6 +48,10 @@
 #define TWENTY      true
 #define OUTTAKE
 
+//todelete
+int MOGOVALUE;
+int GOALVALUE;
+
 //other
 const float circum = 12.56;//4*PI;//4 inch wheels
 float rotVelocity, pastRot;
@@ -56,6 +60,7 @@ int initDir = SensorValue[Gyro] * GyroK;
 static int currentAutonomous = 0, currentCone = 0;
 const bool slewRating = false;
 bool autoStacking = false, autonRunning = false, matchLoads = false;
+bool preciseBase = false;
 string mainBattery, powerExpander, currCone, gyroRead;
 volatile float encoderAvg = 0, velocity = 0;//used only for straight fwds and bkwds direction
 int holdPower = 0;//for goliath hold

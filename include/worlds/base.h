@@ -88,16 +88,23 @@ void driveCtrlr() {
 	//scale for joystick
 	const float primary = 1;
 	int rotAxis = TruSpeed(vexRT[Ch4Xmtr2], 3);
-	driveLR(//truspeed taking both controllers
+	if(!preciseBase)
+		driveLR(//truspeed taking both controllers
 			TruSpeed(limitUpTo(127, primary*vexRT[Ch2]),3) + rotAxis,// + partner*vexRT[Ch2Xmtr2]), 3),
 			TruSpeed(limitUpTo(127, primary*vexRT[Ch3]),3) - rotAxis// + partner*vexRT[Ch3Xmtr2]), 3)
+		);
+	else
+		driveLR(//truspeed taking both controllers
+			TruSpeed(limitUpTo(127, primary*vexRT[Ch2]),1) + rotAxis,// + partner*vexRT[Ch2Xmtr2]), 3),
+			TruSpeed(limitUpTo(127, primary*vexRT[Ch3]),1) - rotAxis// + partner*vexRT[Ch3Xmtr2]), 3)
 		);
 	//driveLR(//NO truspeed taking both controllers
 	//	primary * vexRT[Ch2] + partner * vexRT[Ch2Xmtr2],
 	//	primary * vexRT[Ch3] + partner * vexRT[Ch3Xmtr2]
 	//);
-	if(sgn(vexRT[Ch2]) == sgn(vexRT[Ch3]) && abs(vexRT[Ch2]) > 15 && abs(vexRT[Ch3]) > 15 ) motor[Base_B] = TruSpeed(avg2(vexRT[Ch2], vexRT[Ch3]), 3);
-	else motor[Base_B] = 0;
+	if(sgn(vexRT[Ch2]) != sgn(vexRT[Ch3])) motor[Base_B] = 0; //don't use when turning
+	else if(abs(vexRT[Ch2]) > 15 && abs(vexRT[Ch3]) > 15 ) motor[Base_B] = TruSpeed(avg2(vexRT[Ch2], vexRT[Ch3]), 3); //if same direction
+	else if(abs(vexRT[Ch2] - vexRT[Ch3])>60) motor[Base_B] = (abs(vexRT[Ch2]) > abs(vexRT[Ch3]))? vexRT[Ch2]:vexRT[Ch3]; //help with swing turns
 }
 void fwds(const int power, const float angle = SensorValue[Gyro]*GyroK) {//drive base forwards
 	int speed = limitUpTo(127, power);
