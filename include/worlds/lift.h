@@ -87,9 +87,9 @@ void UpUntilW4Bar(int goal, float prop, int speed, bool FourBarToMax) {
 	mainLift.PID.isRunning = true;
 	int offset = 0;
 	if(currentCone >= 13) offset = 100;
-	playSound(soundBeepBeep);
+	//playSound(soundBeepBeep);
 	while (SensorValue[mainLift.sensor] < goal){ //brings lift up to goal
-		playSound(soundShortBlip);
+		//playSound(soundShortBlip);
 		liftMove(mainLift, abs(speed));
 		if(SensorValue[mainLift.sensor] > goal * prop){
 			if(FourBarToMax) FourBar.PID.goal = FourBar.max - offset;

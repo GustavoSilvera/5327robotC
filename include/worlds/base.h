@@ -84,8 +84,6 @@ void driveLR(const int powerR, const int powerL) {
 	}
 	motor[Base_B] = avg2(powerR, powerL);
 }
-int powL = vexRT[Ch2];
-int powR = vexRT[Ch3];
 void driveCtrlr() {
 	//scale for joystick
 	int rotAxis = vexRT[Ch4Xmtr2];
@@ -113,12 +111,12 @@ void rot(const float speed) {//rotates base
 	driveLR(speed, -speed);
 }
 void driveFor(int goal, int dir = SensorValue[Gyro]*GyroK) {//drives for certain distance in inches
-	SensorValue[RightEncoder] = 0;
+	SensorValue[BaseEncoder] = 0;
 	//delay(1000);//for debugging purposes
 	const int thresh = 60;
 	const float dP = 0.183;//25;//multiplier for velocity controller
 	float goalTicks = goal*86.4211342;
-	while (abs(goalTicks - SensorValue[RightEncoder]) > thresh) { //while error > threshold
+	while (abs(goalTicks - SensorValue[BaseEncoder]) > thresh) { //while error > threshold
 		//encoder geared 3:1, circum = 4*pi
 		//goal / 4pi = number of revolutions
 		//360 ticks per revolution
@@ -134,7 +132,6 @@ void driveFor(int goal, int dir = SensorValue[Gyro]*GyroK) {//drives for certain
 }
 void rotFor(float target, float dP = 2){
 	int power = 0;
-	int push = 0;
 	gyroBase.isRunning = true;
 	SensorValue[Gyro] = 0;//resets gyros
 	SensorScale[Gyro] = 260;
@@ -149,7 +146,7 @@ void rotFor(float target, float dP = 2){
 	rot(0);
 	return;
 }
-void curveFor(int dir, int target, float prop = 0.5){
+/*void curveFor(int dir, int target, float prop = 0.5){
 	int power = 0;
 	gyroBase.isRunning =true;
 	SensorValue[Gyro] = 0;//resets gyros
@@ -171,7 +168,7 @@ void curveFor(int dir, int target, float prop = 0.5){
 	baseMove(&Right, 0);
 	motor[Base_B] = 0;
 	return;
-}
+}*/
 void RSwingFor(int target){
 	gyroBase.isRunning = true;
 	SensorValue[Gyro] = 0;//resets gyros
@@ -185,17 +182,6 @@ void RSwingFor(int target){
 	rot(0);
 	return;
 }
-task sonarLock(){
-	int initLock = SensorValue[SonarR];
-	const int sonarPos = 2030;
-	clearTimer(T3);
-	while(time1[T3] < 500){
-		fwds(0.1*(SensorValue[SonarR] - sonarPos));
-		if(D8) break;
-		delay(10);
-	}
-	return;
-}
 void LSwingFor(int target){
 	gyroBase.isRunning = true;
 	SensorValue[Gyro] = 0;//resets gyros
@@ -207,6 +193,23 @@ void LSwingFor(int target){
 	baseMove(&Left,-sgn(target) *60);
 	delay(30);
 	rot(0);
+	return;
+}
+task LockNLoad(){
+	//int initLock = SensorValue[SonarR];
+	const int sonarPos = 2030;
+	clearTimer(T3);
+	while(time1[T3] < 500){
+		fwds(0.1*(SensorValue[SonarR] - sonarPos));
+		if(D8) break;
+		delay(10);
+	}
+	const int initialBase = SensorValue[BaseEncoder];
+	for (;;) {//base PID lock
+		fwds(0.2*(SensorValue[BaseEncoder] - initialBase));
+		if (D8) break;
+		delay(10);
+	}
 	return;
 }
 #endif

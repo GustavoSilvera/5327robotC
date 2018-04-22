@@ -40,7 +40,7 @@ void flash(){
 void scaleGyros(){
 	SensorScale[Gyro] = 260;
 	SensorFullCount[Gyro] = 3600;
-}
+}/*
 void gyroBias(){
 	int realBias;
     long cumulativeBias;
@@ -61,7 +61,7 @@ void gyroBias(){
     SensorType[Gyro] = sensorGyro;
     // Now put the bias back to the correct value we found in the initialization
     SensorBias[Gyro] = realBias;
-}
+}*/
 void resetGyros() {
 	SensorValue[Gyro] = 0;//resets gyro sensor
 	delay(300);
@@ -69,7 +69,7 @@ void resetGyros() {
 }
 void resetEncoders(){
 //	SensorValue[LeftEncoder] = 0;
-	SensorValue[RightEncoder] = 0;
+	SensorValue[BaseEncoder] = 0;
 }
 bool isStalling(const int *motorPower, float currentVelocity){
 	return (
@@ -113,7 +113,7 @@ void checkStalling(struct liftMech* lift, int delayThresh){
 	if(lift->isStalling) playSound(soundShortBlip);
 }
 
-task antiStall(){
+/*task antiStall(){
 	for(;;){
 		checkStalling(&Right, 200);
 		checkStalling(&Left, 200);
@@ -122,7 +122,7 @@ task antiStall(){
 		checkStalling(&goliat, 100);
 		delay(50);
 	}
-}
+}*/
 /********************************************************************************\
 * .----------------.  .----------------.  .----------------.  .----------------. *
 *| .--------------. || .--------------. || .--------------. || .--------------. |*
@@ -170,6 +170,9 @@ task MeasureSpeed() {
 		//does the waitings
 		delay(delayAmount);
 	}
+	checkStalling(&Right, 200);
+	checkStalling(&Left, 200);
+	checkStalling(&goliat, 100);
 }//task for measuring velocity of the base, in IN/Sec
 
 #endif

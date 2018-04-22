@@ -13,8 +13,6 @@
 | '--------------' || '--------------' || '--------------' || '--------------' || '--------------' |
 '----------------'  '----------------'  '----------------'  '----------------'  '----------------'
 */
-const int INSPEED = 100;//for roller hold
-const int OUTSPEED = -127;
 const int heightValues[16] = {
 	1830, 1940, 2070, 2100, 2190, 2280,
 	2420, 2530, 2690, 2780, 2960, 3000,
@@ -36,7 +34,6 @@ void waitTill(struct liftMech *lift, int goal, int thresh){
 	while(abs(SensorValue[lift->sensor] - goal) > thresh && time1[T3] < 1000){continue;}//wait until success
 	return;
 }
-volatile bool finalCone = false;//used if dont want autostack to complete the loop
 void standStack(int cone){
 	intakeSpeed = 127;
 	UpUntilW4Bar(heightValues[cone], 0.89, 127, true);
@@ -79,35 +76,11 @@ void stackDown(){
 	mainLift.PID.goal = mainLift.min + 300;
 	autoStacking = false;
 }
-void matchStack(int cone){
-	//startTask(goliatTask);
-	autoStacking = true;
-	intakeSpeed = 60;
-	if(currentCone < 3) {
-		mainLift.PID.goal = 2650;
-		mainLift.PID.isRunning = true;
-		UpUntil(&FourBar, FourBar.max, 127);
-		FourBar.PID.goal = FourBar.max;
-		waitTill(&FourBar, FourBar.max, 100);
-		mainLift.PID.goal = 2000;
-		delay(100);
-		mainLift.PID.goal = 2600;
-		intakeSpeed = OUTSPEED; //drop cone without lift down
-		delay(200);
-		DownUntil(&FourBar, FourBar.min, 127);
-		currentCone++;
-	}
-	else {
-		stackUp();
-		stackDown();
-	};
-	matchLoads = false;
-	autoStacking = false;
-}
 task autoStack() {
 	//startTask(goliatTask);
 	for (;;) {
 		if ((U7 || U7_2)) stackDown();
+		if(false) stackUp();//just to get rid of that anoying warning
 		delay(30);
 	}
 }

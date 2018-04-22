@@ -21,7 +21,6 @@ struct PIDs {
 	float Integral, Derivative, Last;
 };
 struct PIDs gyroBase;
-struct PIDs sonarBase;
 enum liftType{
 	BINARY,
 	DIFFERENTIAL,
