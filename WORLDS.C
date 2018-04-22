@@ -95,12 +95,16 @@ task autonGoliath(){
 	liftMove(&goliat, 0);
 }
 task MoGoOut(){
-	intakeSpeed = 90;//keeps cone intaken
+	intakeSpeed = 127;//keeps cone intaken
 	MoGo.PID.isRunning = false;
 	UpUntil(&mainLift, SensorValue[mainLift.sensor] + 300);
-	mainLift.PID.goal = SensorValue[mainLift.sensor] + 300;
+	mainLift.PID.goal = SensorValue[mainLift.sensor] + 200;
 	FourBar.PID.goal = FourBar.min;
 	DownUntil(&MoGo, MoGo.min, 127);
+	return;
+}
+task MoGoIn(){
+	UpUntil(&MoGo, MoGo.max, 127);
 	return;
 }
 void MoGoAndPreload(){
@@ -110,80 +114,106 @@ void MoGoAndPreload(){
 	intakeSpeed = 127;
 	driveFor(44);
 	stopTask(MoGoOut);
-	mainLift.PID.goal = mainLift.min+150;
+	mainLift.PID.isRunning = true;
+	mainLift.PID.goal = mainLift.min;
 	intakeSpeed = -127;
 	delay(200);
-	UpUntil(&mainLift, mainLift.min + 330, 127);
-	mainLift.PID.isRunning = false;
-	UpUntil(&MoGo, MoGo.max, 127);
-	playSound(soundBeepBeep);
+	UpUntil(&mainLift, SensorValue[mainLift.sensor] + 150, 127);
+	startTask(MoGoIn);
+	delay(250);
 	currentCone = 1;//added  1 to MoGo
 	return;
 }
-task stackTask(){
-	stackUp();
-	FourBar.PID.goal = FourBar.max + 200;
-	FourBar.PID.isRunning = true;
-	intakeSpeed = -127;
-	delay(200);
-	mainLift.PID.goal = avg2(mainLift.max, mainLift.min); //lift lift
-	mainLift.PID.isRunning = true;
-	//FourBar.PID.isRunning = false;
+void waitForPickup(){
+	clearTimer(T1);
+	while(goliat.velocity > 15 && time1[T1] < 800){
+		fwds(25);//move fwds sligtly
+		liftMove(&FourBar, -40);
+		liftMove(&mainLift, -40);
+		delay(10);
+	}
+	fwds(0);
+	intakeSpeed = 127;
 	return;
+}
+void stackCone(){
+	intakeSpeed = 127;//holding cone
+	UpUntilW4Bar(heightValues[currentCone-1], 0.89, 100, true);
+	FourBar.PID.goal = FourBar.max;
+	delay(350);
+	liftMoveT(&mainLift, -70, 150);
+	intakeSpeed = -127;
+	liftMove(&mainLift, 0);
+	delay(50);
+	liftMoveT(&mainLift, 110, 250);
+}
+void driveToCone(){
+	FourBar.PID.goal = FourBar.min-100;
+	driveFor(5, initDir);
+	intakeSpeed = 127;
+	mainLift.PID.goal = mainLift.min - 100;
+	mainLift.PID.isRunning = true;
+	DownUntil(&mainLift, mainLift.min+100, 127);
+	waitForPickup();//waits to pickup cone
+}
+task stackTask(){
+	stackCone();
+	mainLift.PID.goal = 2200;
+	mainLift.PID.isRunning = true;
+	intakeSpeed = 0;
 }
 void stackCones(int coneNum){
 	MoGo.PID.isRunning = false;
 	for(int j=0; j<coneNum-1; j++){ //do one less
-		FourBar.PID.goal = FourBar.min-100;
-		driveFor(5, initDir);
-		intakeSpeed = 127;
-		DownUntil(&mainLift, mainLift.min+100, 127); //go for next cone
-		mainLift.PID.isRunning = true;
-		mainLift.PID.goal = mainLift.min - 500;
-		delay(300);//can use velocity capture
-		UpUntilW4Bar(heightValues[currentCone], 0.89, 127, true);
-		delay(100);
-		intakeSpeed = -127;
-		delay(200);
-		liftMoveT(&mainLift, -80, 130);
-		liftMoveT(&mainLift, 127, 180);
+		driveToCone();
+		stackCone();
 	}
-	//final cone is stacked while driving back
-	driveFor(5, initDir);
-	FourBar.PID.goal = FourBar.min;
-	//DownUntil(&mainLift, mainLift.min+10, 127); //go for next cone
-	mainLift.PID.goal = mainLift.min-100;
-	delay(200);
-	mainLift.PID.isRunning = true;
-	intakeSpeed = INSPEED;
-	delay(200);
-	startTask(stackTask);
+	if(coneNum == 2) driveToCone();
+	else {
+		FourBar.PID.goal = FourBar.min-100;
+		intakeSpeed = 127;
+		mainLift.PID.goal = mainLift.min - 100;
+		mainLift.PID.isRunning = true;
+		DownUntil(&mainLift, mainLift.min+100, 127);
+		driveFor(4, initDir);
+		waitForPickup();//waits to pickup cone
+	}
+	startTask(stackTask);//last one in a task
 }
 void scoreInTwenty(){
-	fwds(127);//enter 20pt zone
-	delay(300);
+	fwds(127);
+	delay(450);
 	fwds(127);
 	DownUntil(&MoGo, 1200, 127);
-	fwds(0);
+	fwds(90);
+	liftDiff(&MoGo, -10);
+	delay(230);
+	liftDiff(&MoGo, -70);
 	driveFor(-17);//exit zones
 }
 void stackAuton(bool isSpiking, int cones, bool isRight, bool isTwenty){ //cones not including preload
 	int dir  = 1;
 	if(!isRight) dir = -1;
+	stoptask(manualGoliath);
 	autonRunning = true;
-	FourBar.PID.kP = 0.25;
+	intakeSpeed = 127;
+	startTask(autonGoliath);
+	FourBar.PID.kP = 0.2;
 	initDir =  SensorValue[Gyro] * GyroK;
 	if(isSpiking)spike();//not finished
 	MoGoAndPreload();
 	stackCones(cones);
 	if(isTwenty){ //score in 20pt
-		driveFor(-52);//drive back
+		driveFor(-(48 + cones*5.5));//drive back
 		if (isRight) RSwingFor(-45);
 		else LSwingFor(40);
-		if(!isRight)	driveFor(-10); //drive to center of zone (-11)
-		else driveFor(-7);
+		if(!isRight)	driveFor(-13); //drive to center of zone (-11)
+	//	else driveFor(0);
 		rotFor(-dir * 90, 2);
-		mainLift.PID.isRunning = false;
+		mainLift.PID.goal = 2000;
+		FourBar.PID.goal = FourBar.max;
+		FourBar.PID.isRunning = true;
+		mainLift.PID.isRunning = true;
 		scoreInTwenty();
 	}
 	else { //score in 10 pt
@@ -203,24 +233,58 @@ void stackAuton(bool isSpiking, int cones, bool isRight, bool isTwenty){ //cones
 		//mainLift.PID.isRunning = true;
 		driveFor(-20);// release & get out of the way
 	}
+	autonRunning = false;
+	startTask(manualGoliath);
+	return;
 }
 void loaderAuton(bool isRight, bool isScored) {
 	int dir  = 1;
 	if(!isRight) dir = -1;
 	MoGoAndPreload();
-	mainLift.PID.goal = mainLift.min+500; //go to loader height
+	const int liftPos = 1850;
+	FourBar.PID.goal = FourBar.max;
+	mainLift.PID.goal = liftPos + 600; //go to loader height
 	mainLift.PID.isRunning = true;
-	driveFor(-27);
-	curveFor(45, 2); //curve into position
-	intakeSpeed = INSPEED;
-	repeat(4){
-		stackUp();
-		stackDown();
+	waitTill(&MoGo, avg2(MoGo.min, MoGo.max), 100);
+	driveFor(-14.5);
+	rotFor(84, 2); //curve into position
+	startTask(sonarLock);
+	repeat(7){
+		intakeSpeed = 127;
+		FourBar.PID.goal = FourBar.min;
+		if(SensorValue[mainLift.sensor] > liftPos + 350) DownUntil(&mainLift, liftPos+300, 90);
+		else DownUntil(&mainLift, liftPos +100, 80);
+		liftMove(&mainLift, 0);
+		delay(400);
+		mainLift.PID.goal = heightValues[currentCone] - 100;
+		waitTill(&mainLift, mainLift.PID.goal, 100);
+		liftMoveT(&FourBar, 127, 400);
+		liftMoveT(&mainLift, -80, 100);
+		intakeSpeed = -80;
+		liftMoveT(&mainLift, -80, 100);
+		liftMoveT(&mainLift, 80, 200);
+		currentCone++;
 	}
-	if(isScored){
-		driveFor(-1);
-	}
+	stopTask(sonarLock);
+	fwds(0);
 }
+
+		/*intakeSpeed = 127;
+		FourBar.PID.goal = FourBar.min;
+		if(SensorValue[mainLift.sensor] > liftPos + 350) DownUntil(&mainLift, liftPos+300, 90);
+		else DownUntil(&mainLift, liftPos +100, 80);
+		liftMove(&mainLift, 0);
+		mainLift.PID.goal = liftPos;
+		delay(100);
+		UpUntil(&mainLift, heightValues[currentCone] - 80, 100);
+		FourBar.PID.goal = FourBar.max;
+		delay(250);
+		liftMoveT(&mainLift, -80, 100);
+		intakeSpeed = -80;
+		liftMoveT(&mainLift, -80, 100);
+		FourBar.PID.goal = FourBar.max;
+		UpUntil(&mainLift, SensorValue[mainLift.sensor] + 200, 127);
+		currentCone++;*/
 task autonomous() {
 	autonRunning = true;
 	initializeOpControl(false);//autonomous init
@@ -229,8 +293,8 @@ task autonomous() {
 	startTask(displayLCD);
 	startTask(autonGoliath);
 	currentCone = 0;
-	if(currentAutonomous == 0) stackAuton(false, 2, RIGHTside, TWENTY);
-	else if(currentAutonomous == 1) stackAuton(false, 2, RIGHTside, TWENTY);
+	if(currentAutonomous == 0) loaderAuton(false, false);//stackAuton(false, 3, LEFTside, TWENTY);
+	else if(currentAutonomous == 1) stackAuton(false, 3, RIGHTside, TWENTY);
 	else if(currentAutonomous == 2) stackAuton(false, 2, RIGHTside, TEN);
 	else if(currentAutonomous == 3) stackAuton(false, 2, LEFTside, TEN);
 	autonRunning = false;
@@ -254,7 +318,7 @@ task usercontrol() {//initializes everything~
 	else playSound(soundUpwardTones);
 	for (;;) {
 		driveCtrlr();
-		if(L7) stackAuton(false, 3, false, true);//MoGoAndPreload();
+		if(U7) loaderAuton(false, false);//stackAuton(false, 3, true, true);//MoGoAndPreload();
 		/*if(U7) {
 			autonRunning = true;
 			/*while (SensorValue[MoGo.sensor] > MoGo.min){

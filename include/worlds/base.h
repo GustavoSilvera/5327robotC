@@ -84,17 +84,18 @@ void driveLR(const int powerR, const int powerL) {
 	}
 	motor[Base_B] = avg2(powerR, powerL);
 }
+int powL = vexRT[Ch2];
+int powR = vexRT[Ch3];
 void driveCtrlr() {
 	//scale for joystick
-	const float primary = 1;
-	int rotAxis = TruSpeed(vexRT[Ch4Xmtr2], 3);
+	int rotAxis = vexRT[Ch4Xmtr2];
 	/*driveLR(//truspeed taking both controllers
 		TruSpeed(limitUpTo(127, primary*vexRT[Ch2]),1) + rotAxis,// + partner*vexRT[Ch2Xmtr2]), 3),
 		TruSpeed(limitUpTo(127, primary*vexRT[Ch3]),1) - rotAxis// + partner*vexRT[Ch3Xmtr2]), 3)
 	);*/
 	driveLR(//NO truspeed taking both controllers
-		limitUpTo(127, primary*vexRT[Ch2]) + rotAxis,
-		limitUpTo(127, primary*vexRT[Ch3]) - rotAxis
+		vexRT[Ch2] + rotAxis,
+		vexRT[Ch3] - rotAxis
 	);
 	if(sgn(vexRT[Ch2]) != sgn(vexRT[Ch3])) motor[Base_B] = 0; //don't use when turning
 	else if(abs(vexRT[Ch2]) > 15 && abs(vexRT[Ch3]) > 15 ) motor[Base_B] = avg2(vexRT[Ch2], vexRT[Ch3]); //if same direction
@@ -155,7 +156,7 @@ void curveFor(int dir, int target, float prop = 0.5){
 	SensorScale[Gyro] = 260;
 	clearTimer(T4);
 	while(abs(SensorValue[Gyro]*GyroK - target) > 1 && time1[T4] < abs(target)*40){
-		power = limitDownTo(22, dP*(target - SensorValue[Gyro]*GyroK));
+		power = limitDownTo(22, 0.05*(target - SensorValue[Gyro]*GyroK));
 		if(target > 0){ //anti-clockwise
 			baseMove(&Right, dir * power);
 			baseMove(&Left, -dir * power * prop);
@@ -184,10 +185,12 @@ void RSwingFor(int target){
 	rot(0);
 	return;
 }
-void sonarLock(){
+task sonarLock(){
 	int initLock = SensorValue[SonarR];
-	for(;;){
-		fwds(0.1*(SensorValue[SonarR] - initLock));
+	const int sonarPos = 2030;
+	clearTimer(T3);
+	while(time1[T3] < 500){
+		fwds(0.1*(SensorValue[SonarR] - sonarPos));
 		if(D8) break;
 		delay(10);
 	}
