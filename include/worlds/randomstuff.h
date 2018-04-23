@@ -44,7 +44,7 @@
 
 #define LEFTside    false
 #define RIGHTside   true
-#define TEN         false
+#define FIVE        false
 #define TWENTY      true
 
 //other

@@ -14,93 +14,76 @@
 * '----------------'  '----------------'  '----------------'  '----------------' *
 \********************************************************************************/
 /*for the cool ascii text go here: http://patorjk.com/software/taag/#p=display&f=Blocks*/
-void displayAuton( int value, bool select, bool coneSelector ){
+void displayAuton( int value, bool select = false  ){
 	// Cleat the lcd
 	clearLCDLine(0);
 	clearLCDLine(1);
 
-	if(coneSelector){
+	// Display the selection arrows
+	displayLCDString(1,  0, "<--");
+	displayLCDString(1, 13, "-->");
+	// Save autonomous mode for later if selected
+	if(select) autonIndex = value;//updates current auton with new
+		// If this choice is selected then display ACTIVE
+	if( autonIndex == value )
 		displayLCDString(1, 5, "ACTIVE");
-		// Display the selection operations
-		displayLCDString(1, 0, "-1 ");
-		displayLCDString(1, 13, " +1");
-		// Simple selection display
-		switch (value) {
-		case    0:
-			autonConeNum = 0;
-			break;
-		case    1:
-			autonConeNum = 1;
-			break;
-		case    2:
-			autonConeNum = 2;
-			break;
-		default:
-			autonConeNum = 3;
-			break;
-		}
-	}
-	else {//in auton choice mode
-		if (select) autonIndex = value;//updates current auton with new
-		if (autonIndex == value) displayLCDString(1, 5, "ACTIVE");
-		else displayLCDString(1, 5, "select");
-		// Display the selection arrows
-		displayLCDString(1, 0, "<--");
-		displayLCDString(1, 13, "-->");
+	else
+		displayLCDString(1, 5, "select");
 
-		// Simple selection display
-		switch (value) {
-		case    0:
-			customAuton = "20 R";
-			autonConeNum = 0;
-			break;
-		case    1:
-			customAuton = "20 L";
-			autonConeNum = 0;
-			break;
-		case    2:
-			customAuton = "10 R";
-			autonConeNum = 0;
-			break;
-		case    3:
-			customAuton = "10 L";
-			autonConeNum = 0;
-			break;
-		case    4:
-			customAuton = "LODR";//loader right
-			autonConeNum = 0;
-			break;
-		case    5:
-			customAuton = "LODL";//loader left
-			autonConeNum = 0;
-			break;
-		case    6:
-			displayLCDString(0, 0, " NONE ");
-			break;
-		default:
-			displayLCDString(0, 0, " NONE ");
-			break;
-		}
+	// Simple selection display
+	switch(value){
+	case    0:
+		displayLCDString(0, 0, "4C 20 R");
+		break;
+	case    1:
+		displayLCDString(0, 0, "4C 20 L");
+		break;
+	case    2:
+		displayLCDString(0, 0, "4C 5 R");
+		break;
+	case    3:
+		displayLCDString(0, 0, "4C 5 L");
+		break;
+	case    4:
+		displayLCDString(0, 0, "Spk 3c 20R");
+		break;
+	case    5:
+		displayLCDString(0, 0, "Spk 3c 20L");
+		break;
+	case    6:
+		displayLCDString(0, 0, "Spk 3c 5R");
+		break;
+	case    7:
+		displayLCDString(0, 0, "Spk 3c 5L");
+		break;
+	case    8:
+		displayLCDString(0, 0, "Stag 3c 5R");
+		break;
+	case    9:
+		displayLCDString(0, 0, "Stag 3c 5L");
+		break;
+	case   10:
+		displayLCDString(0, 0, " NONE ");
+		break;
+	default:
+		displayLCDString(0, 0, "Unknown");
+		break;
 	}
-	string coneNumString ;
-	sprintf(coneNumString, " +%d", autonConeNum + 1); //Build the value to be displayed
-	strcat(customAuton, coneNumString);//concatenates the two strings together
-	displayLCDString(0, 0, customAuton);
 
+	// Save autonomous mode for later
+	//currentAutonomous = value;
 }
-void autonSelect(int delayTime = 5000){//5 second wait time
+void autonSelect(int delayTime = 5000){
 	clearTimer(T4);
 	int value = 0;//no auton
 	// here for reference http://help.robotc.net/Sandbox/Zendesk-Output/Content/Resources/topics/VEX_Cortex/ROBOTC/LCD_Display/nLCDButtons.htm
 	const int LEFT = 1;
 	const int RIGHT = 4;
 	const int CENTER = 2;
-	intrinsic const static volatile unsigned int NUMAUTONS = 7;
-	autonConeNum = 0;//restarts cone counter
-	bool selectingCone = false;
+	intrinsic const static volatile unsigned int NUMAUTONS = 9;
 	while(time1[T4] < delayTime){
-		// display default choice
-		displayAuton(value, false, selectingCone);
+		// diaplay default choice
+		displayAuton(value);
 		// Display and select the autonomous routine
 		if( ( nLCDButtons == LEFT ) || ( nLCDButtons == RIGHT) ) {
 			// previous choice
@@ -109,14 +92,12 @@ void autonSelect(int delayTime = 5000){//5 second wait time
 			// next choice
 			if( nLCDButtons == RIGHT && value < NUMAUTONS)
 				value ++;
-			displayAuton(value, false, selectingCone);//dosent say "ACTIVE"
+			displayAuton(value);//dosent say "ACTIVE"
 			clearTimer(T4);
 		}
 		// Select this choice
-		if( nLCDButtons == CENTER) {
-			selectingCone = true;
-			displayAuton(value, true, selectingCone);//says "ACTIVE" & with cone selector
-			value = 0;
+		if( nLCDButtons == CENTER ) {
+			displayAuton(value, true );//says "ACTIVE"
 			clearTimer(T4);
 		}
 		delay(200);

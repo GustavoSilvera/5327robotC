@@ -205,11 +205,7 @@ task LockNLoad(){
 		delay(10);
 	}
 	const int initialBase = SensorValue[BaseEncoder];
-	for (;;) {//base PID lock
-		fwds(0.2*(SensorValue[BaseEncoder] - initialBase));
-		if (D8) break;
-		delay(10);
-	}
+
 	return;
 }
 #endif

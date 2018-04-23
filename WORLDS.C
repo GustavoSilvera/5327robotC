@@ -54,7 +54,7 @@ void initializeOpControl(const bool driver) {
 	resetEncoders();
 	velocity = 0.0;
 	//-LIFT---------&reference--TYPE----------sensor-1-----motor-1-----motor-2-------max------min-----isReversed? (opt)
-	initLiftType(   &mainLift,  NORMAL,       LiftPot,     LiftTop,    LiftBottom,   3365,    1700    );
+	initLiftType(   &mainLift,  NORMAL,       LiftPot,     LiftTop,    LiftBottom,   3365,    1800    );
 	initLiftType(   &MoGo,      DIFFERENTIAL, MoGoPot,     LiftTop,    LiftBottom,   2220,    380	  );
 	initLiftType(   &FourBar,   BINARY,       FourBarPot,  DiffL,      DiffR,        3200,    1160    );
 	initLiftType(   &goliat,    NORMAL,       GoliathEnc,  goliathM,   goliathM,     1000000, -1		  );
@@ -82,11 +82,12 @@ void pre_auton() {//dont care
 }
 void spike(bool isRight){
 	int dir = 1;
-	if (isRight) dir = -1;
-	mainLift.PID.goal = mainLift.min + 300;
-	mainLift.PID.isRunning = true;
+	if (!isRight) dir = -1;
+	FourBar.PID.goal = FourBar.min;
+	FourBar.PID.isRunning = true;
+	UpUntil(&mainLift, mainLift.min + 300, 127);
 	delay(150);
-	rotFor(dir*35);//check direction
+	rotFor(-dir * 36);//check direction
 }
 task autonGoliath(){
 	while (autonRunning) {//automagically ends when end auton
@@ -99,7 +100,7 @@ task MoGoOut(){
 	intakeSpeed = 90;//keeps cone intaken
 	MoGo.PID.isRunning = false;//dosent exist anyways
 	UpUntil(&mainLift, SensorValue[mainLift.sensor] + 250);
-	mainLift.PID.goal = SensorValue[mainLift.sensor] + 200;
+	mainLift.PID.goal = SensorValue[mainLift.sensor] + 150;
 		mainLift.PID.isRunning = true;
 	FourBar.PID.goal = FourBar.min;
 		FourBar.PID.isRunning = true;
@@ -121,7 +122,18 @@ void MoGoAndPreload(){
 	delay(200);
 	UpUntil(&mainLift, SensorValue[mainLift.sensor] + 150, 127);//brings up
 	startTask(MoGoInTask);
-	waitTill(&MoGo, avg2(MoGo.max, MoGo.min), 100);//waits until halfway there
+	waitTill(&MoGo, avg2(MoGo.max, MoGo.min)+50, 30);//waits until halfway there
+	currentCone = 1;//added  1 to MoGo
+	return;
+}
+void MoGoNoPreload(){
+	autonRunning = true;//enssures auton on
+	startTask(MoGoOut);
+	driveFor(44);
+	stopTask(MoGoOut);
+	delay(200);
+	startTask(MoGoInTask);
+	waitTill(&MoGo, avg2(MoGo.max, MoGo.min)+50, 30);//waits until halfway there
 	currentCone = 1;//added  1 to MoGo
 	return;
 }
@@ -192,7 +204,23 @@ void scoreInTwenty(){
 	liftDiff(&MoGo, -70);
 	driveFor(-17);//exit zones
 }
-void stackAuton(bool isSpiking, int numCones, bool isRight, bool isTwenty){ //cones not including preload
+void stagoStack(bool isRight){
+	int dir = 1;
+	if(!isRight) dir = -1;
+	mainLift.PID.goal = 2500;
+	mainLift.PID.isRunning = true;
+	driveFor(15);
+	UpUntil(&mainLift, mainLift.PID.goal, 127);
+	delay(200);
+	liftMoveT(&FourBar, -127, 300);
+	delay(200);
+	intakeSpeed = -127;
+	liftMoveT(&mainLift, 90, 300);
+	driveFor(-12);
+	rotFor(-dir * 95, 2);
+	return;
+}
+void stackAuton(bool isSpiking, bool withStago, int numCones, bool isRight, bool isTwenty){ //cones not including preload
 	int dir  = 1;
 	if(!isRight) dir = -1;
 	if(!autonRunning) stopTask(manualGoliath);//when in manual
@@ -201,14 +229,16 @@ void stackAuton(bool isSpiking, int numCones, bool isRight, bool isTwenty){ //co
 	startTask(autonGoliath);
 	FourBar.PID.kP = 0.2;//high kP
 	initDir =  SensorValue[Gyro] * GyroK;
+	if(withStago) stagoStack(isRight);
 	if(isSpiking) spike(isRight);//not finished (started)
-		MoGoAndPreload();
-		stackCones(numCones);
+	if(isSpiking || withStago) MoGoNoPreload();
+	else MoGoAndPreload();
+	stackCones(numCones);
 	if(isTwenty){ //score in 20pt
-		driveFor(-(48 + numCones*5.5));//drive back
+		driveFor(-(50 + numCones*6));//drive back
 		if (isRight) RSwingFor(-45);
-		else LSwingFor(40);
-		if(!isRight)	driveFor(-13); //drive to center of zone (-11)
+		else LSwingFor(37);
+		if(!isRight)	driveFor(-15); //drive to center of zone (-11)
 		rotFor(-dir * 90, 2);
 		FourBar.PID.goal = FourBar.max;
 			FourBar.PID.isRunning = true;
@@ -219,12 +249,9 @@ void stackAuton(bool isSpiking, int numCones, bool isRight, bool isTwenty){ //co
 		driveFor(-(48 + numCones*5.5));//drive back
 		mainLift.PID.goal = avg2(mainLift.max, mainLift.min); //lift lift
 		mainLift.PID.isRunning = true;
-		if (isRight) rotFor(-45, 2);//swing out
-		else rotFor(45, 2);
-		driveFor(-10);
-		rotFor(dir * -90, 1); //rotate perp to 10pt pole
+		if (isRight) rotFor(-135, 2);//swing out
+		else rotFor(135, 2);
 		delay(100);
-		fwds(90);
 		DownUntil(&MoGo, MoGo.min + 100, 127);
 		driveFor(-20);// release & get out of the way
 	}
@@ -242,10 +269,11 @@ void loaderAuton(bool isRight, int numCones, bool isScored) {
 		mainLift.PID.isRunning = true;
 		FourBar.PID.isRunning = true;
 	driveFor(-14.5);
-	rotFor(84, 2); //curve into position
+	rotFor(-dir * 84, 2); //curve into position
 	startTask(LockNLoad);
-	for(int i = 0; i < numCones; i++){
+	repeat(numCones){
 		intakeSpeed = 127;
+		FourBar.PID.kP = 0.05;
 		FourBar.PID.goal = FourBar.min+50;//lift and 4bar down
 		mainLift.PID.goal = liftPos;
 		waitTill(&mainLift, mainLift.PID.goal, 200);//waits to bring lift down
@@ -264,12 +292,16 @@ task autonomous() {
 	startTask(displayLCD);
 	startTask(autonGoliath);
 	currentCone = 0;
-	if(autonIndex == 0)		  stackAuton(false, autonConeNum, RIGHTside, TWENTY);
-	else if (autonIndex == 1) stackAuton(false, autonConeNum, LEFTside, TWENTY);
-	else if (autonIndex == 2) stackAuton(false, autonConeNum, RIGHTside, TEN);
-	else if (autonIndex == 3) stackAuton(false, autonConeNum, LEFTside, TEN);
-	else if (autonIndex == 4) loaderAuton(RIGHTside, autonConeNum, false);
-	else if (autonIndex == 5) loaderAuton(LEFTside, autonConeNum, false);
+	if(autonIndex == 0)		  stackAuton(false, false, 3, RIGHTside, TWENTY);
+	else if (autonIndex == 1) stackAuton(false, false, 3, LEFTside, TWENTY);
+	else if (autonIndex == 2) stackAuton(false, false, 3, RIGHTside, FIVE);
+	else if (autonIndex == 3) stackAuton(false, false, 3, LEFTside, FIVE);
+	else if (autonIndex == 4) stackAuton(true, false, 3, RIGHTside, TWENTY);//loaderAuton(RIGHTside, 7, false);
+	else if (autonIndex == 5) stackAuton(true, false, 3, LEFTside, TWENTY);//loaderAuton(LEFTside, 7, false);
+	else if (autonIndex == 4) stackAuton(true, false, 3, RIGHTside, FIVE);//loaderAuton(RIGHTside, 7, false);
+	else if (autonIndex == 5) stackAuton(true, false, 3, LEFTside, FIVE);//loaderAuton(LEFTside, 7, false);
+	else if (autonIndex == 6) stackAuton(false, true, 3, RIGHTside, FIVE);//loaderAuton(RIGHTside, 7, false);
+	else if (autonIndex == 7) stackAuton(false, true, 3, LEFTside, FIVE);//loaderAuton(LEFTside, 7, false);
 	autonRunning = false;
 	return;
 }

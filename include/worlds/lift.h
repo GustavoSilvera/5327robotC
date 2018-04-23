@@ -96,7 +96,6 @@ void UpUntilW4Bar(int goal, float prop, int speed, bool FourBarToMax) {
 			else FourBar.PID.goal = FourBar.min;
 			FourBar.PID.isRunning = true;
 		}
-		else liftDiff(&goliat, 127);//if not moving 4bar, hold the cone more
 	}
 	liftMove(mainLift, 0);
 	//mainLift.PID.isRunning = true;
